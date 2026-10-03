@@ -676,10 +676,16 @@ fn camera_tab(ui: &mut Ui, s: &mut Value, dirty: &mut f32, out: &mut Outside, co
             *dirty = 0.3;
         }
     }
+    let mut seat_pitch = get(s, "seat_pitch_deg").as_f64().unwrap_or(0.0) as f32;
+    if ui.slider("s-seat-pitch", c.row(), &mut seat_pitch, -45.0, 45.0, 1.0, "Default head pitch", &|v| format!("{v:+.0}°")) {
+        s["seat_pitch_deg"] = json!(seat_pitch.round());
+        *dirty = 0.3;
+    }
     if ui.button("s-seatreset", c.row(), "Reset the seat position", Some("restart_alt"), ButtonKind::Normal) {
         for k in ["seat_x", "seat_y", "seat_z"] {
             s[k] = json!(0.0);
         }
+        s["seat_pitch_deg"] = json!(0.0);
         *dirty = 0.3;
     }
     let mut fov = get(s, "fov").as_f64().unwrap_or(0.0) as f32;
@@ -2336,7 +2342,7 @@ mod settings_tests {
             "s-wrange", "s-wlock", "s-pedt", "s-pedb", "set-ff_enabled", "set-ff_invert", "s-wreset", "s-go-pads",
         ];
         let mut camera = vec![
-            "s-seaty", "s-seatz", "s-seatx", "s-seatreset", "s-fov", "s-look-sens", "set-steer_look", "s-steer-look-angle", "s-steer-look-response", "set-head_movement", "set-driverview_smooth", "set-hands_in_cab", "set-alt_view",
+            "s-seaty", "s-seatz", "s-seatx", "s-seat-pitch", "s-seatreset", "s-fov", "s-look-sens", "set-steer_look", "s-steer-look-angle", "s-steer-look-response", "set-head_movement", "set-driverview_smooth", "set-hands_in_cab", "set-alt_view",
             "set-camera_collision", "set-driver", "set-head_tracking", "set-multimonitor",
         ];
         if cfg!(windows) {

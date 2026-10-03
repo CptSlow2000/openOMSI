@@ -54,6 +54,14 @@ fn level_view_orientation(yaw: f32) -> Quat {
     Quat::from_mat3(&Mat3::from_cols(right, Vec3::Z, -forward))
 }
 
+fn driver_head_look(look: (f32, f32), view: &str, seat_pitch_deg: f32) -> (f32, f32) {
+    if view == "driver" {
+        (look.0, look.1 + seat_pitch_deg)
+    } else {
+        look
+    }
+}
+
 /// Consume the VR redraw budget without updating a mirror twice in one frame.
 /// Negative rates request every mirror each frame; zero freezes immediately.
 fn vr_mirror_updates(budget: &mut f32, dt: f32, rate: f32, mirrors: usize) -> usize {
@@ -1118,6 +1126,8 @@ impl ApplicationHandler for App {
                             // or widest at once)
                             let prev_cam = *cam;
                             let base = omsi_render::Camera { fov_deg: 60.0, ..*cam };
+                            let head_look =
+                                driver_head_look(self.look, &self.view, self.settings.seat_pitch_deg);
                             // what turns the bus's own camera into the picture: the head's turn,
                             // the field of view setting and the zoom (for the camera left in a
                             // switch as well as for the one taken)
@@ -1145,7 +1155,7 @@ impl ApplicationHandler for App {
                                     c.fov_deg = (c.fov_deg * z).clamp(8.0, 120.0);
                                 }
                             };
-                            let mut cam = p.camera_look(&self.view, &base, self.look, self.orbit);
+                            let mut cam = p.camera_look(&self.view, &base, head_look, self.orbit);
                             finish(&mut cam);
                             // Smooth cockpit camera switch (arrow keys): the glide mixes the camera left and the one
                             // taken in the bus's own frame (smootherstep over CAM_BLEND_SECS); the bus's motion and
@@ -1158,7 +1168,7 @@ impl ApplicationHandler for App {
                                     .key
                                     .as_ref()
                                     .is_some_and(|k| k.0 == self.view && k.1 .0 != p.cam_choice.0);
-                                let target = if inside_view { p.driver_local(self.look) } else { None };
+                                let target = if inside_view { p.driver_local(head_look) } else { None };
                                 let mut started = false;
                                 if let Some(to) = target.as_ref() {
                                     if (entering || left) && crate::app::CAM_BLEND_SECS > 0.0 && self.settings.driverview_smooth {
@@ -3308,7 +3318,7 @@ mod vr_mirror_tests {
 
 #[cfg(test)]
 mod multimonitor_camera_tests {
-    use super::multimonitor_view_camera;
+    use super::{driver_head_look, multimonitor_view_camera};
     use glam::DVec3;
     use omsi_render::Camera;
 
@@ -3335,6 +3345,12 @@ mod multimonitor_camera_tests {
             assert_eq!(left.position, camera.position);
             assert_eq!(left.near, 0.1);
             assert_eq!(left.far, 6_000.0);
+        }
+
+        #[test]
+        fn default_head_pitch_only_affects_the_driver_view() {
+            assert_eq!(driver_head_look((4.0, 2.0), "driver", 10.0), (4.0, 12.0));
+            assert_eq!(driver_head_look((4.0, 2.0), "pax", 10.0), (4.0, 2.0));
         }
     }
 }
