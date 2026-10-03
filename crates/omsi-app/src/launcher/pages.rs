@@ -687,25 +687,18 @@ fn camera_tab(ui: &mut Ui, s: &mut Value, dirty: &mut f32, out: &mut Outside, co
         s["fov"] = json!(if fov < 20.0 { 0.0 } else { fov.round() });
         *dirty = 0.3;
     }
-    c.section(ui, "Multi-monitor cockpit");
-    toggle_setting(ui, s, dirty, c.row(), "Calibrated spanned-window views", "multimonitor");
+    c.section(ui, "Triple-screen cockpit");
+    toggle_setting(ui, s, dirty, c.row(), "Calibrated triple-screen views", "multimonitor");
     if get(s, "multimonitor").as_bool().unwrap_or(false) {
-        let mut count = get(s, "monitor_count").as_i64().unwrap_or(3) as f32;
-        if ui.slider("s-monitor-count", c.row(), &mut count, 1.0, 9.0, 1.0, "Monitor count", &|v| format!("{:.0}", v)) {
-            s["monitor_count"] = json!(count.round() as u32);
-            *dirty = 0.3;
-        }
         for (key, id, label, min, max, step) in [
-            ("monitor_width_mm", "s-monitor-width", "Screen width", 100.0, 3000.0, 10.0),
-            ("monitor_height_mm", "s-monitor-height", "Screen height", 100.0, 2000.0, 10.0),
-            ("monitor_distance_mm", "s-monitor-distance", "Eye to screen arc", 100.0, 3000.0, 10.0),
-            ("monitor_bezel_mm", "s-monitor-bezel", "Bezel correction", 0.0, 200.0, 1.0),
-            ("monitor_left_angle_deg", "s-monitor-left-angle", "Left screen angle", -80.0, 0.0, 1.0),
-            ("monitor_right_angle_deg", "s-monitor-right-angle", "Right screen angle", 0.0, 80.0, 1.0),
+            ("monitor_distance_mm", "s-monitor-distance", "Distance to screens", 100.0, 3000.0, 10.0),
+            ("monitor_width_mm", "s-monitor-width", "Width of each screen", 100.0, 3000.0, 10.0),
+            ("monitor_bezel_mm", "s-monitor-bezel", "Bezel width", 0.0, 200.0, 1.0),
+            ("monitor_angle_deg", "s-monitor-angle", "Screen angle", 0.0, 80.0, 1.0),
         ] {
             let mut value = get(s, key).as_f64().unwrap_or(0.0) as f32;
             if ui.slider(id, c.row(), &mut value, min, max, step, label, &|v| {
-                if key.ends_with("_deg") {
+                if key == "monitor_angle_deg" {
                     format!("{v:.0}°")
                 } else {
                     format!("{v:.0} mm")
@@ -716,7 +709,7 @@ fn camera_tab(ui: &mut Ui, s: &mut Value, dirty: &mut f32, out: &mut Outside, co
             }
         }
         c.y += ui.paragraph(
-            "For matched monitors, set one physical screen size and the left/right angles. A zero FOV uses the measured eye-to-screen geometry.",
+            "For three matched-size, same-resolution screens in a spanned desktop window. Screen height is calculated from the panel aspect ratio; the side-screen angle is symmetric.",
             Vec2::new(c.inner.x, c.y),
             c.inner.w,
             12.0,
@@ -2344,7 +2337,7 @@ mod settings_tests {
         ];
         let mut camera = vec![
             "s-seaty", "s-seatz", "s-seatx", "s-seatreset", "s-fov", "s-look-sens", "set-steer_look", "s-steer-look-angle", "s-steer-look-response", "set-head_movement", "set-driverview_smooth", "set-hands_in_cab", "set-alt_view",
-            "set-camera_collision", "set-driver", "set-head_tracking",
+            "set-camera_collision", "set-driver", "set-head_tracking", "set-multimonitor",
         ];
         if cfg!(windows) {
             camera.extend(["set-vr", "s-vr-scale", "s-vr-head-smoothing", "s-vr-mirror-rate", "set-vr_desktop_mirror", "s-go-vr-keys"]);
@@ -2413,6 +2406,20 @@ mod settings_tests {
                 assert!(ui.drawn.contains_key(&id_of(name)), "{name} is not on the {} tab", SETTINGS_TABS[tab]);
             }
             assert_eq!(ui.drawn.len(), names.len(), "the {} tab has a clickable thing more than the list names", SETTINGS_TABS[tab]);
+        }
+    }
+
+    #[test]
+    fn triple_screen_setup_exposes_only_the_four_calibration_controls() {
+        let mut s = all_rows();
+        s["multimonitor"] = json!(true);
+        let mut ui = Ui::new();
+        frame(&mut ui, 2, &mut s, &mut outside());
+        for name in ["s-monitor-distance", "s-monitor-width", "s-monitor-bezel", "s-monitor-angle"] {
+            assert!(ui.drawn.contains_key(&id_of(name)), "{name} is missing from the Camera tab");
+        }
+        for obsolete in ["s-monitor-count", "s-monitor-height", "s-monitor-left-angle", "s-monitor-right-angle"] {
+            assert!(!ui.drawn.contains_key(&id_of(obsolete)), "{obsolete} is still on the Camera tab");
         }
     }
 

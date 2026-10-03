@@ -791,13 +791,10 @@ fn steps_of(verb: &str) -> Option<Vec<f32>> {
         "vr_nav_yaw" | "vr_nav_roll" => (-90..=90).map(|v| v as f32 * 2.0).collect(),
         "vr_nav_tilt" => (-40..=40).map(|v| v as f32 * 2.0).collect(),
         "vr_nav_opacity" => (6..=20).map(|v| v as f32 * 0.05).collect(),
-        "monitor_count" => (1..=9).map(|v| v as f32).collect(),
         "monitor_width_mm" => (10..=300).map(|v| v as f32 * 10.0).collect(),
-        "monitor_height_mm" => (10..=200).map(|v| v as f32 * 10.0).collect(),
         "monitor_distance_mm" => (10..=300).map(|v| v as f32 * 10.0).collect(),
         "monitor_bezel_mm" => (0..=200).map(|v| v as f32).collect(),
-        "monitor_left_angle_deg" => (-80..=0).map(|v| v as f32).collect(),
-        "monitor_right_angle_deg" => (0..=80).map(|v| v as f32).collect(),
+        "monitor_angle_deg" => (0..=80).map(|v| v as f32).collect(),
         "speed" => SPEEDS.iter().map(|&v| v as f32).collect(),
         "traffic" => TRAFFIC.iter().map(|&v| v as f32).collect(),
         "pax" => PAX.to_vec(),
@@ -930,13 +927,10 @@ fn option_now(app: &App, verb: &str, arg: &str) -> Option<f32> {
         "wheel_range" => s.wheel_range,
         "wheel_lock" => s.wheel_lock,
         "fov" => s.fov,
-        "monitor_count" => s.monitor_count as f32,
         "monitor_width_mm" => s.monitor_width_mm,
-        "monitor_height_mm" => s.monitor_height_mm,
         "monitor_distance_mm" => s.monitor_distance_mm,
         "monitor_bezel_mm" => s.monitor_bezel_mm,
-        "monitor_left_angle_deg" => s.monitor_left_angle_deg,
-        "monitor_right_angle_deg" => s.monitor_right_angle_deg,
+        "monitor_angle_deg" => s.monitor_angle_deg,
         "steer_look_angle" => s.steer_look_angle,
         "steer_look_response" => s.steer_look_response,
         "seat" => s.seat[arg.trim().parse::<usize>().unwrap_or(0).min(2)],
@@ -1035,17 +1029,9 @@ fn option_set(app: &mut App, verb: &str, arg: &str, v: f32) -> Option<(&'static 
             app.settings.fov = if v < 20.0 { 0.0 } else { v.round() };
             Some(("fov", app.settings.fov.to_string()))
         }
-        "monitor_count" => {
-            app.settings.monitor_count = (v.round() as u8).clamp(1, 9);
-            Some(("monitor_count", app.settings.monitor_count.to_string()))
-        }
         "monitor_width_mm" => {
             app.settings.monitor_width_mm = v.clamp(100.0, 3000.0);
             Some(("monitor_width_mm", app.settings.monitor_width_mm.to_string()))
-        }
-        "monitor_height_mm" => {
-            app.settings.monitor_height_mm = v.clamp(100.0, 2000.0);
-            Some(("monitor_height_mm", app.settings.monitor_height_mm.to_string()))
         }
         "monitor_distance_mm" => {
             app.settings.monitor_distance_mm = v.clamp(100.0, 3000.0);
@@ -1055,13 +1041,9 @@ fn option_set(app: &mut App, verb: &str, arg: &str, v: f32) -> Option<(&'static 
             app.settings.monitor_bezel_mm = v.clamp(0.0, 200.0);
             Some(("monitor_bezel_mm", app.settings.monitor_bezel_mm.to_string()))
         }
-        "monitor_left_angle_deg" => {
-            app.settings.monitor_left_angle_deg = v.clamp(-80.0, 0.0);
-            Some(("monitor_left_angle_deg", app.settings.monitor_left_angle_deg.to_string()))
-        }
-        "monitor_right_angle_deg" => {
-            app.settings.monitor_right_angle_deg = v.clamp(0.0, 80.0);
-            Some(("monitor_right_angle_deg", app.settings.monitor_right_angle_deg.to_string()))
+        "monitor_angle_deg" => {
+            app.settings.monitor_angle_deg = v.clamp(0.0, 80.0);
+            Some(("monitor_angle_deg", app.settings.monitor_angle_deg.to_string()))
         }
         "steer_look_angle" => {
             app.settings.steer_look_angle = v.round();
@@ -1912,14 +1894,11 @@ fn options_pages(app: &App) -> Vec<Page> {
         slider_row(app, "look_sens", "Mouse look sensitivity", "How fast the view turns when looking round with the mouse (100% is OMSI's)", &pct),
         switch_row(app, "alt_view", "Right mouse button turns the view", "Shift+right zooms; off: right zooms as in OMSI, the wheel button turns"),
         slider_row(app, "fov", "Field of view", "The view angle of the views from the vehicle", &|v| if v < 20.0 { "Default".to_string() } else { format!("{v:.0}°") }),
-        switch_row(app, "multimonitor", "Calibrated multimonitor views", "Use off-axis views across a spanned desktop window"),
-        slider_row(app, "monitor_count", "Monitor count", "Number of views across the spanned window", &|v| format!("{v:.0}")),
-        slider_row(app, "monitor_width_mm", "Screen width", "Active width of each matched screen", &|v| format!("{v:.0} mm")),
-        slider_row(app, "monitor_height_mm", "Screen height", "Active height of each matched screen", &|v| format!("{v:.0} mm")),
-        slider_row(app, "monitor_distance_mm", "Eye to screen arc", "Distance from your eyes to the center of the screen arc", &|v| format!("{v:.0} mm")),
-        slider_row(app, "monitor_bezel_mm", "Bezel correction", "Physical gap between adjacent active screen areas", &|v| format!("{v:.0} mm")),
-        slider_row(app, "monitor_left_angle_deg", "Left screen angle", "Angle of the leftmost screen from center", &|v| format!("{v:.0}°")),
-        slider_row(app, "monitor_right_angle_deg", "Right screen angle", "Angle of the rightmost screen from center", &|v| format!("{v:.0}°")),
+        switch_row(app, "multimonitor", "Calibrated triple-screen views", "Use off-axis views across three matched-size, same-resolution screens in a spanned desktop window"),
+        slider_row(app, "monitor_distance_mm", "Distance to screens", "Distance from your eyes to the center screen", &|v| format!("{v:.0} mm")),
+        slider_row(app, "monitor_width_mm", "Width of each screen", "Screens need to be the same size and resolution", &|v| format!("{v:.0} mm")),
+        slider_row(app, "monitor_bezel_mm", "Bezel width", "Physical gap between adjacent active screen areas", &|v| format!("{v:.0} mm")),
+        slider_row(app, "monitor_angle_deg", "Screen angle", "Positive angle of each side screen from the center screen", &|v| format!("{v:.0}°")),
         slider_row(app, "seat 1", "Seat forward and back", "Adjust the driver's seat position forward or backward", &cm),
         slider_row(app, "seat 2", "Seat height", "Adjust the driver's seat height", &cm),
         slider_row(app, "seat 0", "Seat left and right", "Adjust the driver's seat position from side to side", &cm),

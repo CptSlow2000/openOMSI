@@ -318,19 +318,19 @@ view response** sets the smoothing time (50–1000 ms, default 250 ms; larger va
 more slowly). Manual looking remains available. The automatic turn is suppressed while
 VR or an active head tracker controls the view. It is off by default.
 
-**Multimonitor cockpit.** Settings → Camera → *Calibrated spanned-window views* renders a
-separate off-axis view for each monitor into one wide desktop window. Set the OS display
-layout to span the monitors (for example, NVIDIA Surround); openOMSI does not create or
-position separate windows. Three matched-resolution, matched-size screens are the
-recommended setup. The monitor count is configurable from one to nine, and the same active
-screen width/height in millimetres is used for each panel. Set the leftmost and rightmost
-screen angles, the distance from your eyes to the center of the screen arc, and the physical
-gap between active screen areas for bezel correction. The existing seat-position controls
-set the driver's eye position relative to the bus, and the existing FOV control overrides
-the physical FOV; *Default* uses the measured screen size and viewing distance. The HUD and
-other interface overlays are drawn once across the spanned picture. Extra views cost
-additional GPU time; the existing render-scale setting applies to each view, so reduce it
-or lower graphics quality if the frame rate drops.
+**Triple-screen cockpit.** Settings → Camera → *Calibrated triple-screen views* renders a
+separate off-axis view for each of three matched-size, matched-resolution screens in one
+wide desktop window. Set the OS display layout to span the screens (for example, NVIDIA
+Surround); openOMSI does not create or position separate windows. The four calibration
+settings are the distance from your eyes to the center screen, the width of each screen, the
+bezel gap between active screen areas, and one positive screen angle applied symmetrically
+to the left and right screens. Screen height is calculated from the per-panel pixel aspect
+ratio, so the three screens must have the same size and resolution. The existing
+seat-position controls set the driver's eye position relative to the bus, and the existing
+FOV control overrides the physical FOV; *Default* uses the measured screen size and viewing
+distance. The HUD and other interface overlays are drawn once across the spanned picture.
+The three views cost additional GPU time; the existing render-scale setting applies to each
+view, so reduce it or lower graphics quality if the frame rate drops.
 
 ## Mods and the content folder
 

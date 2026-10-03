@@ -248,20 +248,14 @@ pub struct Settings {
     pub fov: f32,
     /// Render the driver's view as multiple calibrated views across one spanned window.
     pub multimonitor: bool,
-    /// Number of horizontal monitor views (1..=9).
-    pub monitor_count: u8,
     /// Active screen width (mm); the initial setup assumes matched monitors.
     pub monitor_width_mm: f32,
-    /// Active screen height (mm); the initial setup assumes matched monitors.
-    pub monitor_height_mm: f32,
     /// Driver eye to the center of the monitor arc (mm).
     pub monitor_distance_mm: f32,
     /// Physical gap hidden by adjacent bezels (mm).
     pub monitor_bezel_mm: f32,
-    /// Leftmost screen angle from center (degrees).
-    pub monitor_left_angle_deg: f32,
-    /// Rightmost screen angle from center (degrees).
-    pub monitor_right_angle_deg: f32,
+    /// Symmetric angle of each side screen from center (degrees).
+    pub monitor_angle_deg: f32,
     /// The outside camera is pulled in in front of what stands between it and the bus
     /// (off: it goes through everything, as in OMSI).
     pub camera_collision: bool,
@@ -322,7 +316,7 @@ impl Default for Settings {
 impl Settings {
     /// The defaults of a computer.
     fn desktop() -> Self {
-        Self { msaa: 4, anisotropy: 8, ssao: true, shadows: true, shadow_size: 2048, shadow_blobs: true, navigator: true, ui_opacity: 0.85, notes: true, ui_scale: 1.0, ui_scale_window: true, navigator_corner: "bottom-left".into(), boarding: "auto".into(), detail_textures: true, exact_fare: true, enhanced: false, graphics: "vanilla_plus".into(), vr: false, vr_scale: 0.65, vr_head_smoothing_ms: 0.0, vr_mirror_rate: 16.0, vr_desktop_mirror: true, fullscreen: false, vsync: true, volume: 0.6, drive_keys: "simple".into(), post_aa: "fxaa".into(), render_scale: 0.0, language: "ENG".into(), pax_voices: "all".into(), nav_arrows: false, nav_ai: true, get_up: false, texture_compression: true, texture_memory: 0, auto_clutch: true, momentary_gears: false, auto_shift: false, min_obj_size: 0.013, max_obj_dist: -1.0, max_fps: 0, chat: true, tooltips: true, name_tags: true, show_fps: false, clouds: true, pax_density: 1.0, vol_ai: 1.0, vol_scenery: 1.0, mirror_size: 256, mirror_hud: 0, mirror_refresh: "full".into(), doppler: true, driver: true, maintenance: 0, ai_unsched_factor: 1.0, ai_max_scheduled: 0, ai_max_parked: 0, ai_max_humans: 200, collision_vehicles: true, collision_objects: true, collision_pedestrians: true, head_movement: true, driverview_smooth: true, hands_in_cab: false, alt_view: true, time_speed: 1.0, time_sync: false, metar_sync: false, metar_station: String::new(), machine_translation: false, shadow_casters: "all".into(), ctrl_deadzone: 0.0, ctrl_off: String::new(), steering_linear: false, old_steering: false, red_steer_spd: false, reflections: true, led_glow: 6, led_mips: 1.3, mouse_sens: 1.0, graphics_api: "auto".into(), ff_invert: false, ff_enabled: true, brake_hold: true, mouse_steering: false, mouse_right_off: false, look_sens: 1.0, blinker_cancel: true, wheel_range: 900.0, wheel_lock: 0.0, fov: 0.0, multimonitor: false, monitor_count: 3, monitor_width_mm: 600.0, monitor_height_mm: 340.0, monitor_distance_mm: 650.0, monitor_bezel_mm: 0.0, monitor_left_angle_deg: -45.0, monitor_right_angle_deg: 45.0, camera_collision: true, steer_look: false, steer_look_angle: 30.0, steer_look_response: 0.25, pedal_throttle: 1.0, pedal_brake: 1.0, seat: [0.0; 3], head_tracking: false, head_tracking_port: 4242, head_tracking_invert: String::new(), discord_status: true, discord_app_id: String::new() }
+        Self { msaa: 4, anisotropy: 8, ssao: true, shadows: true, shadow_size: 2048, shadow_blobs: true, navigator: true, ui_opacity: 0.85, notes: true, ui_scale: 1.0, ui_scale_window: true, navigator_corner: "bottom-left".into(), boarding: "auto".into(), detail_textures: true, exact_fare: true, enhanced: false, graphics: "vanilla_plus".into(), vr: false, vr_scale: 0.65, vr_head_smoothing_ms: 0.0, vr_mirror_rate: 16.0, vr_desktop_mirror: true, fullscreen: false, vsync: true, volume: 0.6, drive_keys: "simple".into(), post_aa: "fxaa".into(), render_scale: 0.0, language: "ENG".into(), pax_voices: "all".into(), nav_arrows: false, nav_ai: true, get_up: false, texture_compression: true, texture_memory: 0, auto_clutch: true, momentary_gears: false, auto_shift: false, min_obj_size: 0.013, max_obj_dist: -1.0, max_fps: 0, chat: true, tooltips: true, name_tags: true, show_fps: false, clouds: true, pax_density: 1.0, vol_ai: 1.0, vol_scenery: 1.0, mirror_size: 256, mirror_hud: 0, mirror_refresh: "full".into(), doppler: true, driver: true, maintenance: 0, ai_unsched_factor: 1.0, ai_max_scheduled: 0, ai_max_parked: 0, ai_max_humans: 200, collision_vehicles: true, collision_objects: true, collision_pedestrians: true, head_movement: true, driverview_smooth: true, hands_in_cab: false, alt_view: true, time_speed: 1.0, time_sync: false, metar_sync: false, metar_station: String::new(), machine_translation: false, shadow_casters: "all".into(), ctrl_deadzone: 0.0, ctrl_off: String::new(), steering_linear: false, old_steering: false, red_steer_spd: false, reflections: true, led_glow: 6, led_mips: 1.3, mouse_sens: 1.0, graphics_api: "auto".into(), ff_invert: false, ff_enabled: true, brake_hold: true, mouse_steering: false, mouse_right_off: false, look_sens: 1.0, blinker_cancel: true, wheel_range: 900.0, wheel_lock: 0.0, fov: 0.0, multimonitor: false, monitor_width_mm: 600.0, monitor_distance_mm: 650.0, monitor_bezel_mm: 0.0, monitor_angle_deg: 45.0, camera_collision: true, steer_look: false, steer_look_angle: 30.0, steer_look_response: 0.25, pedal_throttle: 1.0, pedal_brake: 1.0, seat: [0.0; 3], head_tracking: false, head_tracking_port: 4242, head_tracking_invert: String::new(), discord_status: true, discord_app_id: String::new() }
     }
 }
 
@@ -332,13 +326,10 @@ impl Settings {
             return None;
         }
         let layout = omsi_render::multimonitor::Layout {
-            count: self.monitor_count,
             width_mm: self.monitor_width_mm,
-            height_mm: self.monitor_height_mm,
             distance_mm: self.monitor_distance_mm,
             bezel_mm: self.monitor_bezel_mm,
-            left_angle_deg: self.monitor_left_angle_deg,
-            right_angle_deg: self.monitor_right_angle_deg,
+            angle_deg: self.monitor_angle_deg,
             fov_deg: self.fov,
         };
         layout.validate().ok().map(|_| layout)
@@ -384,6 +375,9 @@ impl Settings {
         let mut s = Settings::default();
         let mut version = 0u32;
         let mut graphics: Option<String> = None;
+        let mut legacy_monitor_left = None;
+        let mut legacy_monitor_right = None;
+        let mut has_monitor_angle = false;
         for line in text.lines() {
             let line = line.trim();
             if line.is_empty() || line.starts_with('#') || line.starts_with(';') {
@@ -503,13 +497,16 @@ impl Settings {
                 "wheel_lock" => s.wheel_lock = v.parse::<f32>().ok().filter(|x| x.is_finite()).map(|x| if x < 45.0 { 0.0 } else { x.min(2880.0) }).unwrap_or(s.wheel_lock),
                 "camera_collision" => s.camera_collision = b(v),
                 "multimonitor" => s.multimonitor = b(v),
-                "monitor_count" => s.monitor_count = v.parse::<u8>().map(|x| x.clamp(1, 9)).unwrap_or(s.monitor_count),
                 "monitor_width_mm" => s.monitor_width_mm = v.parse::<f32>().ok().filter(|x| x.is_finite()).map(|x| x.clamp(100.0, 3000.0)).unwrap_or(s.monitor_width_mm),
-                "monitor_height_mm" => s.monitor_height_mm = v.parse::<f32>().ok().filter(|x| x.is_finite()).map(|x| x.clamp(100.0, 2000.0)).unwrap_or(s.monitor_height_mm),
                 "monitor_distance_mm" => s.monitor_distance_mm = v.parse::<f32>().ok().filter(|x| x.is_finite()).map(|x| x.clamp(100.0, 3000.0)).unwrap_or(s.monitor_distance_mm),
                 "monitor_bezel_mm" => s.monitor_bezel_mm = v.parse::<f32>().ok().filter(|x| x.is_finite()).map(|x| x.clamp(0.0, 200.0)).unwrap_or(s.monitor_bezel_mm),
-                "monitor_left_angle_deg" => s.monitor_left_angle_deg = v.parse::<f32>().ok().filter(|x| x.is_finite()).map(|x| x.clamp(-80.0, 0.0)).unwrap_or(s.monitor_left_angle_deg),
-                "monitor_right_angle_deg" => s.monitor_right_angle_deg = v.parse::<f32>().ok().filter(|x| x.is_finite()).map(|x| x.clamp(0.0, 80.0)).unwrap_or(s.monitor_right_angle_deg),
+                "monitor_angle_deg" => {
+                    has_monitor_angle = true;
+                    s.monitor_angle_deg = v.parse::<f32>().ok().filter(|x| x.is_finite()).map(|x| x.clamp(0.0, 80.0)).unwrap_or(s.monitor_angle_deg);
+                }
+                "monitor_left_angle_deg" => legacy_monitor_left = v.parse::<f32>().ok().filter(|x| x.is_finite()).map(|x| x.abs().clamp(0.0, 80.0)),
+                "monitor_right_angle_deg" => legacy_monitor_right = v.parse::<f32>().ok().filter(|x| x.is_finite()).map(|x| x.clamp(0.0, 80.0)),
+                "monitor_count" | "monitor_height_mm" => {}
                 "steer_look" => s.steer_look = b(v),
                 "steer_look_angle" => s.steer_look_angle = v.parse::<f32>().ok().filter(|x| x.is_finite()).map(|x| x.clamp(0.0, 60.0)).unwrap_or(s.steer_look_angle),
                 "steer_look_response" => s.steer_look_response = v.parse::<f32>().ok().filter(|x| x.is_finite()).map(|x| x.clamp(0.05, 1.0)).unwrap_or(s.steer_look_response),
@@ -534,6 +531,11 @@ impl Settings {
                 "drive_keys" => s.drive_keys = match v.to_ascii_lowercase().as_str() { "wasd" | "arrows" | "omsi" | "simple" => v.to_ascii_lowercase(), _ => s.drive_keys },
                 _ => {}
             }
+        }
+        if !has_monitor_angle && (legacy_monitor_left.is_some() || legacy_monitor_right.is_some()) {
+            s.monitor_angle_deg = (legacy_monitor_left.unwrap_or(45.0)
+                + legacy_monitor_right.unwrap_or(45.0))
+                * 0.5;
         }
         // `graphics` decides; a file without it (older builds) says only `enhanced`, and
         // its vanilla renderer is what is now called Vanilla+
@@ -569,9 +571,9 @@ impl Settings {
         ));
         text.push_str(&format!("steer_look={}\nsteer_look_angle={}\nsteer_look_response={}\nlook_sens={}\nblinker_cancel={}\n", self.steer_look as u8, self.steer_look_angle, self.steer_look_response, self.look_sens, self.blinker_cancel as u8));
         text.push_str(&format!(
-            "fov={}\nmultimonitor={}\nmonitor_count={}\nmonitor_width_mm={}\nmonitor_height_mm={}\nmonitor_distance_mm={}\nmonitor_bezel_mm={}\nmonitor_left_angle_deg={}\nmonitor_right_angle_deg={}\n",
-            self.fov, self.multimonitor as u8, self.monitor_count, self.monitor_width_mm, self.monitor_height_mm,
-            self.monitor_distance_mm, self.monitor_bezel_mm, self.monitor_left_angle_deg, self.monitor_right_angle_deg
+            "fov={}\nmultimonitor={}\nmonitor_width_mm={}\nmonitor_distance_mm={}\nmonitor_bezel_mm={}\nmonitor_angle_deg={}\n",
+            self.fov, self.multimonitor as u8, self.monitor_width_mm,
+            self.monitor_distance_mm, self.monitor_bezel_mm, self.monitor_angle_deg
         ));
         text.push_str(&format!("discord_status={}\ndiscord_app_id={}\n", self.discord_status as u8, self.discord_app_id));
         text.push_str(&format!("auto_shift={}\n", self.auto_shift as u8));
@@ -709,28 +711,29 @@ mod tests {
     fn multimonitor_settings_round_trip_and_validate_ranges() {
         let settings = Settings {
             multimonitor: true,
-            monitor_count: 5,
             monitor_width_mm: 680.0,
-            monitor_height_mm: 380.0,
             monitor_distance_mm: 720.0,
             monitor_bezel_mm: 25.0,
-            monitor_left_angle_deg: -55.0,
-            monitor_right_angle_deg: 55.0,
+            monitor_angle_deg: 55.0,
             fov: 80.0,
             ..Default::default()
         };
         assert_eq!(Settings::from_text(&settings.to_text()), settings);
-        assert_eq!(settings.monitor_layout().unwrap().count, 5);
+        assert_eq!(settings.monitor_layout().unwrap().angle_deg, 55.0);
         assert!(!Settings::default().multimonitor);
 
-        let invalid = Settings::from_text(
-            "monitor_count=0\nmonitor_width_mm=NaN\nmonitor_distance_mm=4000\nmonitor_left_angle_deg=20\n",
+        let migrated = Settings::from_text(
+            "monitor_count=5\nmonitor_height_mm=380\nmonitor_left_angle_deg=-55\nmonitor_right_angle_deg=50\n",
         );
-        assert_eq!(invalid.monitor_count, 1);
+        assert_eq!(migrated.monitor_angle_deg, 52.5);
+
+        let invalid = Settings::from_text(
+            "multimonitor=1\nmonitor_count=9\nmonitor_width_mm=NaN\nmonitor_distance_mm=4000\nmonitor_angle_deg=NaN\n",
+        );
         assert_eq!(invalid.monitor_width_mm, 600.0);
         assert_eq!(invalid.monitor_distance_mm, 3000.0);
-        assert_eq!(invalid.monitor_left_angle_deg, 0.0);
-        assert!(invalid.monitor_layout().is_none());
+        assert_eq!(invalid.monitor_angle_deg, 45.0);
+        assert_eq!(invalid.monitor_layout().unwrap().angle_deg, 45.0);
     }
 
     #[test]

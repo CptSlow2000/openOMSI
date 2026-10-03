@@ -14,6 +14,15 @@ const MIRROR_MAX_HZ_FULL: f32 = 30.0;
 /// it is taken over and once more this many seconds later.
 const MIRROR_FREEZE_REDRAW: f32 = 2.0;
 
+fn multimonitor_view_camera(camera: &Camera, yaw: f32) -> Camera {
+    Camera {
+        yaw,
+        near: 0.1,
+        far: 6_000.0,
+        ..*camera
+    }
+}
+
 /// Consume the VR redraw budget without updating a mirror twice in one frame.
 /// Negative rates request every mirror each frame; zero freezes immediately.
 fn vr_mirror_updates(budget: &mut f32, dt: f32, rate: f32, mirrors: usize) -> usize {
@@ -58,14 +67,14 @@ fn render_multimonitor_views(
     lighting: &omsi_render::Lighting,
     layout: &omsi_render::multimonitor::Layout,
 ) -> Result<(), &'static str> {
-    let count = u32::from(layout.count);
-    if count == 0 || width < count || height == 0 {
-        return Err("the spanned window is too small for the configured monitor count");
+    let count = omsi_render::multimonitor::MONITOR_COUNT as u32;
+    if width < count || height == 0 {
+        return Err("the spanned window is too small for triple-screen rendering");
     }
-    let view_specs = layout.views(camera.position, camera.yaw)?;
     let widths: Vec<u32> = (0..count)
         .map(|index| width / count + u32::from(index < width % count))
         .collect();
+    let view_specs = layout.views(camera.position, camera.yaw, widths[1] as f32 / height as f32)?;
     let scale = renderer.scene_scale(width, height);
     let target_sizes: Vec<(u32, u32)> = widths
         .iter()
@@ -121,12 +130,7 @@ fn render_multimonitor_views(
     let center = view_specs.len() / 2;
     for index in std::iter::once(center).chain((0..view_specs.len()).filter(|&i| i != center)) {
         let spec = view_specs[index];
-        let mut view_camera = *camera;
-        view_camera.yaw = spec.yaw_deg;
-        view_camera.pitch = 0.0;
-        view_camera.roll = 0.0;
-        view_camera.near = 0.1;
-        view_camera.far = 6_000.0;
+        let view_camera = multimonitor_view_camera(camera, spec.yaw_deg);
         let (panel_width, panel_height) = targets[index].size;
         renderer.render_projected(
             scene,
@@ -3268,5 +3272,32 @@ mod vr_mirror_tests {
         assert_eq!(vr_mirror_updates(&mut budget, 0.1, -1.0, 0), 0);
         assert_eq!(vr_mirror_updates(&mut budget, 0.1, 360.0, 0), 0);
         assert_eq!(budget, 0.0);
+    }
+}
+
+#[cfg(test)]
+mod multimonitor_camera_tests {
+    use super::multimonitor_view_camera;
+    use glam::DVec3;
+    use omsi_render::Camera;
+
+    #[test]
+    fn per_screen_camera_preserves_vertical_and_roll_rotation() {
+        let camera = Camera {
+            position: DVec3::new(1.0, 2.0, 3.0),
+            yaw: 12.0,
+            pitch: 27.0,
+            roll: -8.0,
+            fov_deg: 75.0,
+            near: 0.5,
+            far: 2_000.0,
+        };
+        let view = multimonitor_view_camera(&camera, -45.0);
+        assert_eq!(view.yaw, -45.0);
+        assert_eq!(view.pitch, 27.0);
+        assert_eq!(view.roll, -8.0);
+        assert_eq!(view.position, camera.position);
+        assert_eq!(view.near, 0.1);
+        assert_eq!(view.far, 6_000.0);
     }
 }

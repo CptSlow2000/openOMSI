@@ -2,15 +2,14 @@
 
 use glam::{DVec3, Mat4, Vec3, Vec4};
 
+pub const MONITOR_COUNT: usize = 3;
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Layout {
-    pub count: u8,
     pub width_mm: f32,
-    pub height_mm: f32,
     pub distance_mm: f32,
     pub bezel_mm: f32,
-    pub left_angle_deg: f32,
-    pub right_angle_deg: f32,
+    pub angle_deg: f32,
     /// Zero uses the physically measured screen and eye geometry.
     pub fov_deg: f32,
 }
@@ -25,14 +24,8 @@ pub struct View {
 
 impl Layout {
     pub fn validate(&self) -> Result<(), &'static str> {
-        if !(1..=9).contains(&self.count) {
-            return Err("monitor count must be 1..=9");
-        }
         if !self.width_mm.is_finite() || !(100.0..=3000.0).contains(&self.width_mm) {
             return Err("monitor width must be 100..=3000 mm");
-        }
-        if !self.height_mm.is_finite() || !(100.0..=2000.0).contains(&self.height_mm) {
-            return Err("monitor height must be 100..=2000 mm");
         }
         if !self.distance_mm.is_finite() || !(100.0..=3000.0).contains(&self.distance_mm) {
             return Err("eye-to-screen distance must be 100..=3000 mm");
@@ -40,12 +33,8 @@ impl Layout {
         if !self.bezel_mm.is_finite() || !(0.0..=200.0).contains(&self.bezel_mm) {
             return Err("bezel correction must be 0..=200 mm");
         }
-        if !self.left_angle_deg.is_finite()
-            || !self.right_angle_deg.is_finite()
-            || !(-80.0..=0.0).contains(&self.left_angle_deg)
-            || !(0.0..=80.0).contains(&self.right_angle_deg)
-        {
-            return Err("screen angles must be within -80..=80 degrees and straddle zero");
+        if !self.angle_deg.is_finite() || !(0.0..=80.0).contains(&self.angle_deg) {
+            return Err("screen angle must be 0..=80 degrees");
         }
         if !self.fov_deg.is_finite()
             || (self.fov_deg != 0.0 && !(20.0..=120.0).contains(&self.fov_deg))
@@ -55,24 +44,28 @@ impl Layout {
         Ok(())
     }
 
-    /// The screens, ordered left-to-right. Angles interpolate between the configured outer
-    /// screens; with an odd count, the middle screen is straight ahead.
-    pub fn views(&self, eye: DVec3, base_yaw_deg: f32) -> Result<Vec<View>, &'static str> {
+    /// The three screens, ordered left-to-right, with one symmetric outer-screen angle.
+    /// Screen height follows the active pixel aspect ratio of each matched panel.
+    pub fn views(
+        &self,
+        eye: DVec3,
+        base_yaw_deg: f32,
+        panel_aspect_ratio: f32,
+    ) -> Result<Vec<View>, &'static str> {
         self.validate()?;
         if !eye.is_finite() || !base_yaw_deg.is_finite() {
             return Err("eye position and heading must be finite");
         }
+        if !panel_aspect_ratio.is_finite() || !(0.1..=10.0).contains(&panel_aspect_ratio) {
+            return Err("screen pixel aspect ratio must be 0.1..=10");
+        }
 
-        let count = self.count as usize;
+        let count = MONITOR_COUNT;
         let base_yaw = base_yaw_deg.to_radians();
-        let angle_at = |index: usize| {
-            if count == 1 {
-                0.0
-            } else {
-                self.left_angle_deg
-                    + (self.right_angle_deg - self.left_angle_deg) * index as f32
-                        / (count - 1) as f32
-            }
+        let angle_at = |index: usize| match index {
+            0 => -self.angle_deg,
+            1 => 0.0,
+            _ => self.angle_deg,
         };
         let right_at = |index: usize| {
             let yaw = base_yaw + angle_at(index).to_radians();
@@ -84,41 +77,21 @@ impl Layout {
         let width = f64::from(self.width_mm) / 1000.0;
         let distance = f64::from(self.distance_mm) / 1000.0;
         let center_index = count / 2;
-
-        if count % 2 == 1 {
-            centers[center_index] = eye + forward.as_dvec3() * distance;
-            for index in (0..center_index).rev() {
-                let joint = centers[index + 1] - right_at(index + 1).as_dvec3() * (width * 0.5);
-                let gap_dir = (right_at(index) + right_at(index + 1)).normalize_or_zero();
-                centers[index] =
-                    joint - gap_dir.as_dvec3() * gap - right_at(index).as_dvec3() * (width * 0.5);
-            }
-            for index in center_index + 1..count {
-                let joint = centers[index - 1] + right_at(index - 1).as_dvec3() * (width * 0.5);
-                let gap_dir = (right_at(index - 1) + right_at(index)).normalize_or_zero();
-                centers[index] =
-                    joint + gap_dir.as_dvec3() * gap + right_at(index).as_dvec3() * (width * 0.5);
-            }
-        } else {
-            let seam = eye + forward.as_dvec3() * distance;
-            centers[center_index - 1] =
-                seam - right_at(center_index - 1).as_dvec3() * (width * 0.5);
-            centers[center_index] = seam + right_at(center_index).as_dvec3() * (width * 0.5);
-            for index in (0..center_index - 1).rev() {
-                let joint = centers[index + 1] - right_at(index + 1).as_dvec3() * (width * 0.5);
-                let gap_dir = (right_at(index) + right_at(index + 1)).normalize_or_zero();
-                centers[index] =
-                    joint - gap_dir.as_dvec3() * gap - right_at(index).as_dvec3() * (width * 0.5);
-            }
-            for index in center_index + 1..count {
-                let joint = centers[index - 1] + right_at(index - 1).as_dvec3() * (width * 0.5);
-                let gap_dir = (right_at(index - 1) + right_at(index)).normalize_or_zero();
-                centers[index] =
-                    joint + gap_dir.as_dvec3() * gap + right_at(index).as_dvec3() * (width * 0.5);
-            }
+        centers[center_index] = eye + forward.as_dvec3() * distance;
+        for index in (0..center_index).rev() {
+            let joint = centers[index + 1] - right_at(index + 1).as_dvec3() * (width * 0.5);
+            let gap_dir = (right_at(index) + right_at(index + 1)).normalize_or_zero();
+            centers[index] =
+                joint - gap_dir.as_dvec3() * gap - right_at(index).as_dvec3() * (width * 0.5);
+        }
+        for index in center_index + 1..count {
+            let joint = centers[index - 1] + right_at(index - 1).as_dvec3() * (width * 0.5);
+            let gap_dir = (right_at(index - 1) + right_at(index)).normalize_or_zero();
+            centers[index] =
+                joint + gap_dir.as_dvec3() * gap + right_at(index).as_dvec3() * (width * 0.5);
         }
 
-        let height = f64::from(self.height_mm) / 1000.0;
+        let height = f64::from(self.width_mm / panel_aspect_ratio) / 1000.0;
         let near = 0.1;
         let far = 6_000.0;
         let fov_scale = if self.fov_deg == 0.0 {
@@ -201,20 +174,17 @@ mod tests {
 
     fn triple() -> Layout {
         Layout {
-            count: 3,
             width_mm: 600.0,
-            height_mm: 340.0,
             distance_mm: 650.0,
             bezel_mm: 0.0,
-            left_angle_deg: -45.0,
-            right_angle_deg: 45.0,
+            angle_deg: 45.0,
             fov_deg: 0.0,
         }
     }
 
     #[test]
     fn three_monitor_layout_is_centered_and_oriented() {
-        let views = triple().views(DVec3::ZERO, 0.0).unwrap();
+        let views = triple().views(DVec3::ZERO, 0.0, 16.0 / 9.0).unwrap();
         assert_eq!(views.len(), 3);
         assert_eq!(views[1].yaw_deg, 0.0);
         assert!((views[0].yaw_deg + 45.0).abs() < 1e-5);
@@ -227,30 +197,29 @@ mod tests {
     }
 
     #[test]
-    fn single_monitor_is_a_centered_off_axis_projection() {
-        let mut layout = triple();
-        layout.count = 1;
-        let view = layout.views(DVec3::ZERO, 0.0).unwrap()[0];
-        assert_eq!(view.yaw_deg, 0.0);
-        assert!(view.projection.x_axis.y.abs() < 1e-6);
-        assert!(view.projection.y_axis.x.abs() < 1e-6);
-        assert!(view.projection.x_axis.x > 0.0);
-        assert!(view.projection.y_axis.y > 0.0);
-        let center = view.projection * glam::Vec4::new(0.0, 0.0, -0.65, 1.0);
-        assert!(center.x.abs() < 1e-5);
-        assert!(center.y.abs() < 1e-5);
+    fn screen_height_follows_panel_aspect_ratio() {
+        let layout = triple();
+        let widescreen = layout.views(DVec3::ZERO, 0.0, 16.0 / 9.0).unwrap();
+        let four_three = layout.views(DVec3::ZERO, 0.0, 4.0 / 3.0).unwrap();
+        let widescreen_height = layout.width_mm / (16.0 / 9.0);
+        let four_three_height = layout.width_mm / (4.0 / 3.0);
+        assert!((widescreen_height - 337.5).abs() < 1e-4);
+        assert!(four_three_height > widescreen_height);
+        assert!(widescreen[1].projection.y_axis.y > four_three[1].projection.y_axis.y);
     }
 
     #[test]
     fn physical_screen_corners_map_to_viewport_edges() {
         let layout = triple();
         let eye = DVec3::new(3.0, -2.0, 1.5);
-        for view in layout.views(eye, 17.0).unwrap() {
+        let aspect = 16.0 / 9.0;
+        let height = layout.width_mm / aspect;
+        for view in layout.views(eye, 17.0, aspect).unwrap() {
             let yaw = view.yaw_deg.to_radians();
             let right = Vec3::new(yaw.cos(), -yaw.sin(), 0.0);
             let normal = Vec3::new(yaw.sin(), yaw.cos(), 0.0);
             let width = layout.width_mm / 1000.0;
-            let height = layout.height_mm / 1000.0;
+            let height = height / 1000.0;
             let corners = [(-1.0, -1.0), (1.0, -1.0), (-1.0, 1.0), (1.0, 1.0)];
             for (x_sign, y_sign) in corners {
                 let corner = view.center - eye
@@ -271,23 +240,19 @@ mod tests {
     #[test]
     fn wider_bezel_gap_moves_outer_panels_apart() {
         let mut layout = triple();
-        let no_gap = layout.views(DVec3::ZERO, 0.0).unwrap();
+        let no_gap = layout.views(DVec3::ZERO, 0.0, 16.0 / 9.0).unwrap();
         layout.bezel_mm = 40.0;
-        let gap = layout.views(DVec3::ZERO, 0.0).unwrap();
+        let gap = layout.views(DVec3::ZERO, 0.0, 16.0 / 9.0).unwrap();
         assert!(gap[0].center.x < no_gap[0].center.x);
         assert!(gap[2].center.x > no_gap[2].center.x);
     }
 
     #[test]
-    fn all_supported_monitor_counts_produce_valid_views() {
-        let mut layout = triple();
-        for count in 1..=9 {
-            layout.count = count;
-            assert_eq!(
-                layout.views(DVec3::ZERO, 0.0).unwrap().len(),
-                count as usize
-            );
-        }
+    fn layout_always_produces_three_views() {
+        assert_eq!(
+            triple().views(DVec3::ZERO, 0.0, 16.0 / 9.0).unwrap().len(),
+            MONITOR_COUNT
+        );
     }
 
     #[test]
@@ -296,7 +261,8 @@ mod tests {
         layout.width_mm = f32::NAN;
         assert!(layout.validate().is_err());
         layout.width_mm = 600.0;
-        layout.left_angle_deg = 10.0;
+        layout.angle_deg = 81.0;
         assert!(layout.validate().is_err());
+        assert!(triple().views(DVec3::ZERO, 0.0, 0.0).is_err());
     }
 }

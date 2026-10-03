@@ -1699,13 +1699,10 @@ pub fn settings_from_text(text: Option<&str>) -> Value {
     v["mirror_refresh"] = json!("full");
     v["vr_desktop_mirror"] = json!(true);
     v["multimonitor"] = json!(false);
-    v["monitor_count"] = json!(3);
     v["monitor_width_mm"] = json!(600.0);
-    v["monitor_height_mm"] = json!(340.0);
     v["monitor_distance_mm"] = json!(650.0);
     v["monitor_bezel_mm"] = json!(0.0);
-    v["monitor_left_angle_deg"] = json!(-45.0);
-    v["monitor_right_angle_deg"] = json!(45.0);
+    v["monitor_angle_deg"] = json!(45.0);
     v["discord_status"] = json!(true);
     v["discord_app_id"] = json!("");
     // the launcher gives the graphics card up while a game runs (off: it stays drawn)
@@ -1731,6 +1728,9 @@ pub fn settings_from_text(text: Option<&str>) -> Value {
     let Some(t) = text else { return v };
     let mut version = 0;
     let mut graphics: Option<&str> = None;
+    let mut legacy_monitor_left = None;
+    let mut legacy_monitor_right = None;
+    let mut has_monitor_angle = false;
     for line in t.lines() {
         let line = line.trim();
         if line.starts_with('#') || line.starts_with(';') {
@@ -1750,13 +1750,16 @@ pub fn settings_from_text(text: Option<&str>) -> Value {
             "mirror_size" => v[&k] = json!(val.parse::<i64>().map(|x| if x == 0 { 0 } else { x.clamp(64, 2048) }).unwrap_or(256)),
             "mirror_refresh" => v[&k] = json!(mirror_refresh(val)),
             "max_fps" => v[&k] = json!(val.parse::<f64>().map(|x| x as i64).unwrap_or(0)),
-            "monitor_count" => v[&k] = json!(val.parse::<i64>().unwrap_or(3).clamp(1, 9)),
             "monitor_width_mm" => v[&k] = json!(val.parse::<f64>().ok().filter(|x| x.is_finite()).unwrap_or(600.0).clamp(100.0, 3000.0)),
-            "monitor_height_mm" => v[&k] = json!(val.parse::<f64>().ok().filter(|x| x.is_finite()).unwrap_or(340.0).clamp(100.0, 2000.0)),
             "monitor_distance_mm" => v[&k] = json!(val.parse::<f64>().ok().filter(|x| x.is_finite()).unwrap_or(650.0).clamp(100.0, 3000.0)),
             "monitor_bezel_mm" => v[&k] = json!(val.parse::<f64>().ok().filter(|x| x.is_finite()).unwrap_or(0.0).clamp(0.0, 200.0)),
-            "monitor_left_angle_deg" => v[&k] = json!(val.parse::<f64>().ok().filter(|x| x.is_finite()).unwrap_or(-45.0).clamp(-80.0, 0.0)),
-            "monitor_right_angle_deg" => v[&k] = json!(val.parse::<f64>().ok().filter(|x| x.is_finite()).unwrap_or(45.0).clamp(0.0, 80.0)),
+            "monitor_angle_deg" => {
+                has_monitor_angle = true;
+                v[&k] = json!(val.parse::<f64>().ok().filter(|x| x.is_finite()).unwrap_or(45.0).clamp(0.0, 80.0));
+            }
+            "monitor_left_angle_deg" => legacy_monitor_left = val.parse::<f64>().ok().filter(|x| x.is_finite()).map(|x| x.abs().clamp(0.0, 80.0)),
+            "monitor_right_angle_deg" => legacy_monitor_right = val.parse::<f64>().ok().filter(|x| x.is_finite()).map(|x| x.clamp(0.0, 80.0)),
+            "monitor_count" | "monitor_height_mm" => {}
             "max_obj_dist" => v[&k] = if val.eq_ignore_ascii_case("auto") { json!("auto") } else { json!(val.parse::<f64>().map(|m| (m.round() as i64).to_string()).unwrap_or_else(|_| "auto".into())) },
             "ssao" | "shadows" | "shadow_blobs" | "navigator" | "enhanced" | "vr" | "vr_desktop_mirror" | "multimonitor" | "fullscreen" | "vsync" | "exact_fare" | "detail_textures" | "texture_compression" | "chat" | "tooltips" | "name_tags" | "show_fps" | "clouds" | "doppler" | "driver" | "use_real_time" | "use_real_date" | "use_real_year" | "collision_vehicles" | "collision_objects" | "collision_pedestrians" | "head_movement" | "driverview_smooth" | "hands_in_cab" | "alt_view" => v[&k] = json!(b(val)),
             "maintenance" | "ai_unsched_factor" | "ai_max_scheduled" => v[&k] = json!(val.trim_end_matches('%').parse::<f64>().map(|x| x.max(0.0) as i64).unwrap_or(0)),
@@ -1807,6 +1810,11 @@ pub fn settings_from_text(text: Option<&str>) -> Value {
             "version" => version = val.parse::<i64>().unwrap_or(0),
             _ => {}
         }
+    }
+    if !has_monitor_angle && (legacy_monitor_left.is_some() || legacy_monitor_right.is_some()) {
+        v["monitor_angle_deg"] = json!(
+            (legacy_monitor_left.unwrap_or(45.0) + legacy_monitor_right.unwrap_or(45.0)) * 0.5
+        );
     }
     // a file without `graphics` (older builds) says only `enhanced`; its vanilla renderer is
     // what is now Vanilla+
@@ -2108,17 +2116,15 @@ pub fn settings_to_text(v: &Value, old: Option<&str>) -> String {
     text.push_str(&format!("mirror_refresh={}\n", mirror_refresh(v.get("mirror_refresh").and_then(|x| x.as_str()).unwrap_or("full"))));
     text.push_str(&format!("look_sens={}\nsteer_look_angle={}\nsteer_look_response={}\ntime_sync={}\nmetar_sync={}\nmetar_station={}\n", f("look_sens", 1.0).clamp(0.1, 2.0), f("steer_look_angle", 30.0).clamp(0.0, 60.0), f("steer_look_response", 0.25).clamp(0.05, 1.0), b("time_sync", false), b("metar_sync", false), v.get("metar_station").and_then(|x| x.as_str()).unwrap_or("").chars().filter(|c| c.is_ascii_alphabetic()).take(4).collect::<String>().to_ascii_uppercase()));
     text.push_str(&format!(
-        "multimonitor={}\nmonitor_count={}\nmonitor_width_mm={}\nmonitor_height_mm={}\nmonitor_distance_mm={}\nmonitor_bezel_mm={}\nmonitor_left_angle_deg={}\nmonitor_right_angle_deg={}\n",
+        "multimonitor={}\nmonitor_width_mm={}\nmonitor_distance_mm={}\nmonitor_bezel_mm={}\nmonitor_angle_deg={}\n",
         b("multimonitor", false),
-        n("monitor_count", 3).clamp(1, 9),
         f("monitor_width_mm", 600.0).clamp(100.0, 3000.0),
-        f("monitor_height_mm", 340.0).clamp(100.0, 2000.0),
         f("monitor_distance_mm", 650.0).clamp(100.0, 3000.0),
         f("monitor_bezel_mm", 0.0).clamp(0.0, 200.0),
-        f("monitor_left_angle_deg", -45.0).clamp(-80.0, 0.0),
-        f("monitor_right_angle_deg", 45.0).clamp(0.0, 80.0),
+        f("monitor_angle_deg", 45.0).clamp(0.0, 80.0),
     ));
-    let written: Vec<String> = text.lines().filter_map(|l| l.split_once('=')).map(|(k, _)| k.trim().to_ascii_lowercase()).collect();
+    let mut written: Vec<String> = text.lines().filter_map(|l| l.split_once('=')).map(|(k, _)| k.trim().to_ascii_lowercase()).collect();
+    written.extend(["monitor_count", "monitor_height_mm", "monitor_left_angle_deg", "monitor_right_angle_deg"].map(str::to_string));
     for line in old.unwrap_or("").lines() {
         let t = line.trim();
         if t.is_empty() || t.starts_with('#') || t.starts_with(';') {
@@ -2796,34 +2802,32 @@ mod tests {
             "multimonitor=1\nmonitor_count=5\nmonitor_width_mm=680\nmonitor_height_mm=380\nmonitor_distance_mm=720\nmonitor_bezel_mm=25\nmonitor_left_angle_deg=-55\nmonitor_right_angle_deg=55\n",
         ));
         assert_eq!(values["multimonitor"], json!(true));
-        assert_eq!(values["monitor_count"], json!(5));
         assert_eq!(values["monitor_width_mm"], json!(680.0));
-        assert_eq!(values["monitor_height_mm"], json!(380.0));
         assert_eq!(values["monitor_distance_mm"], json!(720.0));
         assert_eq!(values["monitor_bezel_mm"], json!(25.0));
-        assert_eq!(values["monitor_left_angle_deg"], json!(-55.0));
-        assert_eq!(values["monitor_right_angle_deg"], json!(55.0));
-        let saved = settings_to_text(&values, None);
+        assert_eq!(values["monitor_angle_deg"], json!(55.0));
+        let saved = settings_to_text(&values, Some(
+            "monitor_count=5\nmonitor_height_mm=380\nmonitor_left_angle_deg=-55\nmonitor_right_angle_deg=55\n",
+        ));
         let loaded = settings_from_text(Some(&saved));
         for key in [
             "multimonitor",
-            "monitor_count",
             "monitor_width_mm",
-            "monitor_height_mm",
             "monitor_distance_mm",
             "monitor_bezel_mm",
-            "monitor_left_angle_deg",
-            "monitor_right_angle_deg",
+            "monitor_angle_deg",
         ] {
             assert_eq!(loaded[key], values[key], "{key} was not saved");
         }
+        for obsolete in ["monitor_count=", "monitor_height_mm=", "monitor_left_angle_deg=", "monitor_right_angle_deg="] {
+            assert!(!saved.lines().any(|line| line.starts_with(obsolete)));
+        }
         let clamped = settings_from_text(Some(
-            "monitor_count=20\nmonitor_width_mm=NaN\nmonitor_distance_mm=4000\nmonitor_left_angle_deg=20\n",
+            "monitor_count=20\nmonitor_height_mm=900\nmonitor_width_mm=NaN\nmonitor_distance_mm=4000\nmonitor_angle_deg=999\n",
         ));
-        assert_eq!(clamped["monitor_count"], json!(9));
         assert_eq!(clamped["monitor_width_mm"], json!(600.0));
         assert_eq!(clamped["monitor_distance_mm"], json!(3000.0));
-        assert_eq!(clamped["monitor_left_angle_deg"], json!(0.0));
+        assert_eq!(clamped["monitor_angle_deg"], json!(80.0));
     }
 
     #[test]
