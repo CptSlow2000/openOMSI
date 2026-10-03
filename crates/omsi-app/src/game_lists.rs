@@ -1892,51 +1892,31 @@ fn options_pages(app: &App) -> Vec<Page> {
     let mut camera: Vec<(String, String)> = vec![
         switch_row(app, "head", "Head movement", "The view moves with the vehicle's acceleration"),
         switch_row(app, "cam_smooth", "Smooth viewpoint changes", "Enables a smooth transition between camera perspectives"),
-        switch_row(app, "camcoll", "Camera collisions", "The outside camera cannot pass through objects"),
         switch_row(app, "steer_look", "View turns with steering", "Camera turns with the steering wheel (cockpit only)"),
         slider_row(app, "steer_look_angle", "Steering view angle", "How far the view turns at full steering lock", &|v| format!("{v:.0}°")),
         slider_row(app, "steer_look_response", "Steering view response", "How quickly the view follows the steering", &|v| format!("{:.0} ms", v * 1000.0)),
-        switch_row(app, "hands_in_cab", "Driver's hands in the cab view", "Shows the driver's hand on the steering wheel (Cockpit only)"),
-        switch_row(app, "driver", "Driver at the wheel (outside views)", "Shows the driver in the outside views and in the mirrors"),
-        switch_row(app, "headtrack", "Head tracking", &format!("Head tracking with opentrack (UDP port {})", s.head_tracking_port)),
         slider_row(app, "look_sens", "Mouse look sensitivity", "How fast the view turns when looking round with the mouse (100% is OMSI's)", &pct),
         switch_row(app, "alt_view", "Right mouse button turns the view", "Shift+right zooms; off: right zooms as in OMSI, the wheel button turns"),
-        slider_row(app, "fov", "Field of view", if s.multimonitor { "Ignored while calibrated triple-screen views are enabled" } else { "The view angle of the views from the vehicle" }, &|v| if v < 20.0 { "Default".to_string() } else { format!("{v:.0}°") }),
-        switch_row(app, "multimonitor", "Calibrated triple-screen views", "Use off-axis views across three matched-size, same-resolution screens in a spanned desktop window"),
+        slider_row(app, "fov", "Field of view", if s.multimonitor { "Ignored while Triple screen is enabled" } else { "The view angle of the views from the vehicle" }, &|v| if v < 20.0 { "Default".to_string() } else { format!("{v:.0}°") }),
         slider_row(app, "seat 1", "Seat forward and back", "Adjust the driver's seat position forward or backward", &cm),
         slider_row(app, "seat 2", "Seat height", "Adjust the driver's seat height", &cm),
         slider_row(app, "seat 0", "Seat left and right", "Adjust the driver's seat position from side to side", &cm),
-        slider_row(app, "seat_pitch", "Default head pitch", "Set the driver's default head tilt up or down", &|v| format!("{v:+.0}°")),
+        slider_row(app, "seat_pitch", "Head pitch", "Set the driver's default head tilt up or down", &|v| format!("{v:+.0}°")),
+        Some(button("Reset the seat position", "Reset", "Put the seat back where the vehicle has it.", "seat_reset")),
     ]
         .into_iter()
         .flatten()
         .collect();
-    if s.multimonitor {
-        camera.extend(
-            [
-                slider_row(app, "monitor_distance_mm", "Distance to screens", "Distance from your eyes to the center screen", &|v| format!("{v:.0} mm")),
-                slider_row(app, "monitor_width_mm", "Width of each screen", "Screens need to be the same size and resolution", &|v| format!("{v:.0} mm")),
-                slider_row(app, "monitor_bezel_mm", "Bezel width", "Physical gap between adjacent active screen areas", &|v| format!("{v:.0} mm")),
-                slider_row(app, "monitor_angle_deg", "Screen angle", "Positive angle of each side screen from the center screen", &|v| format!("{v:.0}°")),
-            ]
-            .into_iter()
-            .flatten(),
-        );
-    }
-    camera.push(button("Reset the seat position", "Reset", "Put the seat back where the vehicle has it.", "seat_reset"));
-    if cfg!(windows) {
-        camera.extend(
-            vec![
-                switch_row(app, "vr", "Use OpenXR headset", later),
-                if s.vr { pick("vr_scale", "Eye resolution", later) } else { None },
-                if s.vr { pick("vr_head_smoothing_ms", "Head tracking smoothing", later) } else { None },
-                if s.vr { pick("vr_mirror_rate", "Bus mirror refresh", later) } else { None },
-                if s.vr { switch_row(app, "vr_desktop_mirror", "Show headset picture on monitor", later) } else { None },
-            ]
-                .into_iter()
-                .flatten(),
-        );
-    }
+    camera.extend(
+        [
+            switch_row(app, "camcoll", "Camera collisions", "The outside camera cannot pass through objects"),
+            switch_row(app, "hands_in_cab", "Driver's hands in the cab view", "Shows the driver's hand on the steering wheel (Cockpit only)"),
+            switch_row(app, "driver", "Driver at the wheel (outside views)", "Shows the driver in the outside views and in the mirrors"),
+            switch_row(app, "headtrack", "Head tracking", &format!("Head tracking with opentrack (UDP port {})", s.head_tracking_port)),
+        ]
+        .into_iter()
+        .flatten(),
+    );
     let controls: Vec<(String, String)> = vec![
         pick("drive_keys", "Driving keys", "Which keys drive the vehicle"),
         switch_row(app, "mouse", "Steering with the mouse", "Steer and control the pedals using the mouse"),
@@ -1960,6 +1940,37 @@ fn options_pages(app: &App) -> Vec<Page> {
         .into_iter()
         .flatten()
         .collect();
+    if cfg!(windows) {
+        camera.extend(
+            vec![
+                switch_row(app, "vr", "Use OpenXR headset", later),
+                if s.vr { pick("vr_scale", "Eye resolution", later) } else { None },
+                if s.vr { pick("vr_head_smoothing_ms", "Head tracking smoothing", later) } else { None },
+                if s.vr { pick("vr_mirror_rate", "Bus mirror refresh", later) } else { None },
+                if s.vr { switch_row(app, "vr_desktop_mirror", "Show headset picture on monitor", later) } else { None },
+            ]
+            .into_iter()
+            .flatten()
+        );
+    }
+    camera.extend(switch_row(
+        app,
+        "multimonitor",
+        "Triple screen",
+        "Use calibrated off-axis views across three matched-size, same-resolution screens in a spanned desktop window",
+    ));
+    if s.multimonitor {
+        camera.extend(
+            [
+                slider_row(app, "monitor_distance_mm", "Distance to screens", "Distance from your eyes to the center screen", &|v| format!("{v:.0} mm")),
+                slider_row(app, "monitor_width_mm", "Width of each screen", "Screens need to be the same size and resolution", &|v| format!("{v:.0} mm")),
+                slider_row(app, "monitor_bezel_mm", "Bezel width", "Physical gap between adjacent active screen areas", &|v| format!("{v:.0} mm")),
+                slider_row(app, "monitor_angle_deg", "Screen angle", "Positive angle of each side screen from the center screen", &|v| format!("{v:.0}°")),
+            ]
+            .into_iter()
+            .flatten(),
+        );
+    }
     let interface: Vec<(String, String)> = vec![
         pick("language", "Language", "The language of the game's interface"),
         switch_row(app, "machine_translation", "Translate the remaining texts automatically (offline, downloads 620 MB once)", "Translates texts nobody has translated, on this machine"),

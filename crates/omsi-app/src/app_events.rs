@@ -3346,11 +3346,11 @@ mod multimonitor_camera_tests {
             assert_eq!(left.near, 0.1);
             assert_eq!(left.far, 6_000.0);
         }
+    }
 
-        #[test]
-        fn default_head_pitch_only_affects_the_driver_view() {
-            assert_eq!(driver_head_look((4.0, 2.0), "driver", 10.0), (4.0, 12.0));
-            assert_eq!(driver_head_look((4.0, 2.0), "pax", 10.0), (4.0, 2.0));
-        }
+    #[test]
+    fn default_head_pitch_only_affects_the_driver_view() {
+        assert_eq!(driver_head_look((4.0, 2.0), "driver", 10.0), (4.0, 12.0));
+        assert_eq!(driver_head_look((4.0, 2.0), "pax", 10.0), (4.0, 2.0));
     }
 }

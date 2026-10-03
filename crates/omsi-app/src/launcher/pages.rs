@@ -669,6 +669,7 @@ fn driving_tab(ui: &mut Ui, s: &mut Value, dirty: &mut f32, out: &mut Outside, c
 fn camera_tab(ui: &mut Ui, s: &mut Value, dirty: &mut f32, out: &mut Outside, cols: [Rect; 2]) -> [f32; 2] {
     let mut c = Col::new(ui, cols[0], "Driver's view");
     // the driver's eye, moved from the bus's own camera
+    c.section(ui, "Seating position");
     for (key, label, id) in [("seat_y", "Seat forward / back", "s-seaty"), ("seat_z", "Seat up / down", "s-seatz"), ("seat_x", "Seat right / left", "s-seatx")] {
         let mut v = get(s, key).as_f64().unwrap_or(0.0) as f32;
         if ui.slider(id, c.row(), &mut v, -0.6, 0.6, 0.01, label, &|v| format!("{:+.0} cm", v * 100.0)) {
@@ -677,7 +678,7 @@ fn camera_tab(ui: &mut Ui, s: &mut Value, dirty: &mut f32, out: &mut Outside, co
         }
     }
     let mut seat_pitch = get(s, "seat_pitch_deg").as_f64().unwrap_or(0.0) as f32;
-    if ui.slider("s-seat-pitch", c.row(), &mut seat_pitch, -45.0, 45.0, 1.0, "Default head pitch", &|v| format!("{v:+.0}°")) {
+    if ui.slider("s-seat-pitch", c.row(), &mut seat_pitch, -45.0, 45.0, 1.0, "Head pitch", &|v| format!("{v:+.0}°")) {
         s["seat_pitch_deg"] = json!(seat_pitch.round());
         *dirty = 0.3;
     }
@@ -692,36 +693,6 @@ fn camera_tab(ui: &mut Ui, s: &mut Value, dirty: &mut f32, out: &mut Outside, co
     if ui.slider("s-fov", c.row(), &mut fov, 0.0, 120.0, 1.0, "Field of view", &|v| if v < 20.0 { "Default".to_string() } else { format!("{v:.0}°") }) {
         s["fov"] = json!(if fov < 20.0 { 0.0 } else { fov.round() });
         *dirty = 0.3;
-    }
-    c.section(ui, "Triple-screen cockpit");
-    toggle_setting(ui, s, dirty, c.row(), "Calibrated triple-screen views", "multimonitor");
-    if get(s, "multimonitor").as_bool().unwrap_or(false) {
-        for (key, id, label, min, max, step) in [
-            ("monitor_distance_mm", "s-monitor-distance", "Distance to screens", 100.0, 3000.0, 10.0),
-            ("monitor_width_mm", "s-monitor-width", "Width of each screen", 100.0, 3000.0, 10.0),
-            ("monitor_bezel_mm", "s-monitor-bezel", "Bezel width", 0.0, 200.0, 1.0),
-            ("monitor_angle_deg", "s-monitor-angle", "Screen angle", 0.0, 80.0, 1.0),
-        ] {
-            let mut value = get(s, key).as_f64().unwrap_or(0.0) as f32;
-            if ui.slider(id, c.row(), &mut value, min, max, step, label, &|v| {
-                if key == "monitor_angle_deg" {
-                    format!("{v:.0}°")
-                } else {
-                    format!("{v:.0} mm")
-                }
-            }) {
-                s[key] = json!(value);
-                *dirty = 0.3;
-            }
-        }
-        c.y += ui.paragraph(
-            "For three matched-size, same-resolution screens in a spanned desktop window. Screen height is calculated from the panel aspect ratio; the side-screen angle is symmetric. The separate Field of view setting is ignored while enabled because screen size and distance define the physical FOV.",
-            Vec2::new(c.inner.x, c.y),
-            c.inner.w,
-            12.0,
-            Weight::Regular,
-            TEXT_DIM,
-        ) + 8.0;
     }
     let mut look = get(s, "look_sens").as_f64().unwrap_or(1.0) as f32;
     if ui.slider("s-look-sens", c.row(), &mut look, 0.1, 2.0, 0.05, "Mouse look sensitivity", &|v| if (v - 1.0).abs() < 0.01 { "OMSI".to_string() } else { format!("{:.0}%", v * 100.0) }) {
@@ -763,6 +734,36 @@ fn camera_tab(ui: &mut Ui, s: &mut Value, dirty: &mut f32, out: &mut Outside, co
                 out.controls = Some(0);
             }
         }
+    }
+    c.section(ui, "Triple screen");
+    toggle_setting(ui, s, dirty, c.row(), "Triple screen", "multimonitor");
+    if get(s, "multimonitor").as_bool().unwrap_or(false) {
+        for (key, id, label, min, max, step) in [
+            ("monitor_distance_mm", "s-monitor-distance", "Distance to screens", 100.0, 3000.0, 10.0),
+            ("monitor_width_mm", "s-monitor-width", "Width of each screen", 100.0, 3000.0, 10.0),
+            ("monitor_bezel_mm", "s-monitor-bezel", "Bezel width", 0.0, 200.0, 1.0),
+            ("monitor_angle_deg", "s-monitor-angle", "Screen angle", 0.0, 80.0, 1.0),
+        ] {
+            let mut value = get(s, key).as_f64().unwrap_or(0.0) as f32;
+            if ui.slider(id, c.row(), &mut value, min, max, step, label, &|v| {
+                if key == "monitor_angle_deg" {
+                    format!("{v:.0}°")
+                } else {
+                    format!("{v:.0} mm")
+                }
+            }) {
+                s[key] = json!(value);
+                *dirty = 0.3;
+            }
+        }
+        c.y += ui.paragraph(
+            "For three matched-size, same-resolution screens in a spanned desktop window. Screen height is calculated from the panel aspect ratio; the side-screen angle is symmetric. The separate Field of view setting is ignored while enabled because screen size and distance define the physical FOV.",
+            Vec2::new(c.inner.x, c.y),
+            c.inner.w,
+            12.0,
+            Weight::Regular,
+            TEXT_DIM,
+        ) + 8.0;
     }
     [left, c.used()]
 }
