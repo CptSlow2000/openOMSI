@@ -1,6 +1,7 @@
 //! The window's events: winit's `ApplicationHandler` for `App`.
 
 use super::*;
+use glam::{Mat3, Quat, Vec3};
 
 /// Mirror pictures drawn per second at most, all mirrors together (see the redraw).
 const MIRROR_RATE: f32 = 75.0;
@@ -15,12 +16,42 @@ const MIRROR_MAX_HZ_FULL: f32 = 30.0;
 const MIRROR_FREEZE_REDRAW: f32 = 2.0;
 
 fn multimonitor_view_camera(camera: &Camera, yaw: f32) -> Camera {
+    let center_orientation = level_view_orientation(camera.yaw);
+    let forward = camera.forward().normalize_or_zero();
+    let right0 = Vec3::new(forward.y, -forward.x, 0.0).normalize_or_zero();
+    let up0 = right0.cross(forward).normalize_or_zero();
+    let (sin_roll, cos_roll) = camera.roll.to_radians().sin_cos();
+    let up = (up0 * cos_roll + right0 * sin_roll).normalize_or_zero();
+    let right = forward.cross(up).normalize_or_zero();
+    let camera_orientation =
+        Quat::from_mat3(&Mat3::from_cols(right, up, -forward));
+    let head_rotation = camera_orientation * center_orientation.inverse();
+    let view_orientation = head_rotation * level_view_orientation(yaw);
+    let view_forward = view_orientation * -Vec3::Z;
+    let view_up = view_orientation * Vec3::Y;
+    let view_yaw = view_forward.x.atan2(view_forward.y).to_degrees();
+    let view_pitch = view_forward.z.clamp(-1.0, 1.0).asin().to_degrees();
+    let unrolled_right = Vec3::new(view_yaw.to_radians().cos(), -view_yaw.to_radians().sin(), 0.0);
+    let unrolled_up = unrolled_right.cross(view_forward).normalize_or_zero();
+    let view_roll = view_up
+        .dot(unrolled_right)
+        .atan2(view_up.dot(unrolled_up))
+        .to_degrees();
     Camera {
-        yaw,
+        yaw: view_yaw,
+        pitch: view_pitch,
+        roll: view_roll,
         near: 0.1,
         far: 6_000.0,
         ..*camera
     }
+}
+
+fn level_view_orientation(yaw: f32) -> Quat {
+    let yaw = yaw.to_radians();
+    let right = Vec3::new(yaw.cos(), -yaw.sin(), 0.0);
+    let forward = Vec3::new(yaw.sin(), yaw.cos(), 0.0);
+    Quat::from_mat3(&Mat3::from_cols(right, Vec3::Z, -forward))
 }
 
 /// Consume the VR redraw budget without updating a mirror twice in one frame.
@@ -3282,22 +3313,28 @@ mod multimonitor_camera_tests {
     use omsi_render::Camera;
 
     #[test]
-    fn per_screen_camera_preserves_vertical_and_roll_rotation() {
-        let camera = Camera {
-            position: DVec3::new(1.0, 2.0, 3.0),
-            yaw: 12.0,
-            pitch: 27.0,
-            roll: -8.0,
-            fov_deg: 75.0,
-            near: 0.5,
-            far: 2_000.0,
-        };
-        let view = multimonitor_view_camera(&camera, -45.0);
-        assert_eq!(view.yaw, -45.0);
-        assert_eq!(view.pitch, 27.0);
-        assert_eq!(view.roll, -8.0);
-        assert_eq!(view.position, camera.position);
-        assert_eq!(view.near, 0.1);
-        assert_eq!(view.far, 6_000.0);
+    fn vertical_look_rotates_both_side_views_in_the_head_frame() {
+        for pitch in [27.0, -27.0] {
+            let camera = Camera {
+                position: DVec3::new(1.0, 2.0, 3.0),
+                yaw: 0.0,
+                pitch,
+                roll: 0.0,
+                fov_deg: 75.0,
+                near: 0.5,
+                far: 2_000.0,
+            };
+            let left = multimonitor_view_camera(&camera, -45.0);
+            let right = multimonitor_view_camera(&camera, 45.0);
+            let left_forward = left.forward();
+            let right_forward = right.forward();
+            assert_eq!(left_forward.z.is_sign_positive(), pitch > 0.0);
+            assert_eq!(right_forward.z.is_sign_positive(), pitch > 0.0);
+            assert!((left_forward.z - right_forward.z).abs() < 1e-5);
+            assert!((left.roll * right.roll) < 0.0);
+            assert_eq!(left.position, camera.position);
+            assert_eq!(left.near, 0.1);
+            assert_eq!(left.far, 6_000.0);
+        }
     }
 }

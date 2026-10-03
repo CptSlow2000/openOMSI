@@ -330,7 +330,7 @@ impl Settings {
             distance_mm: self.monitor_distance_mm,
             bezel_mm: self.monitor_bezel_mm,
             angle_deg: self.monitor_angle_deg,
-            fov_deg: self.fov,
+            fov_deg: 0.0,
         };
         layout.validate().ok().map(|_| layout)
     }
@@ -720,6 +720,7 @@ mod tests {
         };
         assert_eq!(Settings::from_text(&settings.to_text()), settings);
         assert_eq!(settings.monitor_layout().unwrap().angle_deg, 55.0);
+        assert_eq!(settings.monitor_layout().unwrap().fov_deg, 0.0);
         assert!(!Settings::default().multimonitor);
 
         let migrated = Settings::from_text(

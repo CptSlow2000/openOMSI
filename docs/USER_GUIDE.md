@@ -327,8 +327,9 @@ bezel gap between active screen areas, and one positive screen angle applied sym
 to the left and right screens. Screen height is calculated from the per-panel pixel aspect
 ratio, so the three screens must have the same size and resolution. The existing
 seat-position controls set the driver's eye position relative to the bus, and the existing
-FOV control overrides the physical FOV; *Default* uses the measured screen size and viewing
-distance. The HUD and other interface overlays are drawn once across the spanned picture.
+FOV control is ignored while triple-screen views are enabled: screen size and viewing
+distance determine the physical FOV. *Default* remains the FOV setting for ordinary views.
+The HUD and other interface overlays are drawn once across the spanned picture.
 The three views cost additional GPU time; the existing render-scale setting applies to each
 view, so reduce it or lower graphics quality if the frame rate drops.
 

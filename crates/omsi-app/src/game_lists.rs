@@ -1893,12 +1893,8 @@ fn options_pages(app: &App) -> Vec<Page> {
         switch_row(app, "headtrack", "Head tracking", &format!("Head tracking with opentrack (UDP port {})", s.head_tracking_port)),
         slider_row(app, "look_sens", "Mouse look sensitivity", "How fast the view turns when looking round with the mouse (100% is OMSI's)", &pct),
         switch_row(app, "alt_view", "Right mouse button turns the view", "Shift+right zooms; off: right zooms as in OMSI, the wheel button turns"),
-        slider_row(app, "fov", "Field of view", "The view angle of the views from the vehicle", &|v| if v < 20.0 { "Default".to_string() } else { format!("{v:.0}°") }),
+        slider_row(app, "fov", "Field of view", if s.multimonitor { "Ignored while calibrated triple-screen views are enabled" } else { "The view angle of the views from the vehicle" }, &|v| if v < 20.0 { "Default".to_string() } else { format!("{v:.0}°") }),
         switch_row(app, "multimonitor", "Calibrated triple-screen views", "Use off-axis views across three matched-size, same-resolution screens in a spanned desktop window"),
-        slider_row(app, "monitor_distance_mm", "Distance to screens", "Distance from your eyes to the center screen", &|v| format!("{v:.0} mm")),
-        slider_row(app, "monitor_width_mm", "Width of each screen", "Screens need to be the same size and resolution", &|v| format!("{v:.0} mm")),
-        slider_row(app, "monitor_bezel_mm", "Bezel width", "Physical gap between adjacent active screen areas", &|v| format!("{v:.0} mm")),
-        slider_row(app, "monitor_angle_deg", "Screen angle", "Positive angle of each side screen from the center screen", &|v| format!("{v:.0}°")),
         slider_row(app, "seat 1", "Seat forward and back", "Adjust the driver's seat position forward or backward", &cm),
         slider_row(app, "seat 2", "Seat height", "Adjust the driver's seat height", &cm),
         slider_row(app, "seat 0", "Seat left and right", "Adjust the driver's seat position from side to side", &cm),
@@ -1906,6 +1902,18 @@ fn options_pages(app: &App) -> Vec<Page> {
         .into_iter()
         .flatten()
         .collect();
+    if s.multimonitor {
+        camera.extend(
+            [
+                slider_row(app, "monitor_distance_mm", "Distance to screens", "Distance from your eyes to the center screen", &|v| format!("{v:.0} mm")),
+                slider_row(app, "monitor_width_mm", "Width of each screen", "Screens need to be the same size and resolution", &|v| format!("{v:.0} mm")),
+                slider_row(app, "monitor_bezel_mm", "Bezel width", "Physical gap between adjacent active screen areas", &|v| format!("{v:.0} mm")),
+                slider_row(app, "monitor_angle_deg", "Screen angle", "Positive angle of each side screen from the center screen", &|v| format!("{v:.0}°")),
+            ]
+            .into_iter()
+            .flatten(),
+        );
+    }
     camera.push(button("Reset the seat position", "Reset", "Put the seat back where the vehicle has it.", "seat_reset"));
     if cfg!(windows) {
         camera.extend(

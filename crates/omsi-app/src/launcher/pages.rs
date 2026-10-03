@@ -709,7 +709,7 @@ fn camera_tab(ui: &mut Ui, s: &mut Value, dirty: &mut f32, out: &mut Outside, co
             }
         }
         c.y += ui.paragraph(
-            "For three matched-size, same-resolution screens in a spanned desktop window. Screen height is calculated from the panel aspect ratio; the side-screen angle is symmetric.",
+            "For three matched-size, same-resolution screens in a spanned desktop window. Screen height is calculated from the panel aspect ratio; the side-screen angle is symmetric. The separate Field of view setting is ignored while enabled because screen size and distance define the physical FOV.",
             Vec2::new(c.inner.x, c.y),
             c.inner.w,
             12.0,
@@ -2412,8 +2412,13 @@ mod settings_tests {
     #[test]
     fn triple_screen_setup_exposes_only_the_four_calibration_controls() {
         let mut s = all_rows();
-        s["multimonitor"] = json!(true);
         let mut ui = Ui::new();
+        frame(&mut ui, 2, &mut s, &mut outside());
+        for obsolete in ["s-monitor-distance", "s-monitor-width", "s-monitor-bezel", "s-monitor-angle"] {
+            assert!(!ui.drawn.contains_key(&id_of(obsolete)), "{obsolete} is visible while triple-screen views are disabled");
+        }
+
+        s["multimonitor"] = json!(true);
         frame(&mut ui, 2, &mut s, &mut outside());
         for name in ["s-monitor-distance", "s-monitor-width", "s-monitor-bezel", "s-monitor-angle"] {
             assert!(ui.drawn.contains_key(&id_of(name)), "{name} is missing from the Camera tab");
