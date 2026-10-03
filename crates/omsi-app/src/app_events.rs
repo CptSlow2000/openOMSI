@@ -1,5 +1,7 @@
 //! The window's events: winit's `ApplicationHandler` for `App`.
 
+use super::*;
+
 /// Mirror pictures drawn per second at most, all mirrors together (see the redraw).
 const MIRROR_RATE: f32 = 75.0;
 /// The least a mirror is redrawn a second (see the mirrors in `window_event`).
@@ -39,7 +41,106 @@ fn render_scale_step(fps: f32, slow_frame_wait_share: f32) -> f32 {
     }
 }
 
-use super::*;
+fn render_multimonitor_views(
+    renderer: &mut Renderer,
+    scene: &mut Scene,
+    targets: &mut Vec<crate::app::MonitorViewTarget>,
+    output: &wgpu::TextureView,
+    width: u32,
+    height: u32,
+    camera: &Camera,
+    lighting: &omsi_render::Lighting,
+    layout: &omsi_render::multimonitor::Layout,
+) -> Result<(), &'static str> {
+    let count = u32::from(layout.count);
+    if count == 0 || width < count || height == 0 {
+        return Err("the spanned window is too small for the configured monitor count");
+    }
+    let view_specs = layout.views(camera.position, camera.yaw)?;
+    let widths: Vec<u32> = (0..count)
+        .map(|index| width / count + u32::from(index < width % count))
+        .collect();
+    let scale = renderer.scene_scale(width, height);
+    let target_sizes: Vec<(u32, u32)> = widths
+        .iter()
+        .map(|&panel_width| {
+            (
+                ((panel_width as f32 * scale).round() as u32).max(1),
+                ((height as f32 * scale).round() as u32).max(1),
+            )
+        })
+        .collect();
+    let mut x = 0;
+    let rects: Vec<[u32; 4]> = widths
+        .iter()
+        .map(|&panel_width| {
+            let rect = [x, 0, panel_width, height];
+            x += panel_width;
+            rect
+        })
+        .collect();
+
+    if targets.len() != count as usize
+        || targets
+            .iter()
+            .zip(&target_sizes)
+            .any(|(target, &size)| target.size != size)
+    {
+        targets.clear();
+        for &(panel_width, panel_height) in &target_sizes {
+            let texture = renderer.device.create_texture(&wgpu::TextureDescriptor {
+                label: Some("multimonitor view"),
+                size: wgpu::Extent3d {
+                    width: panel_width,
+                    height: panel_height,
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format: renderer.format(),
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT
+                    | wgpu::TextureUsages::TEXTURE_BINDING,
+                view_formats: &[],
+            });
+            let view = texture.create_view(&Default::default());
+            targets.push(crate::app::MonitorViewTarget {
+                _texture: texture,
+                view,
+                size: (panel_width, panel_height),
+            });
+        }
+    }
+
+    let center = view_specs.len() / 2;
+    for index in std::iter::once(center).chain((0..view_specs.len()).filter(|&i| i != center)) {
+        let spec = view_specs[index];
+        let mut view_camera = *camera;
+        view_camera.yaw = spec.yaw_deg;
+        view_camera.pitch = 0.0;
+        view_camera.roll = 0.0;
+        view_camera.near = 0.1;
+        view_camera.far = 6_000.0;
+        let (panel_width, panel_height) = targets[index].size;
+        renderer.render_projected(
+            scene,
+            &targets[index].view,
+            panel_width,
+            panel_height,
+            &view_camera,
+            lighting,
+            spec.projection,
+            index != center,
+        );
+    }
+    let viewports: Vec<_> = targets
+        .iter()
+        .zip(rects)
+        .map(|(target, rect)| (&target.view, rect))
+        .collect();
+    renderer.composite_views(scene, &viewports, output, width, height);
+    Ok(())
+}
 
 impl ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
@@ -2108,6 +2209,7 @@ impl ApplicationHandler for App {
                     let (w, h) = (s.config.width, s.config.height);
                     self.touch_prepare(w, h);
                 }
+                let multi_monitor_context = self.view == "driver" && !self.vr_active();
                 if let (Some(s), Some(r), Some(scene), Some(cam), Some(win)) = (
                     self.surface.as_ref(),
                     self.renderer.as_mut(),
@@ -2351,14 +2453,42 @@ impl ApplicationHandler for App {
                             }
                         }
                         if !mirrored {
-                            r.render(
-                                scene,
-                                &view,
-                                s.config.width,
-                                s.config.height,
-                                cam,
-                                &lighting,
-                            );
+                            let multi_layout = self
+                                .settings
+                                .monitor_layout()
+                                .filter(|_| multi_monitor_context);
+                            if let Some(layout) = multi_layout {
+                                if let Err(error) = render_multimonitor_views(
+                                    r,
+                                    scene,
+                                    &mut self.monitor_targets,
+                                    &view,
+                                    s.config.width,
+                                    s.config.height,
+                                    cam,
+                                    &lighting,
+                                    &layout,
+                                ) {
+                                    log::warn!("multimonitor rendering skipped: {error}");
+                                    r.render(
+                                        scene,
+                                        &view,
+                                        s.config.width,
+                                        s.config.height,
+                                        cam,
+                                        &lighting,
+                                    );
+                                }
+                            } else {
+                                r.render(
+                                    scene,
+                                    &view,
+                                    s.config.width,
+                                    s.config.height,
+                                    cam,
+                                    &lighting,
+                                );
+                            }
                         }
                         // the on-screen controls over the picture (a phone)
                         self.touch.render(r, &view, s.config.width, s.config.height);

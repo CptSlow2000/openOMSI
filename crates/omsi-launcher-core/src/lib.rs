@@ -1671,6 +1671,14 @@ pub fn settings_from_text(text: Option<&str>) -> Value {
     v["vr_head_smoothing_ms"] = json!(0);
     v["vr_mirror_rate"] = json!(16);
     v["vr_desktop_mirror"] = json!(true);
+    v["multimonitor"] = json!(false);
+    v["monitor_count"] = json!(3);
+    v["monitor_width_mm"] = json!(600.0);
+    v["monitor_height_mm"] = json!(340.0);
+    v["monitor_distance_mm"] = json!(650.0);
+    v["monitor_bezel_mm"] = json!(0.0);
+    v["monitor_left_angle_deg"] = json!(-45.0);
+    v["monitor_right_angle_deg"] = json!(45.0);
     v["discord_status"] = json!(true);
     v["discord_app_id"] = json!("");
     // OMSI's own options
@@ -1709,8 +1717,15 @@ pub fn settings_from_text(text: Option<&str>) -> Value {
             "vr_mirror_rate" => v[&k] = json!(val.parse::<f64>().ok().filter(|x| x.is_finite()).map(|x| x.clamp(-1.0, 360.0) as i64).unwrap_or(16)),
             "mirror_size" => v[&k] = json!(val.parse::<i64>().map(|x| if x == 0 { 0 } else { x.clamp(64, 2048) }).unwrap_or(256)),
             "max_fps" => v[&k] = json!(val.parse::<f64>().map(|x| x as i64).unwrap_or(0)),
+            "monitor_count" => v[&k] = json!(val.parse::<i64>().unwrap_or(3).clamp(1, 9)),
+            "monitor_width_mm" => v[&k] = json!(val.parse::<f64>().ok().filter(|x| x.is_finite()).unwrap_or(600.0).clamp(100.0, 3000.0)),
+            "monitor_height_mm" => v[&k] = json!(val.parse::<f64>().ok().filter(|x| x.is_finite()).unwrap_or(340.0).clamp(100.0, 2000.0)),
+            "monitor_distance_mm" => v[&k] = json!(val.parse::<f64>().ok().filter(|x| x.is_finite()).unwrap_or(650.0).clamp(100.0, 3000.0)),
+            "monitor_bezel_mm" => v[&k] = json!(val.parse::<f64>().ok().filter(|x| x.is_finite()).unwrap_or(0.0).clamp(0.0, 200.0)),
+            "monitor_left_angle_deg" => v[&k] = json!(val.parse::<f64>().ok().filter(|x| x.is_finite()).unwrap_or(-45.0).clamp(-80.0, 0.0)),
+            "monitor_right_angle_deg" => v[&k] = json!(val.parse::<f64>().ok().filter(|x| x.is_finite()).unwrap_or(45.0).clamp(0.0, 80.0)),
             "max_obj_dist" => v[&k] = if val.eq_ignore_ascii_case("auto") { json!("auto") } else { json!(val.parse::<f64>().map(|m| (m.round() as i64).to_string()).unwrap_or_else(|_| "auto".into())) },
-            "ssao" | "shadows" | "shadow_blobs" | "navigator" | "enhanced" | "vr" | "vr_desktop_mirror" | "fullscreen" | "vsync" | "exact_fare" | "detail_textures" | "texture_compression" | "chat" | "tooltips" | "name_tags" | "show_fps" | "clouds" | "doppler" | "driver" | "use_real_time" | "use_real_date" | "use_real_year" | "collision_vehicles" | "collision_objects" | "collision_pedestrians" | "head_movement" | "driverview_smooth" | "hands_in_cab" | "alt_view" => v[&k] = json!(b(val)),
+            "ssao" | "shadows" | "shadow_blobs" | "navigator" | "enhanced" | "vr" | "vr_desktop_mirror" | "multimonitor" | "fullscreen" | "vsync" | "exact_fare" | "detail_textures" | "texture_compression" | "chat" | "tooltips" | "name_tags" | "show_fps" | "clouds" | "doppler" | "driver" | "use_real_time" | "use_real_date" | "use_real_year" | "collision_vehicles" | "collision_objects" | "collision_pedestrians" | "head_movement" | "driverview_smooth" | "hands_in_cab" | "alt_view" => v[&k] = json!(b(val)),
             "maintenance" | "ai_unsched_factor" | "ai_max_scheduled" | "ai_max_parked" => v[&k] = json!(val.trim_end_matches('%').parse::<f64>().map(|x| x.max(0.0) as i64).unwrap_or(0)),
             "drive_keys" | "navigator_corner" | "boarding" | "render_scale" | "pax_voices" => v[&k] = json!(val),
             "ctrl_off" => v[&k] = json!(val),
@@ -1911,7 +1926,7 @@ pub fn settings_to_text(v: &Value, old: Option<&str>) -> String {
     let n = |k: &str, d: i64| v.get(k).and_then(|x| x.as_i64().or_else(|| x.as_f64().or_else(|| x.as_str().and_then(|s| s.trim().parse::<f64>().ok())).map(|f| f as i64))).unwrap_or(d);
     let f = |k: &str, d: f64| v.get(k).and_then(|x| x.as_f64()).unwrap_or(d);
     let text = format!(
-        "# openOMSI settings (written by the launcher)\nversion=2\nmsaa={}\nanisotropy={}\nssao={}\nshadows={}\nshadow_size={}\nnavigator={}\nui_opacity={}\nnavigator_corner={}\nboarding={}\ndetail_textures={}\nexact_fare={}\nenhanced={}\ngraphics={}\nfullscreen={}\nvsync={}\nvolume={}\ndrive_keys={}\nrender_scale={}\nview_distance={}\nlanguage={}\ntexture_memory={}\ntexture_compression={}\nchat={}\ntooltips={}\nname_tags={}\nshow_fps={}\nclouds={}\npax_density={}\nvol_ai={}\nvol_scenery={}\nmirror_size={}\ndoppler={}\ndriver={}\nmax_fps={}\nmin_obj_size={}\nmax_obj_dist={}\n",
+        "# openOMSI settings (written by the launcher)\nversion=3\nmsaa={}\nanisotropy={}\nssao={}\nshadows={}\nshadow_size={}\nnavigator={}\nui_opacity={}\nnavigator_corner={}\nboarding={}\ndetail_textures={}\nexact_fare={}\nenhanced={}\ngraphics={}\nfullscreen={}\nvsync={}\nvolume={}\ndrive_keys={}\nrender_scale={}\nview_distance={}\nlanguage={}\ntexture_memory={}\ntexture_compression={}\nchat={}\ntooltips={}\nname_tags={}\nshow_fps={}\nclouds={}\npax_density={}\nvol_ai={}\nvol_scenery={}\nmirror_size={}\ndoppler={}\ndriver={}\nmax_fps={}\nmin_obj_size={}\nmax_obj_dist={}\n",
         n("msaa", 4),
         n("anisotropy", 8),
         b("ssao", true),
@@ -2046,6 +2061,17 @@ pub fn settings_to_text(v: &Value, old: Option<&str>) -> String {
     // was in the file; other spellings of the keys just written go
     let mut text = text;
     text.push_str(&format!("steer_look_angle={}\nsteer_look_response={}\ntime_sync={}\nmetar_sync={}\nmetar_station={}\n", f("steer_look_angle", 30.0).clamp(0.0, 60.0), f("steer_look_response", 0.25).clamp(0.05, 1.0), b("time_sync", false), b("metar_sync", false), v.get("metar_station").and_then(|x| x.as_str()).unwrap_or("").chars().filter(|c| c.is_ascii_alphabetic()).take(4).collect::<String>().to_ascii_uppercase()));
+    text.push_str(&format!(
+        "multimonitor={}\nmonitor_count={}\nmonitor_width_mm={}\nmonitor_height_mm={}\nmonitor_distance_mm={}\nmonitor_bezel_mm={}\nmonitor_left_angle_deg={}\nmonitor_right_angle_deg={}\n",
+        b("multimonitor", false),
+        n("monitor_count", 3).clamp(1, 9),
+        f("monitor_width_mm", 600.0).clamp(100.0, 3000.0),
+        f("monitor_height_mm", 340.0).clamp(100.0, 2000.0),
+        f("monitor_distance_mm", 650.0).clamp(100.0, 3000.0),
+        f("monitor_bezel_mm", 0.0).clamp(0.0, 200.0),
+        f("monitor_left_angle_deg", -45.0).clamp(-80.0, 0.0),
+        f("monitor_right_angle_deg", 45.0).clamp(0.0, 80.0),
+    ));
     let written: Vec<String> = text.lines().filter_map(|l| l.split_once('=')).map(|(k, _)| k.trim().to_ascii_lowercase()).collect();
     for line in old.unwrap_or("").lines() {
         let t = line.trim();
@@ -2698,6 +2724,42 @@ mod tests {
         let invalid = settings_from_text(Some("steer_look_angle=NaN\nsteer_look_response=NaN\n"));
         assert_eq!(invalid["steer_look_angle"], json!(30.0));
         assert_eq!(invalid["steer_look_response"], json!(0.25));
+    }
+
+    #[test]
+    fn multimonitor_settings_round_trip_and_clamp() {
+        let values = settings_from_text(Some(
+            "multimonitor=1\nmonitor_count=5\nmonitor_width_mm=680\nmonitor_height_mm=380\nmonitor_distance_mm=720\nmonitor_bezel_mm=25\nmonitor_left_angle_deg=-55\nmonitor_right_angle_deg=55\n",
+        ));
+        assert_eq!(values["multimonitor"], json!(true));
+        assert_eq!(values["monitor_count"], json!(5));
+        assert_eq!(values["monitor_width_mm"], json!(680.0));
+        assert_eq!(values["monitor_height_mm"], json!(380.0));
+        assert_eq!(values["monitor_distance_mm"], json!(720.0));
+        assert_eq!(values["monitor_bezel_mm"], json!(25.0));
+        assert_eq!(values["monitor_left_angle_deg"], json!(-55.0));
+        assert_eq!(values["monitor_right_angle_deg"], json!(55.0));
+        let saved = settings_to_text(&values, None);
+        let loaded = settings_from_text(Some(&saved));
+        for key in [
+            "multimonitor",
+            "monitor_count",
+            "monitor_width_mm",
+            "monitor_height_mm",
+            "monitor_distance_mm",
+            "monitor_bezel_mm",
+            "monitor_left_angle_deg",
+            "monitor_right_angle_deg",
+        ] {
+            assert_eq!(loaded[key], values[key], "{key} was not saved");
+        }
+        let clamped = settings_from_text(Some(
+            "monitor_count=20\nmonitor_width_mm=NaN\nmonitor_distance_mm=4000\nmonitor_left_angle_deg=20\n",
+        ));
+        assert_eq!(clamped["monitor_count"], json!(9));
+        assert_eq!(clamped["monitor_width_mm"], json!(600.0));
+        assert_eq!(clamped["monitor_distance_mm"], json!(3000.0));
+        assert_eq!(clamped["monitor_left_angle_deg"], json!(0.0));
     }
 
     #[test]

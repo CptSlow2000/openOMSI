@@ -4,12 +4,19 @@ use super::*;
 
 const SLOW_UPLOAD_MB_S: f64 = 300.0;
 
+pub(crate) struct MonitorViewTarget {
+    pub(crate) _texture: wgpu::Texture,
+    pub(crate) view: wgpu::TextureView,
+    pub(crate) size: (u32, u32),
+}
+
 pub(crate) struct App {
     pub(crate) args: Args,
     pub(crate) instance: wgpu::Instance,
     pub(crate) window: Option<Arc<Window>>,
     pub(crate) surface: Option<SurfaceState<'static>>,
     pub(crate) renderer: Option<Renderer>,
+    pub(crate) monitor_targets: Vec<MonitorViewTarget>,
     #[cfg(windows)]
     pub(crate) vr: Option<crate::openxr::Vr>,
     pub(crate) scene: Option<Scene>,

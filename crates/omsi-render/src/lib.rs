@@ -2,6 +2,7 @@
 
 pub mod atmosphere;
 pub mod clouds;
+pub mod multimonitor;
 mod puddles;
 
 use anyhow::{anyhow, Context, Result};
@@ -7086,6 +7087,180 @@ impl Renderer {
         self.render_inner(scene, target, width, height, camera, lighting, false, None, Some(projection), second_eye);
     }
 
+    /// Render one off-axis view into a multimonitor target without duplicating simulation
+    /// overlays. The caller composites all views and draws the shared interface once.
+    pub fn render_projected(
+        &mut self,
+        scene: &mut Scene,
+        target: &wgpu::TextureView,
+        width: u32,
+        height: u32,
+        camera: &Camera,
+        lighting: &Lighting,
+        projection: Mat4,
+        second_view: bool,
+    ) {
+        self.render_inner(
+            scene,
+            target,
+            width,
+            height,
+            camera,
+            lighting,
+            false,
+            None,
+            Some(projection),
+            second_view,
+        );
+    }
+
+    /// Composite monitor views into the spanned window and draw the shared interface once.
+    pub fn composite_views(
+        &self,
+        scene: &mut Scene,
+        views: &[(&wgpu::TextureView, [u32; 4])],
+        target: &wgpu::TextureView,
+        width: u32,
+        height: u32,
+    ) {
+        let mut items = Vec::with_capacity(views.len());
+        let mut keepalive = Vec::with_capacity(views.len());
+        let mut add = |texture: &wgpu::TextureView, rect: [f32; 4]| {
+            let uniform = overlay_rect_uniform(
+                [rect[0], rect[1], rect[0] + rect[2], rect[1] + rect[3]],
+                width,
+                height,
+                false,
+            );
+            let buffer = buffer_init(
+                &self.device,
+                &self.queue,
+                Some("multimonitor composite rect"),
+                bytemuck::cast_slice(&uniform),
+                wgpu::BufferUsages::UNIFORM,
+            );
+            let group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("multimonitor composite"),
+                layout: &self.overlay_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: buffer.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::TextureView(texture),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: wgpu::BindingResource::Sampler(&self.sky_sampler),
+                    },
+                ],
+            });
+            keepalive.push(buffer);
+            items.push(group);
+        };
+        for (view, rect) in views {
+            add(
+                view,
+                [
+                    rect[0] as f32,
+                    rect[1] as f32,
+                    rect[2] as f32,
+                    rect[3] as f32,
+                ],
+            );
+        }
+
+        scene.overlay_res.truncate(scene.overlays.len());
+        for (index, (texture_id, rect)) in scene.overlays.iter().copied().enumerate() {
+            let texture = &scene.textures[texture_id];
+            let rect = snap_rect(rect);
+            let ndc = overlay_rect_uniform(
+                rect,
+                width,
+                height,
+                scene.premultiplied.contains(&texture_id),
+            );
+            if let Some((_, buffer, _, last)) = scene
+                .overlay_res
+                .get_mut(index)
+                .filter(|entry| entry.0 == texture_id)
+            {
+                if *last != ndc {
+                    self.queue
+                        .write_buffer(buffer, 0, bytemuck::cast_slice(&ndc));
+                    *last = ndc;
+                }
+                continue;
+            }
+            let buffer = buffer_init(
+                &self.device,
+                &self.queue,
+                Some("overlay rect"),
+                bytemuck::cast_slice(&ndc),
+                wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            );
+            let group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("overlay"),
+                layout: &self.overlay_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: buffer.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::TextureView(&texture.view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: wgpu::BindingResource::Sampler(&self.sky_sampler),
+                    },
+                ],
+            });
+            if index < scene.overlay_res.len() {
+                scene.overlay_res[index] = (texture_id, buffer, group, ndc);
+            } else {
+                scene.overlay_res.push((texture_id, buffer, group, ndc));
+            }
+        }
+
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("multimonitor composite"),
+            });
+        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("multimonitor composite"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: target,
+                depth_slice: None,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+            multiview_mask: None,
+        });
+        pass.set_pipeline(&self.overlay_pipeline_1x);
+        for group in &items {
+            pass.set_bind_group(0, group, &[]);
+            pass.draw(0..6, 0..1);
+        }
+        for (_, _, group, _) in &scene.overlay_res {
+            pass.set_bind_group(0, group, &[]);
+            pass.draw(0..6, 0..1);
+        }
+        drop(pass);
+        self.queue.submit(Some(encoder.finish()));
+        drop(keepalive);
+    }
+
     /// Composite the shared game menu and a world-positioned pointer into each eye.
     /// Eye-specific positions make the menu fuse into one virtual panel.
     pub fn render_xr_ui(
@@ -8509,8 +8684,9 @@ impl Renderer {
         }
         // --- depth prepass + ambient occlusion (single-sampled, camera projection)
         if prepass_on {
-            let proj =
-                Mat4::perspective_rh(camera.fov_deg.to_radians(), aspect, camera.far, camera.near);
+            let proj = projection.unwrap_or_else(|| {
+                Mat4::perspective_rh(camera.fov_deg.to_radians(), aspect, camera.far, camera.near)
+            });
             let u = SsaoUniform {
                 inv_proj: proj.inverse().to_cols_array_2d(),
                 params: [
@@ -10808,6 +10984,19 @@ fn snap_rect(r: [f32; 4]) -> [f32; 4] {
     [x0, y0, x1, y1]
 }
 
+fn overlay_rect_uniform(rect: [f32; 4], width: u32, height: u32, premultiplied: bool) -> [f32; 8] {
+    [
+        rect[0] / width.max(1) as f32 * 2.0 - 1.0,
+        1.0 - rect[1] / height.max(1) as f32 * 2.0,
+        rect[2] / width.max(1) as f32 * 2.0 - 1.0,
+        1.0 - rect[3] / height.max(1) as f32 * 2.0,
+        premultiplied as u8 as f32,
+        0.0,
+        0.0,
+        0.0,
+    ]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -10825,6 +11014,30 @@ mod tests {
         assert_eq!(line[3] - line[1], 1.0);
         // (an empty rectangle stays empty)
         assert_eq!(snap_rect([5.2, 5.2, 5.2, 5.2]), [5.0, 5.0, 5.0, 5.0]);
+    }
+
+    #[test]
+    fn multimonitor_composite_rect_matches_overlay_shader_uniform() {
+        let left = overlay_rect_uniform([0.0, 0.0, 640.0, 1080.0], 1920, 1080, false);
+        let center = overlay_rect_uniform([640.0, 0.0, 1280.0, 1080.0], 1920, 1080, false);
+        let right = overlay_rect_uniform([1280.0, 0.0, 1920.0, 1080.0], 1920, 1080, false);
+
+        for (actual, expected) in [
+            (left, [-1.0, 1.0, -1.0 / 3.0, -1.0, 0.0, 0.0, 0.0, 0.0]),
+            (
+                center,
+                [-1.0 / 3.0, 1.0, 1.0 / 3.0, -1.0, 0.0, 0.0, 0.0, 0.0],
+            ),
+            (right, [1.0 / 3.0, 1.0, 1.0, -1.0, 0.0, 0.0, 0.0, 0.0]),
+        ] {
+            for (actual, expected) in actual.into_iter().zip(expected) {
+                assert!((actual - expected).abs() < 1e-6);
+            }
+        }
+        assert_eq!(
+            overlay_rect_uniform([10.0, 20.0, 30.0, 40.0], 100, 100, true)[4],
+            1.0
+        );
     }
 
     #[test]

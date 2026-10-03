@@ -318,6 +318,20 @@ view response** sets the smoothing time (50–1000 ms, default 250 ms; larger va
 more slowly). Manual looking remains available. The automatic turn is suppressed while
 VR or an active head tracker controls the view. It is off by default.
 
+**Multimonitor cockpit.** Settings → Camera → *Calibrated spanned-window views* renders a
+separate off-axis view for each monitor into one wide desktop window. Set the OS display
+layout to span the monitors (for example, NVIDIA Surround); openOMSI does not create or
+position separate windows. Three matched-resolution, matched-size screens are the
+recommended setup. The monitor count is configurable from one to nine, and the same active
+screen width/height in millimetres is used for each panel. Set the leftmost and rightmost
+screen angles, the distance from your eyes to the center of the screen arc, and the physical
+gap between active screen areas for bezel correction. The existing seat-position controls
+set the driver's eye position relative to the bus, and the existing FOV control overrides
+the physical FOV; *Default* uses the measured screen size and viewing distance. The HUD and
+other interface overlays are drawn once across the spanned picture. Extra views cost
+additional GPU time; the existing render-scale setting applies to each view, so reduce it
+or lower graphics quality if the frame rate drops.
+
 ## Mods and the content folder
 
 The folder of the game binary (`dist/<platform>` in a build; beside `openOMSI.app` on macOS) is laid out like an OMSI 2

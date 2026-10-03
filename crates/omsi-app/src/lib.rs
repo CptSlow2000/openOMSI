@@ -419,6 +419,7 @@ pub(crate) fn make_app(mut args: Args, server_cfg: Option<server::ServerCfg>) ->
         window: None,
         surface: None,
         renderer: None,
+        monitor_targets: Vec::new(),
         #[cfg(windows)]
         vr: None,
         scene: None,
