@@ -158,8 +158,12 @@ pub(super) struct Pax {
     pub squeeze: f32,
     pub free_r: bool,
     pub free_l: bool,
-    /// Complaint the bus made them leave with (+0x630).
+    /// How badly the ride has gone (+0x62c, 0..1; see `ride_comfort`), the complaint said
+    /// so far (+0x630: 1 TooBad_A, 2 TooBad_B, 3 TooBad_C - and off at the next stop) and
+    /// where each one comes (+0x634, +0x638, +0x63c; drawn once, 0 not yet).
+    pub discomfort: f32,
     pub complaint: u8,
+    pub bad_at: [f32; 3],
     /// Distance moved this frame (+0x644, `LastMovedDist`).
     pub moved: f32,
 }
@@ -220,7 +224,9 @@ impl Pax {
             squeeze: 0.0,
             free_r: true,
             free_l: true,
+            discomfort: 0.0,
             complaint: 0,
+            bad_at: [0.0; 3],
             moved: 0.0,
         }
     }
@@ -288,6 +294,92 @@ impl PaxStop {
     }
 }
 
+/// How the player's bus is driven, as Omsi.exe watches it for the riders (0x7d5124,
+/// 0x7d65d4 - 0x7d6b7f): the longitudinal acceleration eased over a tenth of a second, the
+/// lateral one over a second (both weighed down below 1 m/s), and the swings of the first
+/// between +0.2 and -0.2 m/s² (a jerky right foot).
+#[derive(Debug, Clone, Default)]
+pub(super) struct RideComfort {
+    /// +0x780 and +0x784 (m/s²).
+    fast_long: f32,
+    slow_lat: f32,
+    /// The last swing went up (+0x79c), when (+0x794, ms) and how many came in a row (+0x798).
+    up: bool,
+    swing_ms: f64,
+    swings: u32,
+    /// The last hard bend or braking (+0x790, ms).
+    hard_ms: f64,
+}
+
+impl RideComfort {
+    /// One frame of the bus (`speed` forward and the body's acceleration `lat` to the right
+    /// and `long` forward, m/s and m/s²): how much this frame upsets the riders - 0, 0.05
+    /// for the fifth and every further swing of the throttle and brake less than 4 s apart,
+    /// 0.1 for a bend taken at over 3 m/s² or braking or pulling away at over 5 m/s² (once
+    /// a second at most).
+    pub(super) fn step(&mut self, dt: f32, now_ms: f64, speed: f32, lat: f32, long: f32) -> f32 {
+        let w = speed.abs().min(1.0);
+        let kf = (10.0 * dt).min(0.5);
+        let ks = dt.min(0.5);
+        self.fast_long = w * long * kf + (1.0 - kf) * self.fast_long;
+        self.slow_lat = w * lat * ks + (1.0 - ks) * self.slow_lat;
+        let mut k = 0.0;
+        if self.fast_long > 0.2 && !self.up {
+            if now_ms < self.swing_ms + 4000.0 {
+                self.swings += 1;
+                if self.swings > 4 {
+                    k = 0.05;
+                }
+            } else {
+                self.swings = 0;
+            }
+            self.swing_ms = now_ms;
+            self.up = true;
+        } else if self.fast_long < -0.2 && self.up {
+            // (back within half a second: no swing, the count starts again)
+            if now_ms < self.swing_ms + 4000.0 && now_ms > self.swing_ms + 500.0 {
+                self.swings += 1;
+                if self.swings > 4 {
+                    k = 0.05;
+                }
+            } else {
+                self.swings = 0;
+            }
+            self.swing_ms = now_ms;
+            self.up = false;
+        }
+        if self.slow_lat.abs() > 3.0 || self.fast_long.abs() > 5.0 {
+            if self.hard_ms + 1000.0 < now_ms {
+                k = 0.1;
+            }
+            self.hard_ms = now_ms;
+        }
+        k
+    }
+}
+
+/// Where a rider's complaints about the driving come (the human's constructor, 0x625a3f):
+/// the first below 0.1, the second from 0.2 to 0.4, the third (and off at the next stop)
+/// from 0.5 to 0.8, for `r` three draws from 0..1.
+pub(super) fn bad_ride_thresholds(r: [f32; 3]) -> [f32; 3] {
+    let a = 0.1 * r[0];
+    [a, 0.1 + a.max(0.1) + 0.2 * r[1], 0.5 + 0.3 * r[2]]
+}
+
+/// The complaint a rider says as the ride's toll `x` reaches their next threshold
+/// (0x7d6a22 - 0x7d6b7f; the worst first, each only once): 1, 2, 3 or none.
+pub(super) fn bad_ride_complaint(x: f32, said: u8, at: [f32; 3]) -> Option<u8> {
+    if at[2] <= x && said < 3 {
+        Some(3)
+    } else if at[1] <= x && said < 2 {
+        Some(2)
+    } else if at[0] <= x && said < 1 {
+        Some(1)
+    } else {
+        None
+    }
+}
+
 /// What the stops say about a bus this frame (sub_61f238): the stop ahead it is pulling
 /// in to (+0x7a0), the stops within 60 m (+0x7a4), and whether it empties (+0x7c5).
 #[derive(Debug, Clone, Default)]
@@ -348,6 +440,20 @@ pub(super) fn build_routes(n: usize, links: &[(i32, i32, bool)]) -> Vec<Vec<Rout
         visit(&mut adj, root, None, &mut stack);
     }
     adj
+}
+
+/// Whether passenger `x` keeps timetable bus `bus` at its stop (Omsi.exe 0x7d9e8b): on the
+/// way out of it (`Some(None)`, at whatever stop), or walking up to its doors from stop `s`
+/// (`Some(Some(s))`: only while the bus serves that stop). Anybody else, not.
+pub(super) fn holds_bus(x: &Pax, bus: BusId) -> Option<Option<i64>> {
+    if x.bus != Some(bus) {
+        return None;
+    }
+    match x.task {
+        Task::InBusToExit if x.inside == Some(bus) => Some(None),
+        Task::WalkingToBus => Some(x.stop),
+        _ => None,
+    }
 }
 
 /// sub_7f3a24: the distance with the height difference weighed by `w` (5 everywhere).
@@ -626,28 +732,32 @@ impl Humans {
                 self.ai_requests.push((*id, e.clone(), x.clone()));
             }
         }
-        // timetable buses wait while people still get on or off - for somebody on the way
-        // to the gather point only while the bus stands in the stop's box: outside it
-        // nobody walks up to the doors (`Task::ToBus`), and the bus held for them waited
-        // for good
+        // timetable buses wait while people still get on or off (0x7d9e8b - 0x7d9f5e):
+        // somebody of this bus walking in it to an exit, or walking up to its doors from
+        // the stop the bus serves - the traffic checks the stop (`hold_boarding`). People
+        // still on their way to the gather point do not hold it: they walk up to the doors
+        // as soon as the bus has a place for them, and with the bus full they stood there
+        // and kept it at the stop with its doors open for good (#767)
         for bn in buses {
             let BusId::Ai(id) = bn.id else { continue };
             if bn.speed.abs() > 0.5 {
                 continue;
             }
-            let busy = self.people.iter().any(|p| match &p.state {
-                State::Pax(x) => {
-                    let coming = match x.task {
-                        Task::WalkingToBus => true,
-                        Task::ToBus => x.stop.is_some_and(|s| self.in_stop_box(s, bn.id)),
-                        _ => false,
-                    };
-                    x.bus == Some(bn.id) && (coming || (x.task == Task::InBusToExit && x.inside == Some(bn.id)))
+            let mut any_exit = false;
+            let mut stops: Vec<i64> = Vec::new();
+            for p in &self.people {
+                let State::Pax(x) = &p.state else { continue };
+                match holds_bus(x, bn.id) {
+                    Some(None) => any_exit = true,
+                    Some(Some(s)) if !stops.contains(&s) => stops.push(s),
+                    _ => {}
                 }
-                _ => false,
-            });
-            if busy {
-                self.holds.push((id, 2.5));
+            }
+            if any_exit {
+                self.holds.push((id, None, 2.5));
+            }
+            for s in stops {
+                self.holds.push((id, Some(s), 2.5));
             }
         }
     }
@@ -692,6 +802,15 @@ impl Humans {
             }
             if p.dist_timer > 0.0 {
                 p.dist_timer -= p.moved;
+            }
+        }
+        // the toll of a bad ride eases off as the bus goes on (0x62d86c: 0.2 a kilometre)
+        {
+            let speed = self.pax(i).unwrap().inside.and_then(|b| bus_ix.get(&b)).map(|k| buses[*k].speed.abs() as f32);
+            let p = self.pax_mut(i).unwrap();
+            match speed {
+                Some(v) => p.discomfort = (p.discomfort - v * dt / 5000.0).max(0.0),
+                None => p.discomfort = 0.0,
             }
         }
         self.pax_move(i, dt, dt_ms, world, buses, bus_ix);
@@ -1178,6 +1297,11 @@ impl Humans {
                 };
                 let sp = stop.zip(spot).and_then(|(s, k)| self.stops.get(&s).and_then(|s| s.spots.get(k)).cloned());
                 let stop_pos = stop.and_then(|s| self.stops.get(&s)).map(|s| s.pos);
+                // (no place free: at the stop's point - spread along the kerb by who they
+                // are, or everybody without a place stood in one another there)
+                let along = ((self.people[i].id % 7) as f64 - 3.0) * 0.7;
+                let fwd = stop.and_then(|s| self.stops.get(&s)).map(|s| { let h = s.heading.to_radians(); DVec3::new(h.sin(), h.cos(), 0.0) }).unwrap_or(DVec3::ZERO);
+                let stop_pos = stop_pos.map(|q| q + fwd * along);
                 let p = self.pax_mut(i).unwrap();
                 p.spot = spot;
                 p.target_bus = false;
@@ -1266,7 +1390,27 @@ impl Humans {
 
     /// sub_61c8d8: a free waiting place of the stop, at random.
     pub(super) fn take_spot(&mut self, stop: i64) -> Option<usize> {
-        let free: Vec<usize> = self.stops.get(&stop)?.taken.iter().enumerate().filter(|(_, t)| !**t).map(|(k, _)| k).collect();
+        // Stops a few metres apart (both sides of a bus station's platform, a stop and its
+        // copy for another line) find the same objects' places, and each kept its own list of
+        // who stands where (as Omsi.exe's 0x61c8d8 does), so two or three people stood in
+        // one another. A place somebody of another stop stands on is not free (nor one of the
+        // stop's own a few centimetres from a taken one: objects placed twice).
+        let s = self.stops.get(&stop)?;
+        let (pos, reach) = (s.pos, 40.0_f64.max(s.length as f64 + 15.0) * 2.0);
+        let elsewhere: Vec<DVec3> = self
+            .stops
+            .iter()
+            .filter(|(_, o)| (o.pos - pos).length() < reach)
+            .flat_map(|(_, o)| o.spots.iter().zip(&o.taken).filter(|(_, t)| **t).map(|(sp, _)| sp.pos))
+            .collect();
+        let s = self.stops.get(&stop)?;
+        let free: Vec<usize> = s
+            .taken
+            .iter()
+            .enumerate()
+            .filter(|(k, t)| !**t && !elsewhere.iter().any(|q| (*q - s.spots[*k].pos).truncate().length() < 0.4))
+            .map(|(k, _)| k)
+            .collect();
         if free.is_empty() {
             return None;
         }
@@ -1296,7 +1440,15 @@ impl Humans {
         match p.task {
             Task::WaitingForBus => {
                 let Some(stop) = p.stop else { return };
-                let Some(b) = self.bus_for(i, stop, buses, bus_ix) else { return };
+                let Some(b) = self.bus_for(i, stop, buses, bus_ix) else {
+                    if super::debug_pax() && (self.time * 2.0).fract() < (dt as f64 * 2.0) {
+                        let s = &self.stops[&stop];
+                        let listed: Vec<String> = s.buses.iter().map(|(id, inbox)| format!("{id:?} box {inbox} shows {:?}", bus_ix.get(id).and_then(|k| buses[*k].terminus.clone()))).collect();
+                        let termini = p.line.and_then(|k| s.lines.get(k)).map(|l| l.1.iter().cloned().collect::<Vec<_>>());
+                        log::info!("t={:.1} pax {} at stop {stop} for {:?} (line {:?} termini {:?}): no bus; listed {:?}", self.time, self.people[i].label(), p.dest, p.line, termini, listed);
+                    }
+                    return;
+                };
                 let Some(bn) = bus_ix.get(&b).map(|k| &buses[*k]) else { return };
                 self.pax_mut(i).unwrap().bus = Some(b);
                 // still rolling in, or standing in the stop's box: to the gather point
@@ -1599,6 +1751,52 @@ impl Humans {
         }
     }
 
+    /// The riders of the player's bus feel how it is driven (0x7d6964 - 0x7d6b7f): every
+    /// jolt (`RideComfort::step`) takes the toll of the ride `(1 - x) * k` up for everybody
+    /// walking or sitting in it, and whoever reaches a threshold says so (TooBad_A, _B, _C
+    /// of the ticket pack's voices) - the third time getting off at the next stop. The
+    /// toll eases off by 0.2 a kilometre (`pax_tick`). OMSI's passengers did this; here
+    /// they never said a word about the driving (#862, #873).
+    pub(super) fn ride_comfort(&mut self, dt: f32, bus: Option<&VehicleInstance>, buses: &[BusNow], bus_ix: &HashMap<BusId, usize>, world: &World) {
+        let Some(v) = bus else { return };
+        if dt <= 0.0 || self.avatar_only {
+            return;
+        }
+        let a = v.physics.a_trans;
+        let k = self.comfort.step(dt, self.time * 1000.0, v.physics.speed, a.x, a.y);
+        if k <= 0.0 {
+            return;
+        }
+        for i in 0..self.people.len() {
+            if self.people[i].remote || self.people[i].puppet.is_some() {
+                continue;
+            }
+            let Some(p) = self.pax(i) else { continue };
+            if p.bus != Some(BusId::Player) || p.inside != Some(BusId::Player) || !matches!(p.task, Task::InBusToPlace | Task::InBusToExit | Task::SittingInBus) {
+                continue;
+            }
+            if p.bad_at[2] <= 0.0 {
+                let r = [self.rand_f() as f32, self.rand_f() as f32, self.rand_f() as f32];
+                self.pax_mut(i).unwrap().bad_at = bad_ride_thresholds(r);
+            }
+            let p = self.pax_mut(i).unwrap();
+            p.discomfort += (1.0 - p.discomfort) * k;
+            let Some(c) = bad_ride_complaint(p.discomfort, p.complaint, p.bad_at) else { continue };
+            p.complaint = c;
+            if debug_pax() {
+                log::info!("t={:.1} pax {} complains about the driving ({c}, toll {:.2})", self.time, self.people[i].label(), self.pax(i).unwrap().discomfort);
+            }
+            match c {
+                1 => self.say_ex(i, "TooBad_A", true),
+                2 => self.say_ex(i, "TooBad_B", true),
+                _ => {
+                    self.say_ex(i, "TooBad_C", true);
+                    self.set_task(i, Task::InBusToExit, buses, bus_ix, world);
+                }
+            }
+        }
+    }
+
     /// The greeting or complaint stepping into the player's bus (0x62bf2d - 0x62c43c).
     pub(super) fn greet_or_complain(&mut self, i: usize, bn: &BusNow) {
         let Some((whinge, chat)) = self.tickets.as_ref().map(|t| (t.whinge_prop, t.chattiness)) else { return };
@@ -1889,6 +2087,87 @@ impl Humans {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A timetable bus waits for the people walking up to its doors from its stop and for
+    /// those on their way out of it - not for the people still at the gather point, who
+    /// held a full bus at the stop for good (#767).
+    #[test]
+    fn who_keeps_a_timetable_bus_at_its_stop() {
+        let bus = BusId::Ai(7);
+        let mut x = Pax::new(1.1);
+        x.bus = Some(bus);
+        x.stop = Some(42);
+        x.task = Task::ToBus;
+        assert_eq!(holds_bus(&x, bus), None);
+        x.task = Task::WaitingForBus;
+        assert_eq!(holds_bus(&x, bus), None);
+        x.task = Task::WalkingToBus;
+        assert_eq!(holds_bus(&x, bus), Some(Some(42)));
+        assert_eq!(holds_bus(&x, BusId::Ai(8)), None);
+        x.task = Task::InBusToExit;
+        x.inside = Some(bus);
+        assert_eq!(holds_bus(&x, bus), Some(None));
+        x.task = Task::SittingInBus;
+        assert_eq!(holds_bus(&x, bus), None);
+    }
+
+    /// Smooth driving upsets nobody; a hard stop, a fast bend and a jerky foot do, as in
+    /// Omsi.exe (#862).
+    #[test]
+    fn the_riders_feel_hard_braking_fast_bends_and_a_jerky_foot() {
+        let dt = 0.02;
+        let run = |f: &dyn Fn(f64) -> (f32, f32, f32), secs: f64| {
+            let mut c = RideComfort::default();
+            let mut jolts = Vec::new();
+            let mut t = 0.0;
+            while t < secs {
+                let (v, lat, long) = f(t);
+                let k = c.step(dt, (t + 10.0) * 1000.0, v, lat, long);
+                if k > 0.0 {
+                    jolts.push((t, k));
+                }
+                t += dt as f64;
+            }
+            jolts
+        };
+        // pulling away at 1.2 m/s², cruising, braking at 1.5 m/s² to a stop: nothing
+        assert!(run(&|t| if t < 10.0 { (1.2 * t as f32, 0.0, 1.2) } else if t < 20.0 { (12.0, 0.0, 0.0) } else if t < 28.0 { (12.0 - 1.5 * (t as f32 - 20.0), 0.0, -1.5) } else { (0.0, 0.0, 0.0) }, 40.0).is_empty());
+        // a gentle bend at 1.5 m/s² sideways
+        assert!(run(&|_| (10.0, 1.5, 0.0), 10.0).is_empty());
+        // an emergency stop at 7 m/s²: one jolt, not one a frame
+        let hard = run(&|t| if t < 1.0 { (14.0, 0.0, 0.0) } else { (14.0, 0.0, -7.0) }, 2.0);
+        assert_eq!(hard.len(), 1, "{hard:?}");
+        assert_eq!(hard[0].1, 0.1);
+        // a bend at 4 m/s² held for seconds
+        assert_eq!(run(&|_| (12.0, 4.0, 0.0), 6.0).len(), 1);
+        // throttle and brake every 1.5 s: the fifth swing on upsets them, each further one too
+        let jerky = run(&|t| (8.0, 0.0, if (t / 1.5).floor() as i64 % 2 == 0 { 1.0 } else { -1.0 }), 15.0);
+        assert!(jerky.len() >= 4 && jerky.iter().all(|j| j.1 == 0.05) && jerky[0].0 > 5.0, "{jerky:?}");
+        // standing, nothing counts
+        assert!(run(&|_| (0.0, 5.0, -8.0), 5.0).is_empty());
+    }
+
+    #[test]
+    fn complaints_come_worst_first_and_once_each() {
+        let at = bad_ride_thresholds([0.5, 0.5, 0.5]);
+        assert!((at[0] - 0.05).abs() < 1e-6 && (at[1] - 0.3).abs() < 1e-6 && (at[2] - 0.65).abs() < 1e-6);
+        let lo = bad_ride_thresholds([0.0, 0.0, 0.0]);
+        let hi = bad_ride_thresholds([1.0, 1.0, 1.0]);
+        assert!(lo[1] >= 0.2 - 1e-6 && hi[1] <= 0.4 + 1e-6 && lo[2] >= 0.5 - 1e-6 && hi[2] <= 0.8 + 1e-6);
+        assert_eq!(bad_ride_complaint(0.01, 0, at), None);
+        assert_eq!(bad_ride_complaint(0.1, 0, at), Some(1));
+        assert_eq!(bad_ride_complaint(0.1, 1, at), None);
+        assert_eq!(bad_ride_complaint(0.35, 1, at), Some(2));
+        // a crash straight to the top: the worst at once, then nothing more
+        assert_eq!(bad_ride_complaint(0.9, 0, at), Some(3));
+        assert_eq!(bad_ride_complaint(0.95, 3, at), None);
+        // three emergency stops in a row take a rider from nothing past 0.27
+        let mut x = 0.0f32;
+        for _ in 0..3 {
+            x += (1.0 - x) * 0.1;
+        }
+        assert!((x - 0.271).abs() < 1e-3);
+    }
 
     #[test]
     fn a_stop_answers_to_its_label_and_its_timetable_name() {

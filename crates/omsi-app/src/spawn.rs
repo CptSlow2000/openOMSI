@@ -426,6 +426,7 @@ pub(crate) fn spawn_player(
         startup_at: None,
         give_ticket: false,
         give_change: false,
+        door_buttons: hashbrown::HashMap::new(),
         cam_before_special: None,
         held_keys: Default::default(),
         hand_coupled: 0,
@@ -437,10 +438,15 @@ pub(crate) fn spawn_player(
         steer_look: 0.0,
         seat: Vec3::ZERO,
         mirror_offsets: crate::settings::mirror_offsets(&vt.def.path),
+        mirror_shifts: crate::settings::mirror_shifts(&vt.def.path),
+        mirror_fovs: crate::settings::mirror_fovs(&vt.def.path),
         mirrors_dirty: false,
         take_change: false,
         toggled_up: Default::default(),
         momentary_gears: crate::settings::Settings::load().momentary_gears,
+        auto_shift: crate::settings::Settings::load().auto_shift,
+        auto_shift_wait: 0.0,
+        auto_shift_idle: 0.0,
         side_lights_by_l: false,
         driver: None,
         ibis_duty: None,
@@ -450,6 +456,7 @@ pub(crate) fn spawn_player(
         ibis_background: false,
         arm: Default::default(),
         blinker_key_state: 0,
+        blinker_cancel: crate::settings::Settings::load().blinker_cancel,
     };
     for _ in 0..3 {
         p.vehicle.update(1.0 / 30.0);

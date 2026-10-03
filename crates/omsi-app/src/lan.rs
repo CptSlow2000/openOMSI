@@ -470,7 +470,8 @@ impl RemoteVehicle {
 }
 
 // The chat's keys are `chat_toggle` and `chat_open` of keyboard.cfg's [game]
-// (`KeyboardCfg::with_game_defaults`: V and '/'). Not Y for them: the stock file gives that
+// (`KeyboardCfg::with_game_defaults`: V, and '/' or - where the bus's gear down has '/', as in
+// OMSI's own file - the key left of 1). Not Y for them: the stock file gives that
 // scan code (21) to `scendes_set_z` unmodified and to `view_toggle_informationdisplay` with
 // Ctrl, and a German keyboard's Y is `scendes_set_y`; V (47) is bound to nothing there.
 
@@ -1184,6 +1185,7 @@ fn host_weather(args: &Args, weather: &str) -> Result<Option<String>, String> {
     if w.is_empty() {
         return Ok(None);
     }
+    if crate::weather_setup::custom_weather(Some(w)).is_some(){return Ok(Some(w.to_string()));}
     // a METAR report's values: made into a weather here, no file and no sync of our own
     if w.starts_with(crate::weather_setup::REPORT) {
         return if crate::weather_setup::from_report(w).is_some() {
@@ -3214,8 +3216,8 @@ fn debug_log(lan: &LanSession, game: &mut LanGame, dt: f32, frame: &Frame) {
 // ---------------------------------------------------------------------------------------
 // chat
 
-/// A key while LAN play runs: the key bound to `chat_open` ('/' unless the player moved
-/// it) opens the chat line, the one bound to `chat_toggle` (V) hides and shows the chat - `bound` is the `[game]` action of `Inputs/keyboard.cfg` the
+/// A key while LAN play runs: the key bound to `chat_open` ('/' or '`', see
+/// `KeyboardCfg::with_game_defaults`) opens the chat line, the one bound to `chat_toggle` (V) hides and shows the chat - `bound` is the `[game]` action of `Inputs/keyboard.cfg` the
 /// key makes with the modifiers held. While the line is open every key is the chat's
 /// (Enter sends, Escape drops the line, Backspace takes a character back).
 /// Returns whether the key was taken. Text arrives through `chat_type`.
@@ -3298,6 +3300,15 @@ pub fn chat_send(lan: &mut LanSession, game: &mut LanGame, text: &str) {
         game.chat.push("* asked the server for its administration".into());
         return;
     }
+    // `/reconnect`: join the host again after a lost connection (no restart of the game)
+    if text.trim().eq_ignore_ascii_case("/reconnect") {
+        if lan.reconnect() {
+            game.chat.push("* reconnecting ...".into());
+        } else {
+            game.chat.push("* only a joined game can reconnect".into());
+        }
+        return;
+    }
     let text = crate::ui::filter_chat(text.trim());
     match lan.say(&text) {
         Ok(()) => game.chat.error = None,
@@ -3336,7 +3347,7 @@ pub fn hud_lines(lan: &LanSession, _game: &LanGame, _player: Option<&Player>) ->
         }
         Role::Client => {
             if let Some(why) = lan.rejected.as_ref() {
-                lines.push(format!("Online: not connected: {why}"));
+                lines.push(format!("Online: not connected: {why} (chat /reconnect)"));
             } else if lan.connected {
                 let name = lan.welcome.as_ref().map(|w| w.host_name.clone()).unwrap_or_default();
                 lines.push(format!("Online: in {name}'s game, {others}"));

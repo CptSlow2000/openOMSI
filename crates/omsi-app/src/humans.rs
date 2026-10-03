@@ -1382,8 +1382,9 @@ pub struct Humans {
     ai_visits: HashMap<u64, (i64, f64)>,
     /// When each bus last had a door open (the passengers' clock).
     last_door_open: HashMap<BusId, f64>,
-    /// Timetable buses to keep at their stop for a few seconds more (for the traffic).
-    holds: Vec<(u64, f32)>,
+    /// Timetable buses to keep at their stop for a few seconds more (for the traffic): the
+    /// bus, the stop it must be serving for it (none: any), the seconds.
+    holds: Vec<(u64, Option<i64>, f32)>,
     /// Door requests for the timetable buses' scripts: (bus, entries, exits).
     ai_requests: Vec<(u64, Vec<bool>, Vec<bool>)>,
     pub tickets: Option<Arc<omsi_content::tickets::TicketPack>>,
@@ -1462,6 +1463,12 @@ pub struct Humans {
     stamped: Vec<BusId>,
     /// Pedestrians to keep strolling near the player (scaled by `density`).
     pub pedestrians: usize,
+    /// Omsi.exe's people (`[AIMaxCountRandom]`'s second line, the `ai_max_humans` setting):
+    /// it makes that many at the start (0x709274) and draws everybody waiting at a stop,
+    /// walking the pavements or riding from them - never more; at most half of them walk
+    /// the pavements (0x62463c). Here people are made as they are wanted, so they are
+    /// counted against it instead.
+    pub max_people: usize,
     stroll_timer: f32,
     /// Passengers pay the exact fare: no change is ever due.
     pub exact_fare: bool,
@@ -1515,6 +1522,15 @@ pub struct Humans {
     claimed: HashMap<u32, f64>,
     /// The host's people waiting at a stop (client): (stop, waiting place).
     mirror_wait: HashMap<u32, (i64, usize)>,
+    /// How the player's bus is driven, for its riders' complaints.
+    comfort: RideComfort,
+    /// LAN play (host): the waiting people handed over to another player's bus, by stop and
+    /// that bus. They count among the people of the stop while the bus stands there, as
+    /// the people who board a bus of ours keep their stop until it has left: without them
+    /// the stop filled up again at once - one more person a frame once its 10..15 s were
+    /// up - and the client's bus took them all, one stream of passengers that never ended
+    /// (#842, #840, #830).
+    handed: Vec<(i64, u64)>,
 }
 
 /// Resolve each map entry directly, including human packs with nested folders.
@@ -1676,6 +1692,7 @@ impl Humans {
             stop_names: None,
             stamped: Vec::new(),
             pedestrians: 14,
+            max_people: crate::settings::Settings::load().ai_max_humans.max(1) as usize,
             stroll_timer: 0.0,
             exact_fare: true,
             boarding: "auto".into(),
@@ -1705,6 +1722,8 @@ impl Humans {
             claims_out: Vec::new(),
             claimed: HashMap::new(),
             mirror_wait: HashMap::new(),
+            comfort: RideComfort::default(),
+            handed: Vec::new(),
         }
     }
 
@@ -1842,6 +1861,33 @@ impl Humans {
                 }
                 dist < 3.0 || d.dot(e.fwd) / dist > e.cos_half
             }
+        }
+    }
+
+    /// The people of OMSI's pool there are now (everybody but avatars and other players'
+    /// people mirrored here).
+    fn pool_used(&self) -> usize {
+        self.people.iter().filter(|p| p.puppet.is_none() && !p.remote).count()
+    }
+
+    /// Room in the pool for one more person; when it is full somebody walking the street out
+    /// of sight is taken for it, as Omsi.exe takes a task-8 person for a stop (0x61bd44).
+    fn pool_room(&mut self) -> bool {
+        if self.pool_used() < self.max_people {
+            return true;
+        }
+        let free = (0..self.people.len()).find(|&i| {
+            let p = &self.people[i];
+            p.puppet.is_none() && !p.remote && matches!(p.state, State::Strolling(_) | State::Standing) && !self.seen(p.position)
+        });
+        match free {
+            Some(i) => {
+                self.release(i);
+                let p = self.people.swap_remove(i);
+                self.retire(&p);
+                true
+            }
+            None => false,
         }
     }
 
@@ -2355,6 +2401,15 @@ impl Humans {
         let mut ids: Vec<i64> = self.stops.keys().copied().collect();
         ids.sort_unstable();
         let forced = omsi_cfg::env::var("OMSI_PAX_WAITING").ok().and_then(|v| v.parse::<usize>().ok());
+        // the people handed over to another player's bus stop counting once it has left
+        // their stop (or the session)
+        if !self.handed.is_empty() {
+            let (stops, remote) = (&self.stops, &self.remote_now);
+            self.handed.retain(|(stop, bus)| {
+                let Some(s) = stops.get(stop) else { return false };
+                remote.iter().any(|b| b.id == BusId::Ai(*bus) && (b.pos - s.pos).length() < 60.0)
+            });
+        }
         for id in ids {
             let center = self.center;
             let near = {
@@ -2397,11 +2452,14 @@ impl Humans {
                 };
                 s.factor = (r * 2.0 - 1.0) * k + 1.0;
             }
-            let count = self.people.iter().filter(|p| matches!(&p.state, State::Pax(x) if x.stop == Some(id))).count();
+            let count = self.people.iter().filter(|p| matches!(&p.state, State::Pax(x) if x.stop == Some(id))).count() + self.handed.iter().filter(|h| h.0 == id).count();
             let want = {
                 let s = &self.stops[&id];
                 let mean = (s.enter_max + s.enter_min) / 2.0;
-                let w = (self.density.max(0.0) * mean * s.factor).round().max(0.0) as usize;
+                // (0x61bf94: with a timetable, times the share of the trips due there - at a
+                // stop no trip leaves from, nobody)
+                let served = if self.stop_targets.is_some() && s.lines.is_empty() { 0.0 } else { 1.0 };
+                let w = (self.density.max(0.0) * mean * s.factor * served).round().max(0.0) as usize;
                 forced.unwrap_or(w).min(s.spots.len())
             };
             let s = self.stops.get_mut(&id).unwrap();
@@ -2451,6 +2509,9 @@ impl Humans {
     /// A person put at a free waiting place of stop `id` (sub_626044) with a destination
     /// drawn from the stop's (sub_61baa8); they settle there as task 6 does.
     fn spawn_waiting(&mut self, world: &World, renderer: &Renderer, scene: &mut Scene, id: i64) -> Option<usize> {
+        if self.stops.get(&id)?.taken.iter().all(|t| *t) || !self.pool_room() {
+            return None;
+        }
         let k = self.take_spot(id)?;
         let sp = self.stops[&id].spots[k].clone();
         let (dest, line) = self.draw_dest(id);
@@ -2514,6 +2575,9 @@ impl Humans {
         let crowd = (lanes.len() as f32 / 120.0).clamp(0.6, 3.0);
         let target =
             (self.pedestrians as f32 * crowd * self.density.clamp(0.0, 3.0)).round() as usize;
+        // (0x62463c: walking the pavements only while fewer than half the pool do, and never
+        // past the pool)
+        let target = target.min(self.max_people / 2).min((self.max_people + self.people.iter().filter(|p| matches!(p.state, State::Strolling(_))).count()).saturating_sub(self.pool_used()));
         let have = self
             .people
             .iter()
@@ -3345,7 +3409,7 @@ impl Humans {
     }
 
     /// Timetable buses to hold at their stop, for the traffic.
-    pub fn take_holds(&mut self) -> Vec<(u64, f32)> {
+    pub fn take_holds(&mut self) -> Vec<(u64, Option<i64>, f32)> {
         std::mem::take(&mut self.holds)
     }
 
@@ -3592,6 +3656,7 @@ impl Humans {
         // the stops: which buses stand at them (sub_61f93c), who waits there (sub_61bf94)
         let at_stops = self.register_buses(&buses, dt);
         self.claim_waiting();
+        self.ride_comfort(dt, bus, &buses, &bus_ix, world);
         if !self.avatar_only {
             self.stops_tick(dt, world, renderer, scene);
         }
@@ -3838,10 +3903,26 @@ impl Humans {
                         p.end_node(net, &leg)
                             .and_then(|n| p.next_leg(net, n, leg.lane, pick))
                     })
-                    .unwrap_or(Leg {
-                        lane: leg.lane,
-                        a: leg.b,
-                        b: leg.a,
+                    .unwrap_or_else(|| {
+                        // a leg that ends in the middle of its path (the point of a stop
+                        // somebody got off at) goes on to one of its ends: turned round
+                        // there, the people off a bus were sent back to the same point
+                        // every frame and milled round each other at the stop (#913)
+                        let lane_len = net.lanes[leg.lane].length();
+                        if leg.b > 0.05 && leg.b < lane_len - 0.05 {
+                            let fwd = if leg.len() > 0.05 { leg.b > leg.a } else { pick % 2 == 0 };
+                            Leg {
+                                lane: leg.lane,
+                                a: leg.b,
+                                b: if fwd { lane_len } else { 0.0 },
+                            }
+                        } else {
+                            Leg {
+                                lane: leg.lane,
+                                a: leg.b,
+                                b: leg.a,
+                            }
+                        }
                     });
                 walk.legs.push(next);
                 if walk.leg > 6 {
@@ -4466,6 +4547,24 @@ impl Humans {
                 }
             }
         }
+        // OMSI_CHECK_TPOSE=1: everybody drawn with the arms out (the file's rest pose): the
+        // skinned mesh wider than 1.3 m from hand to hand
+        if omsi_cfg::env::var_os("OMSI_CHECK_TPOSE").is_some() {
+            for p in &self.people {
+                let Some((pos, _)) = p.skins.first() else {
+                    log::info!("t-pose? {} {}: never skinned", p.label(), p.state_name());
+                    continue;
+                };
+                let (lo, hi) = pos.iter().fold((f32::MAX, f32::MIN), |(lo, hi), v| (lo.min(v.x), hi.max(v.x)));
+                if hi - lo > 1.3 {
+                    let pax = match &p.state {
+                        State::Pax(x) => format!("pax_state {} speed {:.2} seat_h {:.2} room {:.2} st {}", x.pax_state, x.speed, x.seat_h, x.room, x.st),
+                        _ => String::new(),
+                    };
+                    log::info!("t-pose: {} {} width {:.2} skinned {} {pax}", p.label(), p.state_name(), hi - lo, p.skinned);
+                }
+            }
+        }
         self.pose_stats.0 += 1;
         self.pose_stats.1 += n_due;
         self.pose_stats.2 += started.elapsed().as_secs_f64() * 1000.0;
@@ -4998,7 +5097,7 @@ impl Humans {
     /// A client's bus takes these waiting people (host): those still waiting leave our
     /// world (they are the client's now); returns them. Somebody who has meanwhile walked
     /// up to another bus stays ours.
-    pub fn hand_over(&mut self, ids: &[u32]) -> Vec<u32> {
+    pub fn hand_over(&mut self, player: u32, ids: &[u32]) -> Vec<u32> {
         let mut out = Vec::new();
         for id in ids {
             let Some(i) = self.people.iter().position(|p| p.id == *id) else {
@@ -5006,6 +5105,11 @@ impl Humans {
             };
             if !matches!(&self.people[i].state, State::Pax(x) if x.task == Task::WaitingForBus) || self.people[i].remote {
                 continue;
+            }
+            // (still counted at their stop while that bus stands there, as the people
+            // boarding a bus of ours are: see `handed`)
+            if let Some(stop) = self.pax(i).and_then(|x| x.stop) {
+                self.handed.push((stop, remote_bus_id(player)));
             }
             self.release(i);
             let p = self.people.swap_remove(i);
