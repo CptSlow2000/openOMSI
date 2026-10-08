@@ -20,6 +20,8 @@ pub struct Weighing {
     why: Vec<String>,
     stop_at: Option<f32>,
     contested: bool,
+    /// The first vehicle (by id) found in the way or with the right of way.
+    by: Option<u64>,
 }
 
 /// Where a vehicle meets a crossing lane on its way: its lane in the sequence, the distance
@@ -410,11 +412,12 @@ impl TrafficSim {
         // of a busy main road stood at the mouth of its side road for minutes.
         let wait = self.cars[i].state.yield_time;
         let patience = 1.0 - (wait / 40.0).min(1.0) / 3.0;
-        let Weighing { hard, mut ruled, soft, mut why, stop_at, contested } =
+        let Weighing { hard, mut ruled, soft, mut why, stop_at, contested, by } =
             self.weigh_crossings(i, jn, way, on_lane, coming, reservations, walkers, committed, patience, explain, stop_at);
         // keep the junction clear: the exit must take the whole car
         let ruled_before_exit = ruled;
         let mut exit_full = false;
+        let mut exit_car: Option<u64> = None;
         if !jn.inside {
             if let Some(exit) = jn.exit {
                 let need = st.length + st.min_gap;
@@ -439,6 +442,11 @@ impl TrafficSim {
                     if speed < 1.5 && space < need && exit.1 < 40.0 {
                         ruled = true;
                         exit_full = true;
+                        // (the last car of that queue on that lane)
+                        exit_car = on_lane
+                            .get(&lane)
+                            .and_then(|v| v.iter().filter(|e| !e.3 && e.0 != i).min_by(|a, b| (a.1 - self.cars[a.0].state.rear).total_cmp(&(b.1 - self.cars[b.0].state.rear))))
+                            .map(|e| self.cars[e.0].id);
                         if explain {
                             why.push(format!("exit {} full on lane {lane} ({space:.1} m)", exit.0));
                         }
@@ -485,6 +493,12 @@ impl TrafficSim {
         if explain {
             self.cars[i].junction_why = if blocked { format!("{why:?} soft {:?}", soft.iter().map(|&j| self.cars[j].id).collect::<Vec<_>>()) } else { String::new() };
         }
+        let yield_to = if blocked {
+            by.or(exit_car).or_else(|| soft.first().map(|&j| self.cars[j].id))
+        } else {
+            None
+        };
+        self.cars[i].yield_to = yield_to;
         // A driver who has waited long at the line makes himself seen: he keeps a claim on
         // his way through while still waiting, so the cars not yet committed to the
         // junction hold back for him and he goes once those already on their way are
@@ -571,6 +585,7 @@ impl TrafficSim {
         // somebody on, or coming to, a lane that crosses this car's way through the junction
         // (see the gridlock squeeze below)
         let mut contested = false;
+        let mut by: Option<u64> = None;
         for &(l, dl) in &jn.lanes {
             for c in &self.net.crossings[l] {
                 let point = dl + c.at;
@@ -661,6 +676,7 @@ impl TrafficSim {
                                 || ((mine_in - theirs_in).abs() <= 0.3 && me_id > o.id));
                         if !ahead {
                             hard = true;
+                            by = by.or(Some(o.id));
                             if explain {
                                 why.push(format!("car {} in the crossing of lanes {l}/{m}", o.id));
                             }
@@ -683,6 +699,7 @@ impl TrafficSim {
                         };
                         if first && t_j < t_clear * if me_decided { 1.0 } else { patience } + 1.0 {
                             hard = true;
+                            by = by.or(Some(o.id));
                             if explain {
                                 why.push(format!("car {} ({}) arrives at {l}/{m} in {t_j:.1} s, this one in {t_mine:.1} s, clear in {t_clear:.1} s [its v {:.2} stood {:.1} crawl {:.1} yielding {} lead {:?} lane {} theirs {:.1}]", o.id, if claimed { "claimed" } else { "on it" }, o.state.speed, o.stopped, o.crawl, o.yielding, o.lead_info, o.state.lane, theirs));
                             }
@@ -705,6 +722,7 @@ impl TrafficSim {
                             soft.push(j);
                         } else {
                             ruled = true;
+                            by = by.or(Some(o.id));
                             if explain {
                                 why.push(format!("car {} has the right of way at {l}/{m}, arrives in {t_j:.1} s, clear in {t_clear:.1} s", o.id));
                             }
@@ -722,6 +740,7 @@ impl TrafficSim {
                         Verdict::Free => {}
                         Verdict::Hard => {
                             hard = true;
+                            by = by.or(Some(super::stats::WAITS_ON_PLAYER));
                             if explain {
                                 why.push(format!("the player's vehicle in or at the crossing of lanes {l}/{m} (arrives in {t_j:.1} s, this one is clear in {t_clear:.1} s)"));
                             }
@@ -731,6 +750,7 @@ impl TrafficSim {
                         }
                         Verdict::Ruled => {
                             ruled = true;
+                            by = by.or(Some(super::stats::WAITS_ON_PLAYER));
                             if explain {
                                 why.push(format!("the player's vehicle has the right of way at {l}/{m}, arrives in {t_j:.1} s, clear in {t_clear:.1} s"));
                             }
@@ -761,6 +781,6 @@ impl TrafficSim {
                 }
             }
         }
-        Weighing { hard, ruled, soft, why, stop_at, contested }
+        Weighing { hard, ruled, soft, why, stop_at, contested, by }
     }
 }

@@ -19,6 +19,7 @@ pub mod obstacles;
 pub mod parked;
 pub mod planning;
 pub mod setup;
+pub mod stats;
 pub mod tick;
 pub mod viewer;
 #[cfg(test)]
@@ -238,4 +239,6 @@ pub struct TrafficSim {
     /// Cars the last `tick` took off the road (their ids): their sounds and pictures are
     /// for the game to let go (see omsi-app's `Traffic::tick`).
     pub retired: Vec<u64>,
+    /// `OMSI_TRAFFIC_STATS`: the flow statistics of the run (see `stats`).
+    pub stats: Option<Box<stats::TrafficStats>>,
 }

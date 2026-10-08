@@ -111,6 +111,8 @@ impl Traffic {
             rail_trail: Default::default(),
             ai_secs: 0.0,
             consist_reversed: false,
+            waits_on: None,
+            yield_to: None,
             park: None,
         });
         view.insert(id, render);

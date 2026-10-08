@@ -139,6 +139,12 @@ pub struct AiCar {
     /// A train turned round as a whole (its last car leads now): what a trip's
     /// `[trainreverse]` is compared with (Omsi.exe's vehicle +0x4e1).
     pub consist_reversed: bool,
+    /// The vehicle (by id) it stands for this frame: the car ahead, the one it gives way
+    /// to at a junction (`stats::WAITS_ON_PLAYER` the player's or a LAN player's). The
+    /// waits-for graph of the traffic statistics.
+    pub waits_on: Option<u64>,
+    /// The vehicle (by id) it gave way to at its junction this frame.
+    pub yield_to: Option<u64>,
 }
 
 /// A free parking space beside a lane that a car means to park in: the space of parked car
@@ -614,6 +620,8 @@ impl TrafficSim {
             rail_trail: Default::default(),
             ai_secs: 0.0,
             consist_reversed: false,
+            waits_on: None,
+            yield_to: None,
             park: None,
             seed,
             scheme,

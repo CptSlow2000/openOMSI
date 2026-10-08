@@ -119,6 +119,7 @@ effect. On Android, `openOMSI/env.txt` holds `NAME=value` lines that are set bef
 | `OMSI_TRACE_REMOTE` | text | - | use | app | LAN CSV: where each other player's bus is drawn every frame. |
 | `OMSI_TRACE_STEER` | text | - | use | app | CSV: the mouse steering frame by frame. |
 | `OMSI_TRACE_VARS` | text | - | use | app | a,b,$c: the listed variables every half second of the run. |
+| `OMSI_TRAFFIC_STATS` | text | - | use | sim | CSV: the traffic's flow every minute (standing cars, waits-for cycles, junction entries, red runs, overlaps), a summary at the end. |
 | `OMSI_WATCH_VARS` | text | - | use | app | a,b: log every change of these variables of the player's bus. |
 | `OMSI_WHEEL_TRACE` | bool | off | use | app | Log the deepest a drawn tyre goes into the road, once a second. |
 
