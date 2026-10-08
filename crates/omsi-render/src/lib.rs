@@ -320,6 +320,9 @@ pub struct PointLight {
     /// A lamp in a housing - a street lamp's head, a platform's light (`[maplight]`): the
     /// enhanced path sends its light down and out, a few per cent above its horizon.
     pub housed: bool,
+    /// A virtual source embedded in a pole fixture. Its fixture cannot occlude
+    /// its own output; it remains a caster for other lamps and the sun.
+    pub shadow_owner: Option<i64>,
     /// Which path draws the light.
     pub mode: LightMode,
 }
@@ -336,6 +339,7 @@ impl Default for PointLight {
             core: 0.0,
             beam: 0.0,
             housed: false,
+            shadow_owner: None,
             mode: LightMode::Both,
         }
     }
@@ -479,6 +483,9 @@ const LIGHT_CELL: f32 = 25.0;
 /// Enhanced: how many street lamps cast shadows (their maps are tiles of a quarter of the
 /// shadow size under the far map), and how far from the camera a lamp's reach may end.
 const LAMP_SHADOWS: usize = 4;
+/// The shadow casters' lists of a frame: the near, far and close cascades, then one per
+/// street lamp's map (each lamp's own: an embedded source leaves its own fixture out).
+const SHADOW_LISTS: usize = 3 + LAMP_SHADOWS;
 const LAMP_SHADOW_REACH: f32 = 45.0;
 /// The far map's height over its width: the lamps' tiles take the quarter under it.
 const FAR_MAP_ASPECT: f32 = 1.25;
@@ -493,6 +500,7 @@ struct LampShadow {
     index: u32,
     position: Vec3,
     range: f32,
+    owner: Option<i64>,
 }
 
 impl LampShadow {
@@ -1250,6 +1258,8 @@ pub struct Instance {
     /// it - except a spline standing clear of the ground (a bridge deck, an elevated
     /// railway), which is raised with `set_casts_shadow`.
     pub casts_shadow: bool,
+    /// Stable identity of a pole fixture hosting embedded virtual map lights.
+    pub shadow_owner: Option<i64>,
     /// Part of a vehicle whose roof lies this high over its origin (model frame): what faces
     /// up under the roof (the floor, the seats) is out of the weather - no snow nor wet on
     /// it. (Only the vehicle the camera is in was spared, by its box; every other bus showed
@@ -4755,6 +4765,7 @@ impl Renderer {
             omsi_caster: false,
             ordered: false,
             casts_shadow: true,
+            shadow_owner: None,
             roof: None,
         });
         if scene.bounds_known.get(mesh).copied().unwrap_or(false) {
@@ -4809,6 +4820,7 @@ impl Renderer {
             omsi_caster: false,
             ordered: false,
             casts_shadow: false,
+            shadow_owner: None,
             roof: None,
         });
         if scene.bounds_known.get(mesh).copied().unwrap_or(false) {
@@ -6178,7 +6190,7 @@ impl Renderer {
                     if scene.lamp_shadow_last.contains(&key) {
                         score *= 1.6;
                     }
-                    chosen.push((score, LampShadow { index: idx, position: p, range: l.radius }, key));
+                    chosen.push((score, LampShadow { index: idx, position: p, range: l.radius, owner: l.shadow_owner }, key));
                 }
             }
             for y in (y0.max(0.0) as usize)..=(y1.min(side as f32 - 1.0) as usize) {
