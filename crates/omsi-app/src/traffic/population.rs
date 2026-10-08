@@ -402,12 +402,15 @@ impl Traffic {
         let total_w = acc.max(1e-3);
         let mut attempts = 0;
         let counted_near = self.sim.count_near.take();
+        // (a car that has given up counts while it is still on the road: left out, every
+        // car that gave up in a jam was replaced at once while it still stood there, the
+        // new ones queued up behind it and gave up in their turn, and on Spandau the 180
+        // cars asked for grew to 550 within half an hour, the town locked solid)
         let unscheduled = self
             .cars
             .iter()
             .filter(|c| {
                 !c.is_bus()
-                    && !c.gone
                     && counted_near
                         .map(|(p, r)| (c.vehicle.position - p).length() < r)
                         .unwrap_or(true)
@@ -496,7 +499,8 @@ impl Traffic {
         if self.sim.dormant.is_empty() {
             return;
         }
-        let active = self.sim.cars.iter().filter(|c| !c.is_bus() && !c.gone).count();
+        // (those that gave up and still stand on the road count, see `populate_kind`)
+        let active = self.sim.cars.iter().filter(|c| !c.is_bus()).count();
         let mut budget = (target as f32 * 1.25).ceil() as usize;
         budget = budget.saturating_sub(active);
         let centers: Vec<DVec3> = std::iter::once(center).chain(self.sim.lan_centers.iter().copied()).collect();
