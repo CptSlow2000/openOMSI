@@ -126,6 +126,7 @@ effect. On Android, `openOMSI/env.txt` holds `NAME=value` lines that are set bef
 
 | Name | Type | Default | Read | Crates | Description |
 |---|---|---|---|---|---|
+| `OMSI_API_BLESS` | bool | off | use | plugin | cargo test -p omsi-plugin api_manifest: write docs/plugin-api.json and the reference tables of docs/PLUGINS.md again from the plugin API registry. |
 | `OMSI_AUDIT_LINE` | num | - | test | sim | bus_audit example: the line (number and letter code) the IBIS typist enters instead of the bus's own. |
 | `OMSI_AUTOPILOT` | num | - | use | app | Offscreen: the player's bus follows the lanes at this speed in km/h (finds where it falls through or leaves the road). |
 | `OMSI_BACKGROUND` | bool | off | use | app | A test window that does not take the keyboard focus (OMSI_INPUT drives the handlers directly). |
@@ -164,6 +165,7 @@ effect. On Android, `openOMSI/env.txt` holds `NAME=value` lines that are set bef
 | `OMSI_GLASS_WIND` | num | - | use | app | Offscreen: the rain on the glass as met at this speed in m/s. |
 | `OMSI_GPU_LIMITS` | text | - | use | render | default or downlevel: request only the WebGPU default (or downlevel) limits. Set by the small_chip test. |
 | `OMSI_GROUND_SAMPLE` | text | - | use | app | Offscreen CSV: what the wheels stand on every metre along the lanes near the start. |
+| `OMSI_HIDDEN_WINDOW` | bool | off | use | app | The game's window is made and never shown: a run of the whole game (its frame, the plugins, --exit-after) with nothing on the screen. |
 | `OMSI_HIDE_MESH` | text | - | use | app | a\|b: leave out the meshes whose file names contain one of the parts. |
 | `OMSI_HIDE_WINDOW` | text | - | use | app | from,to: treat the window as hidden between these seconds. |
 | `OMSI_HOLE_PHOTO` | bool | off | use | app | With OMSI_ROAD_PHOTO: photograph from above down to 25 m under the lane (holes in the world). |

@@ -141,6 +141,7 @@ macro_rules! flags {
 flags! {
     OMSI_AI_MODEL_LOCK: Bool, Switch, Use, "off", "AI cars steer no further than their model's own steering lock (no 60 degree allowance for tight turns).";
     OMSI_AI_WAY_ONLY: Bool, Switch, Use, "off", "AI vehicles stand on their way with the plain ground sampler, as before (A/B).";
+    OMSI_API_BLESS: Bool, Test, Use, "off", "cargo test -p omsi-plugin api_manifest: write docs/plugin-api.json and the reference tables of docs/PLUGINS.md again from the plugin API registry.";
     OMSI_AUDIT_LINE: Num, Test, Test, "-", "bus_audit example: the line (number and letter code) the IBIS typist enters instead of the bus's own.";
     OMSI_AUTOPILOT: Num, Test, Use, "-", "Offscreen: the player's bus follows the lanes at this speed in km/h (finds where it falls through or leaves the road).";
     OMSI_BACKEND: Text, Setup, Use, "settings", "vulkan, dx12, metal, gl or angle (dx11, d3d11; Windows): the graphics API tried first (overrides the settings). Set at runtime by the launcher and on Android.";
@@ -284,6 +285,7 @@ flags! {
     OMSI_GROUND_LANES: Bool, Debug, Use, "off", "Along every street lane, every metre, how far the ground lies over or under the lane.";
     OMSI_GROUND_SAMPLE: Text, Test, Use, "-", "Offscreen CSV: what the wheels stand on every metre along the lanes near the start.";
     OMSI_HEIGHTPROFILE_GROUND: Bool, Switch, Once, "off", "The wheels stand on the splines' [heightprofile]s again (A/B).";
+    OMSI_HIDDEN_WINDOW: Bool, Test, Use, "off", "The game's window is made and never shown: a run of the whole game (its frame, the plugins, --exit-after) with nothing on the screen.";
     OMSI_HIDE_MESH: Text, Test, Use, "-", "a|b: leave out the meshes whose file names contain one of the parts.";
     OMSI_HIDE_WINDOW: Text, Test, Use, "-", "from,to: treat the window as hidden between these seconds.";
     OMSI_HOLE_PHOTO: Bool, Test, Use, "off", "With OMSI_ROAD_PHOTO: photograph from above down to 25 m under the lane (holes in the world).";

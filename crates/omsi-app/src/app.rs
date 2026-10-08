@@ -156,6 +156,11 @@ impl App {
         if omsi_cfg::flags::OMSI_BACKGROUND.is_set() {
             attrs = attrs.with_active(false);
         }
+        // OMSI_HIDDEN_WINDOW=1: the whole game runs with its window never shown (its frames
+        // go the hidden window's way: the simulation, the plugins, nothing drawn)
+        if omsi_cfg::flags::OMSI_HIDDEN_WINDOW.is_set() {
+            attrs = attrs.with_visible(false).with_active(false);
+        }
         let window = match given {
             Some(w) => w,
             // (no display to open it on, a compositor that refuses it: said so, not a panic
