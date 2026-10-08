@@ -1914,7 +1914,11 @@ pub(crate) fn key_bitmap_buttons(bitmap: &str) -> Vec<u32> {
 
 #[cfg(any(target_os = "linux", test))]
 fn button_index(declared: &[u32], code: u32) -> Option<usize> {
-    if declared.iter().all(|c| code_button(*c).is_some()) {
+    // (the table's numbers when every button is in it - but not for a device whose buttons
+    // are all BTN_TRIGGER_HAPPY ones: its first button is the table's 17th, and it listed
+    // sixteen buttons it does not have, #1879; joydev and DirectInput count it from 1)
+    let in_low_table = |c: &u32| (0x100..=0x13e).contains(&(c & 0xFFFF));
+    if declared.iter().all(|c| code_button(*c).is_some()) && declared.iter().any(in_low_table) {
         return None;
     }
     declared.iter().position(|c| *c == code)
@@ -2288,6 +2292,10 @@ mod button_tests {
             let pad: Vec<u32> = vec![0x130, 0x131, 0x133, 0x134];
             assert_eq!(super::button_index(&pad, 0x133), None);
         }
+        // a button box of BTN_TRIGGER_HAPPY codes only: from 0, no sixteen ghosts (#1879)
+        let panel: Vec<u32> = (0x2c0..0x2c8).collect();
+        assert_eq!(super::button_index(&panel, 0x2c0), Some(0));
+        assert_eq!(super::button_count(&panel), 8);
     }
 
     #[test]
