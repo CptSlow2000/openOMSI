@@ -941,6 +941,7 @@ pub(crate) fn run_move(app: &mut App, kind: &ListKind, action: &str, mv: Move) -
                 Some((pos, heading)) => {
                     crate::admin::teleport(app, pos, heading);
                     app.service_msg = Some(("The bus stands at the start point".into(), 3.0));
+                    app.service_event("teleport", app.menu_by(), None);
                 }
                 None => app.service_msg = Some(("That start point is not in the map".into(), 3.0)),
             }
@@ -2926,8 +2927,10 @@ fn switch_driver(app: &mut App, name: &str) {
     }
     let rel = format!("Drivers/{name}.odr");
     let mut next = crate::career::Career::load(&app.args.root, &rel);
-    // (the distance and the clock of the run go on; the counters start with the new file)
+    // (the distance and the clock of the run go on; the counters start with the new file;
+    // the bus's motion and the trip driven go on)
     next.seconds = app.session.career.seconds;
+    next.go_on_from(&mut app.session.career);
     app.session.career = next;
     app.args.driver = Some(rel);
     app.service_msg = Some((format!("Driver: {name}"), 3.0));

@@ -62,6 +62,7 @@ impl App {
                 self.service_msg = Some(m);
             }
             // what the plugins asked the game to do: lines of the game menu
+            self.integrations.plugin_command = true;
             for c in commands {
                 if let Some(k) = self.game_menu_items().iter().position(|m| m.0 == c) {
                     let was = self.menus.game_menu;
@@ -77,6 +78,7 @@ impl App {
                     self.page_action(&c);
                 }
             }
+            self.integrations.plugin_command = false;
         } else {
             self.integrations.plugin_keys.clear();
             // (while the game is paused they wait for the next frame)
@@ -100,6 +102,10 @@ impl App {
         }
         if let (Some(h), Some(p)) = (self.session.humans.as_mut(), self.player.as_ref()) {
             let hurt = steps::people_in_career(&mut self.session.career, h, p, self.settings.collision_pedestrians);
+            for (name, price) in h.take_sales() {
+                let args = vec![omsi_plugin::InfoValue::Text(name.trim().to_string()), crate::plugins::num_f32(price)];
+                crate::plugins::queue_event(&mut self.integrations.plugin_events, "ticket_sold", args);
+            }
             if hurt > 0 {
                 self.service_msg = Some(("Pedestrian knocked down!".into(), 6.0));
                 crate::plugins::queue_event(&mut self.integrations.plugin_events, "pedestrian", vec![omsi_plugin::InfoValue::Num(hurt as f64)]);

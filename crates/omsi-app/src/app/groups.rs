@@ -50,8 +50,12 @@ pub(crate) struct Integrations {
     /// Keys pressed (true) and let go since the Lua plugins' last frame.
     pub(crate) plugin_keys: Vec<(String, bool)>,
     /// What happened since the Lua plugins' last frame: crashes, people knocked down,
-    /// stops skipped (see `plugins::queue_event`).
+    /// stops skipped, services and moves of the bus, trips ended, jolts, tickets sold (see
+    /// `plugins::queue_event`).
     pub(crate) plugin_events: Vec<omsi_plugin::GameEvent>,
+    /// A plugin's `omsi.command` is running: what it does is the plugin's (the `service`
+    /// event's `by`).
+    pub(crate) plugin_command: bool,
     /// The Lua plugins' panels and notifications on the screen (`omsi.ui`).
     pub(crate) plugin_panels: crate::plugin_ui::PluginPanels,
     /// Discord's "Playing openOMSI" status, and when it was last brought up to date.
@@ -407,9 +411,8 @@ pub(crate) struct SessionState {
     pub(crate) pending_time: Option<f64>,
     /// The play time (`clock.run_time`) the last situation was saved at.
     pub(crate) autosave_t: f64,
-    /// The fuel pump or the bus wash running (`run_service`): which, and the seconds the
-    /// tank or the dirt has not changed (it ends after `SERVICE_SETTLE`).
-    pub(crate) pumping: Option<(&'static str, f32)>,
+    /// The fuel pump or the bus wash running (`run_service`).
+    pub(crate) pumping: Option<Pumping>,
     /// The driver's personnel file and this session's statistics.
     pub(crate) career: career::Career,
     /// The duty's stops with their times as driven, kept in a file (`journey`).
@@ -428,4 +431,17 @@ pub(crate) struct SessionState {
     /// The current METAR receiver is a single manual fetch rather than the continuous sync.
     pub(crate) metar_once: bool,
     pub(crate) metar_next: f64,
+}
+
+/// The fuel pump or the bus wash running (`SessionState::pumping`).
+#[derive(Clone, Copy)]
+pub(crate) struct Pumping {
+    /// "refuel" or "wash".
+    pub(crate) kind: &'static str,
+    /// The seconds the tank or the dirt has not changed (it ends after `SERVICE_SETTLE`).
+    pub(crate) idle: f32,
+    /// The litres in the tank when the pump started (the `service` event's amount).
+    pub(crate) from: f32,
+    /// Who started it (the `service` event's `by`).
+    pub(crate) by: &'static str,
 }

@@ -123,6 +123,12 @@ pub(crate) fn tt_terminus_index(hof: Option<&omsi_vehicle::hof::Hof>, terminus: 
     hof.and_then(|h| h.termini.iter().position(|t| t.texture_id == terminus)).map_or(-1, |i| i as i32)
 }
 
+/// A trip run's number (`PlayerDuty::trip_run`): never the same twice in a game.
+fn next_run() -> u64 {
+    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+    NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+}
+
 impl PlayerDuty {
     /// A duty of `trips` (where they begin in the tour: `first_trip`) that starts with trip
     /// `trip_index`, before the bus has been placed on it; `picked` when the player picked
@@ -144,6 +150,9 @@ impl PlayerDuty {
             placed: false,
             trip_changed: false,
             skipped: None,
+            run: next_run(),
+            finished: None,
+            reopened: None,
             picked,
             first_update: None,
             heading: 0.0,
@@ -204,6 +213,32 @@ impl PlayerDuty {
     /// it as the `stops_skipped` event.
     pub fn take_skipped(&mut self) -> Option<(usize, usize, usize)> {
         self.skipped.take()
+    }
+
+    /// The trip that ended since the last call, and how (see [`Finished`]); Lua plugins get
+    /// it as the `trip_done` event. (A saved situation restored at the last stop is over, but
+    /// did not end now; neither did a trip passed over unbegun.)
+    pub fn take_finished(&mut self) -> Option<Finished> {
+        self.finished.take()
+    }
+
+    /// The current trip's run: a number no other trip had in this game, a new one every
+    /// time the duty goes on to a trip (or a duty is taken).
+    pub fn trip_run(&self) -> u64 {
+        self.run
+    }
+
+    /// The run (`trip_run`) whose trip a page reopened after its end was taken: it ends again
+    /// later, and that end counts too.
+    pub fn take_reopened(&mut self) -> Option<u64> {
+        self.reopened.take()
+    }
+
+    /// The current trip ended `how` (the first ending since the last `take_finished` counts).
+    fn finish(&mut self, how: TripEnd) {
+        if self.finished.is_none() {
+            self.finished = Some(Finished { index: self.trip_index, how, run: self.run });
+        }
     }
 
     /// How late the bus arrived at the stop it stands at (s; negative: early), None while it
@@ -449,6 +484,11 @@ impl PlayerDuty {
         self.served_terminus = None;
         self.arrived_late = None;
         if back {
+            // the trip ended reopened: an ending not yet taken is no ending, one taken is
+            // undone (`take_reopened`)
+            if self.done && self.finished.take().is_none() {
+                self.reopened = Some(self.run);
+            }
             self.done = false;
             self.held_back = true;
         }
@@ -475,6 +515,7 @@ impl PlayerDuty {
             self.at_stop = false;
             self.arrived_late = None;
             self.done = true;
+            self.finish(TripEnd::Skipped);
             return Some(name);
         }
         self.skip_to(self.next_stop + 1).then_some(name)
@@ -482,6 +523,7 @@ impl PlayerDuty {
 
     pub(crate) fn set_trip(&mut self, index: usize) {
         self.trip_index = index;
+        self.run = next_run();
         self.next_stop = 0;
         self.at_stop = false;
         self.done = false;
@@ -723,6 +765,14 @@ impl PlayerDuty {
             if !(self.done || unbegun || given_up || at_next_start) {
                 break;
             }
+            // (one done has ended already; one the bus never left a stop of was never driven,
+            // picked or not)
+            let begun = self.left_late.is_some();
+            if !self.done && begun && at_next_start {
+                self.finish(TripEnd::Arrived);
+            } else if !self.done && begun && given_up {
+                self.finish(TripEnd::GivenUp);
+            }
             self.set_trip(self.trip_index + 1);
             log::info!(
                 "duty: trip {} {} to {}",
@@ -750,8 +800,9 @@ impl PlayerDuty {
                         self.arrived_late = Some(day_time - stop.arr);
                     }
                     self.at_stop = true;
-                    if self.next_stop == last {
+                    if self.next_stop == last && !self.done {
                         self.done = true;
+                        self.finish(TripEnd::Arrived);
                     }
                 } else if self.at_stop && d > LEFT_STOP {
                     self.at_stop = false;

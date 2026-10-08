@@ -123,6 +123,12 @@ impl PeopleSim {
         std::mem::take(&mut self.holds)
     }
 
+    /// The tickets sold at the cash desk since the last call: name and value. Lua plugins get
+    /// them as the `ticket_sold` event.
+    pub fn take_sales(&mut self) -> Vec<(String, f32)> {
+        std::mem::take(&mut self.sales)
+    }
+
     /// Door requests for the timetable buses, for the traffic to hand to their scripts.
     pub fn take_ai_requests(&mut self) -> Vec<(u64, DoorWants)> {
         std::mem::take(&mut self.ai_requests)

@@ -61,6 +61,10 @@ by defining a global function `on_<event>`:
 | `crash` | energy (kJ), speed (km/h) | the player's bus crashed: every crash, also one the same as the last (the screen's "Crash: 136 kJ"); above 50 kJ it is a heavy one |
 | `pedestrian` | how many | the bus knocked people down |
 | `stops_skipped` | how many, due at, now at | the duty jumped ahead: the bus passed stops of its trip without stopping (or was moved) and is now at a later one; the stops are numbered in the trip from 1, as `next_stop_number` |
+| `service` | kind, by, amount | the player's bus was serviced or moved. `kind`: `"refuel"` (amount: litres put in), `"wash"` (amount: the dirt left, 0 to 1) - both once the pump or the wash is done or the bus drove off -, `"repair"` (amount: the game minutes it took, the team's way there too; 0 at once), `"reset"` (put back on its wheels) or `"teleport"` (moved: a start point, a place on the map, beside another player); `by`: `"player"` (the game menu), `"plugin"` (`omsi.command`), `"host"` (the LAN host or an admin) or `"game"` (fallen through the ground and put back) |
+| `trip_done` | trip, how, driving, comfort, ticket selling | a trip of the duty the bus was driven on ended, once (a trip a page reopens by going back ends again): `trip` is its number in the duty (as `omsi.info().trip`), `how` is `"arrived"` (the bus reached its last stop, or stands at the next trip's first stop from its last leg), `"skipped"` (the last stop was skipped) or `"given_up"` (half an hour past its end, the duty went on); then the trip's ratings in per cent, as the personnel file rates a driver but for this trip alone: driving (from 100 at the trip's start, every jolt, pedal see-saw or crash costs, kilometres driven win it back), comfort (of the people who stepped in, those without a complaint) and ticket selling (the points for the tickets asked for: 2 for the right change, 1 for the wrong); 100 where nobody stepped in or asked. A trip counts from the end of the one before: the people boarding at its first stop while the bus waits there are its own |
+| `jolt` | along, across, speed (km/h, also backwards), passengers | the bus braked, sped up or cornered hard enough to cost driving rating: the smoothed accelerations along and across it (m/s², signed) passed 5 and 3 m/s²; at most one a second |
+| `ticket_sold` | name, price | a ticket was sold at the cash desk: its name and price as the bus's ticket list has them (the game knows no currency) |
 | `ui_click` | panel id, element id (`nil`: the panel itself) | a button (or another clickable part) of one of the plugin's [panels](#on-screen-panels) was clicked |
 | `ui_focus` | `true`/`false` | the panels got the mouse or gave it back (also by Esc, or a menu of the game opening) |
 
@@ -333,6 +337,25 @@ only to programs on this computer, and only to ports from 1024 up.
   names a bus uses; the bus's `.osc` scripts list them all.
 * Keep `on_frame` light; use `omsi.every` and `omsi.watch` for everything that does not
   need every frame.
+
+## The telemetry file (for programs beside the game)
+
+A program that only wants to follow the player's bus - a fleet map, an in-vehicle
+terminal, a stream overlay - can read `~/.openomsi/telemetry.json` (on Windows
+`%USERPROFILE%\.openomsi\telemetry.json`) instead of being a plugin. The game writes it
+**only while the file exists**: the program (or you) creates it once, empty, and the game
+fills it from then on; deleting it stops the writing. It stays on this computer.
+
+About twice a second the file is replaced as a whole (written beside it and renamed), so a
+reader never sees half of it. It holds (`version` 2): `pid`, `updated` (Unix seconds),
+`paused`; `player` (`null` without a bus): `x`, `y`, `z`, `tile_x`, `tile_y`, `local_x`,
+`local_y`, `heading`, `speed_kmh`, `delay_s`, `passengers`; `duty` (`null` without one):
+`line`, `tour`, `trip`, `trip_index`, `trip_count`, `terminus`, `next_stop_index`,
+`next_stop_id`, `next_stop_name`, `next_stop_dist`, `prev_stop_id`, `at_stop` and `stops`
+(each `object_id`, `name`, `stops`, `arr`, `dep`, `x`, `y`); `ai_buses`, the timetable
+buses on the road (`id`, `line`, `tour`, `trip`, `terminus`, `depart`, `next_stop_id`,
+`at_stop`, `trip_done`, `delay_s`, `x`, `y`, `number`). The stop IDs are the map's, as in
+`omsi.info()`. A file whose `updated` stops moving belongs to a game that ended.
 
 ## OMSI plugins (`plugins/*.opl` + DLL)
 
