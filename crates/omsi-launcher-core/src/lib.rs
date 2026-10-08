@@ -1308,10 +1308,10 @@ fn lines_on(map_dir: &Path, date: &str) -> Result<Vec<LineInfo>> {
     let off = omsi_map::chrono_deactivated_lines(&chrono);
     let data = omsi_timetable::TimetableData::load_with_chrono(map_dir, &chrono, &off);
     // which tours run that day: the tour's mask as the game reads it (bits 0-6 Monday to
-    // Sunday, 7 a public holiday, 8 school holidays, 9 school days: the original)
+    // Sunday, 7 a public holiday, 8 school days, 9 school holidays: the original, #1883)
     let calendar = omsi_map::Calendar::load(&map_dir.join("Holidays.txt")).unwrap_or_default();
     let day_bit = if calendar.is_holiday(code) { 1 << 7 } else { 1 << weekday(code) };
-    let school_bit = if calendar.in_holiday_range(code) { 1 << 8 } else { 1 << 9 };
+    let school_bit = if calendar.in_holiday_range(code) { 1 << 9 } else { 1 << 8 };
     let mut out = Vec::new();
     for l in &data.lines {
         let mut termini: Vec<String> = Vec::new();
@@ -1320,7 +1320,7 @@ fn lines_on(map_dir: &Path, date: &str) -> Result<Vec<LineInfo>> {
             let mask = t.extra.trim().parse::<i32>().unwrap_or(1023);
             let runs_on = |c: i32| {
                 let day = if calendar.is_holiday(c) { 1 << 7 } else { 1 << weekday(c) };
-                let school = if calendar.in_holiday_range(c) { 1 << 8 } else { 1 << 9 };
+                let school = if calendar.in_holiday_range(c) { 1 << 9 } else { 1 << 8 };
                 mask & day != 0 && mask & school != 0
             };
             // (and yesterday's night tour: its trips past 24:00 run today, #1576)
@@ -1447,8 +1447,8 @@ fn days_of(mask: i32) -> String {
         out.push_str(if out.is_empty() { "holidays" } else { " & holidays" });
     }
     match (mask & (1 << 8) != 0, mask & (1 << 9) != 0) {
-        (true, false) => out.push_str(", school holidays"),
-        (false, true) => out.push_str(", school days"),
+        (true, false) => out.push_str(", school days"),
+        (false, true) => out.push_str(", school holidays"),
         _ => {}
     }
     out
