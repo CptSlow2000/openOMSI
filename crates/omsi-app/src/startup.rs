@@ -417,8 +417,25 @@ pub(crate) fn under_gamescope() -> bool {
     std::env::var_os("GAMESCOPE_WAYLAND_DISPLAY").is_some() || std::env::var("XDG_CURRENT_DESKTOP").is_ok_and(|d| d.to_ascii_lowercase().contains("gamescope"))
 }
 
+/// The screen the game opens on: the one the launcher stands on (`OMSI_SCREEN_AT`, the
+/// launcher's middle), else the main one (#1959: it always opened on the main screen).
+pub(crate) fn home_monitor(event_loop: &winit::event_loop::ActiveEventLoop) -> Option<winit::monitor::MonitorHandle> {
+    let at = omsi_cfg::flags::OMSI_SCREEN_AT.var().and_then(|v| {
+        let (x, y) = v.split_once(',')?;
+        Some((x.trim().parse::<i32>().ok()?, y.trim().parse::<i32>().ok()?))
+    });
+    at.and_then(|(x, y)| {
+        event_loop.available_monitors().find(|m| {
+            let (p, s) = (m.position(), m.size());
+            x >= p.x && y >= p.y && x < p.x + s.width as i32 && y < p.y + s.height as i32
+        })
+    })
+    .or_else(|| event_loop.primary_monitor())
+    .or_else(|| event_loop.available_monitors().next())
+}
+
 pub(crate) fn fit_window(event_loop: &winit::event_loop::ActiveEventLoop, w: f64, h: f64) -> (winit::dpi::LogicalSize<f64>, Option<winit::dpi::PhysicalPosition<i32>>) {
-    let Some(m) = event_loop.primary_monitor().or_else(|| event_loop.available_monitors().next()) else {
+    let Some(m) = home_monitor(event_loop) else {
         return (winit::dpi::LogicalSize::new(w, h), None);
     };
     let (screen, scale) = (m.size(), m.scale_factor().max(0.5));

@@ -107,7 +107,7 @@ impl App {
         let resolution = crate::settings::Settings::resolution().filter(|_| self.args.size == crate::cli::DEFAULT_SIZE);
         if let Some((w, h)) = resolution {
             attrs = attrs.with_inner_size(winit::dpi::PhysicalSize::new(w, h));
-            if let Some(m) = event_loop.primary_monitor().or_else(|| event_loop.available_monitors().next()) {
+            if let Some(m) = crate::startup::home_monitor(event_loop) {
                 let (sw, sh) = (m.size().width as i32, m.size().height as i32);
                 attrs = attrs.with_position(winit::dpi::PhysicalPosition::new(m.position().x + ((sw - w as i32) / 2).max(0), m.position().y + ((sh - h as i32) * 2 / 5).max(0)));
             }
@@ -120,7 +120,7 @@ impl App {
             log::info!("gamescope (Steam Deck Gaming Mode): the window fills the screen");
         }
         if self.settings.fullscreen || gamescope {
-            attrs = attrs.with_fullscreen(Some(winit::window::Fullscreen::Borderless(None)));
+            attrs = attrs.with_fullscreen(Some(winit::window::Fullscreen::Borderless(crate::startup::home_monitor(event_loop))));
         }
         if self.settings.triple.enabled
             && self.settings.triple_span

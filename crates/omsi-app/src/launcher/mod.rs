@@ -439,6 +439,13 @@ impl ApplicationHandler for Launcher {
         if !matches!(event, WindowEvent::RedrawRequested) {
             self.last_input = Instant::now();
         }
+        // (the game opens on the screen the launcher stands on, #1959)
+        if matches!(event, WindowEvent::Moved(_) | WindowEvent::Resized(_) | WindowEvent::Focused(true)) {
+            if let Some(w) = self.window.as_ref() {
+                let (at, size) = (w.outer_position().ok(), w.outer_size());
+                core::instances::set_screen_at(at.map(|p| (p.x + size.width as i32 / 2, p.y + size.height as i32 / 2)));
+            }
+        }
         match event {
             WindowEvent::CloseRequested => {
                 self.pages.pads.cancel_feedback_test();
