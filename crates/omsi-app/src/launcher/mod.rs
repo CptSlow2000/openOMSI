@@ -1082,10 +1082,19 @@ impl Launcher {
         let disconnected = !dialog && self.state.disconnected.is_some();
         let crash = !dialog && !disconnected && self.state.crash.is_some();
         let reset = !dialog && !crash && !disconnected && self.pages.confirm_reset;
-        if self.browser.is_some() || dialog || crash || reset || disconnected {
+        let key_picker = self.browser.is_none()
+            && !dialog
+            && !crash
+            && !reset
+            && !disconnected
+            && self.page == Page::Controls
+            && self.pages.controls_tab == 0
+            && self.pages.kb_picker.is_some();
+
+        if self.browser.is_some() || dialog || crash || reset || disconnected || key_picker {
             self.pages.pads.cancel_feedback_test();
         }
-        let saved = (self.browser.is_some() || dialog || crash || reset || disconnected).then(|| {
+        let saved = (self.browser.is_some() || dialog || crash || reset || disconnected || key_picker).then(|| {
             let i = self.ui.input.clone();
             self.ui.input.mouse = Vec2::new(-1e4, -1e4);
             self.ui.input.pressed = false;
@@ -1093,6 +1102,7 @@ impl Launcher {
             self.ui.input.wheel = Vec2::ZERO;
             self.ui.input.keys.clear();
             self.ui.input.text.clear();
+            self.ui.input.raw_key = None;
             i
         });
         // a phone: the launcher made for it, not the desktop's pages
@@ -1145,6 +1155,8 @@ impl Launcher {
                 self.draw_crash_dialog();
             } else if reset {
                 pages::reset_dialog(self);
+            } else if key_picker {
+                pages::keybind_picker(self);
             } else {
                 self.draw_browser();
             }
