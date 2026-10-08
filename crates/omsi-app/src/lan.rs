@@ -3123,6 +3123,10 @@ fn sound_remote(
             ss.set_inside(true);
             ss.set_muffled(true);
             ss.set_listener_vehicle(true);
+            // its own outside sounds come in through what this bus has open - its
+            // `Snd_OutsideVol`, not the walker's own bus's (or 1 without one): riding along
+            // the exterior engine drowned the cab (#1759)
+            omsi_audio::soundset::set_outside_open(Some(v.var("Snd_OutsideVol").unwrap_or(0.0)));
             ss.update(audio, &|n| v.var(n), &xf, &fired);
             for (t, f) in &fired_files {
                 ss.play_file_trigger(audio, t, f, &|n| v.var(n), &xf);
