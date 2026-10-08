@@ -349,6 +349,62 @@ Every function and event, as the game's API registry describes them (also as JSO
 
 | Function | Returns | What it does | Since |
 | --- | --- | --- | --- |
+| `omsi.bus.acceleration()` | across, along, up | Its acceleration in its own frame, m/s² without gravity: to the right, forwards, up. | 0.2.22 |
+| `omsi.bus.action(name, [down])` | boolean | A key action of the vehicles (`[vehicles]` of keyboard.cfg: `horn`, `parking_brake_toggle`, `kw_scheinwerfer_toggle`, `blinker_left_set`, `ticket_give`, ...): pressed and let go, or held (`down` true) and let go (`false`). `true` when the bus knows it. *Permission: `vehicle_write`.* | 0.2.22 |
+| `omsi.bus.controls()` | throttle, brake, clutch, steering | What the bus drives with now: the pedals (0 to 1) and the steering (-1 left to 1 right), from the keys, the mouse or a controller. | 0.2.22 |
+| `omsi.bus.damage()` | table or nil | `{crashes, last_impact_kj, repair_minutes}`: the bus's crashes, the energy of the last one and how long a repair would take (`nil`: nothing to repair). | 0.2.22 |
+| `omsi.bus.destination()` | name, index | The destination the bus shows and its index in `destinations` (nothing when none). | 0.2.22 |
+| `omsi.bus.destinations()` | list of tables | The destinations of the bus's depot file: `{index, code, name, all_exit}` (`index` from 1, for `set_destination`). | 0.2.22 |
+| `omsi.bus.dirt()` | number or nil | How dirty the bus is, 0 (clean) to 1. | 0.2.22 |
+| `omsi.bus.door(n)` | boolean or nil | Whether door leaf `n` (from 1) is open. | 0.2.22 |
+| `omsi.bus.door_count()` | integer | The doorways the door keys work, front to back. | 0.2.22 |
+| `omsi.bus.doors()` | list of numbers | Each door leaf's position, front to back: 0 shut, 1 open (the scripts' `door_0`, `door_1`, ...). | 0.2.22 |
+| `omsi.bus.doors_open()` | boolean or nil | Whether any door is open (by the passengers' door flags where the bus has them). | 0.2.22 |
+| `omsi.bus.electrics()` | boolean or nil | Whether the bus's electrics are on (the main switch). | 0.2.22 |
+| `omsi.bus.engine()` | running, rpm, electrics | The engine: whether it runs, its rpm (where the bus shows one) and whether the electrics are on. | 0.2.22 |
+| `omsi.bus.engine_running()` | boolean or nil | Whether the engine runs. | 0.2.22 |
+| `omsi.bus.file()` | string or nil | The bus's `.bus` file, relative to the game folder. | 0.2.22 |
+| `omsi.bus.fuel()` | number or nil | The fuel in the tank, litres (the scripts' `engine_tank_content`). | 0.2.22 |
+| `omsi.bus.gear()` | integer or nil | The gear engaged (-1 reverse, 0 neutral), where the bus shows one. | 0.2.22 |
+| `omsi.bus.get_strings([names])` | table | The same for string variables. | 0.2.22 |
+| `omsi.bus.get_vars([names])` | table | Many script variables at once: a table name -> value of the names given, or of every variable of the bus without a list. | 0.2.22 |
+| `omsi.bus.handbrake()` | boolean or nil | Whether the parking brake is on. | 0.2.22 |
+| `omsi.bus.headlights()` | integer or nil | The headlights: 0 off, 1 side lights, 2 dipped, 3 high beam. | 0.2.22 |
+| `omsi.bus.horn()` | boolean or nil | Whether the horn sounds. | 0.2.22 |
+| `omsi.bus.indicator()` | string or nil | The indicators: `"off"`, `"left"`, `"right"` or `"hazard"`. | 0.2.22 |
+| `omsi.bus.interior_light()` | number or nil | The passenger room's light, 0 (off) to 1. | 0.2.22 |
+| `omsi.bus.km_today()` | number or nil | Kilometres driven this session (as the personnel file counts them). | 0.2.22 |
+| `omsi.bus.kneeling()` | boolean or nil | Whether the bus kneels. | 0.2.22 |
+| `omsi.bus.mass()` | number or nil | The bus's mass in kg. | 0.2.22 |
+| `omsi.bus.number()` | string or nil | The bus's fleet number. | 0.2.22 |
+| `omsi.bus.odometer()` | number or nil | The bus's odometer in km. | 0.2.22 |
+| `omsi.bus.orientation()` | heading, pitch, bank | Heading (degrees clockwise from north), pitch (nose up positive) and bank (right side down positive). | 0.2.22 |
+| `omsi.bus.passengers()` | total, seated, standing | The people aboard the bus: all, sitting, standing. | 0.2.22 |
+| `omsi.bus.play_sound(event)` | boolean | Plays the bus's own sound of this event (a trigger name of its sound files, `ev_...`). *Permission: `vehicle_write`.* | 0.2.22 |
+| `omsi.bus.retarder()` | number or nil | The retarder's step, where the bus has one. | 0.2.22 |
+| `omsi.bus.rpm()` | number or nil | The engine's revolutions per minute. | 0.2.22 |
+| `omsi.bus.sales()` | tickets, money | Tickets sold this session and the money taken (the game knows no currency). | 0.2.22 |
+| `omsi.bus.set_destination(index)` | boolean | Shows destination `index` (from 1, as `destinations` lists them). *Permission: `vehicle_write`.* | 0.2.22 |
+| `omsi.bus.set_indicator(state)` | boolean | Sets the indicators: `"off"`, `"left"`, `"right"` or `"hazard"`. *Permission: `vehicle_write`.* | 0.2.22 |
+| `omsi.bus.set_interior_light(on)` | boolean | Switches the passenger room's light on or off. *Permission: `vehicle_write`.* | 0.2.22 |
+| `omsi.bus.set_line(line)` | boolean | Types a line (route) into the bus's IBIS, as the player would. *Permission: `vehicle_write`.* | 0.2.22 |
+| `omsi.bus.set_vars(values)` | integer | Sets many script variables at once (a table name -> number); how many the bus has. *Permission: `vehicle_write`.* | 0.2.22 |
+| `omsi.bus.shift(gear)` | boolean | Puts a manual gearbox's lever in a gear (-1 reverse, 0 neutral). *Permission: `vehicle_write`.* | 0.2.22 |
+| `omsi.bus.sound_horn(down)` | boolean | Holds the horn (`true`) or lets it go. *Permission: `vehicle_write`.* | 0.2.22 |
+| `omsi.bus.start_up()` | string or nil | Starts the bus up the way Shift+U does (the battery, the electrics, the engine) - or shuts a running bus down; what the game says it does. *Permission: `vehicle_write`.* | 0.2.22 |
+| `omsi.bus.state()` | table or nil | Everything a dashboard shows, in one table: `speed` (km/h, signed), `gear`, `engine` (running), `rpm`, `electrics`, `doors_open`, `indicator`, `headlights`, `dirt`, `passengers`, `odometer`, `km_today`, `throttle`, `brake`, `clutch`, `steering`, `fuel`, `handbrake`, `horn`, `stop_request` (a key is `nil` where the bus does not have it). | 0.2.22 |
+| `omsi.bus.steering_angle()` | angle, max | The front wheels' angle and the most they turn, degrees (right positive). | 0.2.22 |
+| `omsi.bus.stop_brake()` | boolean or nil | Whether the stop brake (the door brake) holds the bus. | 0.2.22 |
+| `omsi.bus.stop_requested()` | boolean or nil | Whether a passenger has asked to stop. | 0.2.22 |
+| `omsi.bus.ticket_request()` | name, price | The ticket the passenger at the cash desk asks for (nothing when nobody asks). | 0.2.22 |
+| `omsi.bus.tickets()` | list of tables | The tickets the map sells: `{name, price, day_ticket}`. | 0.2.22 |
+| `omsi.bus.toggle_door([n])` | boolean | Presses the key of doorway `n` (from 1; 0 or none: all doors), as the player would. *Permission: `vehicle_write`.* | 0.2.22 |
+| `omsi.bus.toggle_handbrake()` | boolean | Puts the parking brake on or off, as its key does. *Permission: `vehicle_write`.* | 0.2.22 |
+| `omsi.bus.trailers()` | integer or nil | Parts coupled behind the bus (an articulated bus's rear counts). | 0.2.22 |
+| `omsi.bus.triggers()` | list of strings | The names of the bus's script triggers (for `trigger`, `press`). | 0.2.22 |
+| `omsi.bus.velocity()` | number or nil | The bus's speed in km/h, negative backwards. | 0.2.22 |
+| `omsi.bus.velocity_vector()` | x, y, z | Its velocity in the world, m/s (x east, y north, z up). | 0.2.22 |
+| `omsi.bus.wheels()` | list of tables | Each wheel: `{axle, side, rpm, radius, suspension, driven}` (`side` 0 left, 1 right; `suspension` the spring's travel). | 0.2.22 |
 | `omsi.distance(x, y)` | number or nil | Metres from the bus to a map point, or `nil` on foot. | 0.1.10 |
 | `omsi.has_vehicle()` | boolean | `true` while the player drives a vehicle. | 0.1.5 |
 | `omsi.position()` | x, y, z, heading | Where the bus is: map metres (x east, y north, z up) and its heading in degrees clockwise from north; nothing on foot. | 0.1.10 |
@@ -373,6 +429,27 @@ Every function and event, as the game's API registry describes them (also as JSO
 | `omsi.other_var(id, name)` | number or nil | A script variable of one of `others`, or `nil`. | 0.2.21 |
 | `omsi.others([radius])` | list of tables | The other vehicles within `radius` m of the bus (default 300): each `{id, kind, name, x, y, z, heading}`, `kind` being `"ai"` (the traffic) or `"player"` (another player's bus in a LAN game); empty on foot. | 0.2.21 |
 | `omsi.set_other_var(id, name, value)` | boolean | Sets a script variable of one of `others`; `true` when that vehicle has it. An AI vehicle keeps it until its scripts write it again; another player's bus takes its values from the network again. *Permission: `traffic_write`.* | 0.2.21 |
+| `omsi.traffic.ahead([reach])` | table or nil | The AI vehicle ahead of the player's bus within `reach` m (default 100) and 20° of its heading, with its `distance`: for a distance warning or a cruise control. | 0.2.22 |
+| `omsi.traffic.clear()` | integer or nil | Takes every car not running to a timetable off the road; how many went. *Permission: `traffic_write`.* | 0.2.22 |
+| `omsi.traffic.counts()` | driving, buses, asleep, parked | The AI vehicles: driving, timetable buses among them, asleep out of range, parked. | 0.2.22 |
+| `omsi.traffic.density()` | cars, share | How many cars the traffic keeps around the camera, and the share of them that do not run to a timetable (0 to 1). | 0.2.22 |
+| `omsi.traffic.get(id)` | table or nil | One AI vehicle by its id, as `traffic.list` gives them. | 0.2.22 |
+| `omsi.traffic.light_ahead([reach])` | table or nil | The traffic light the player's bus comes to within `reach` m (default 80): `{aspect, change_in, distance}` - `aspect` `"red"`, `"red_yellow"`, `"green"`, `"green_yellow"`, `"yellow"` or `"dark"`, `change_in` the seconds to its next change. | 0.2.22 |
+| `omsi.traffic.list([radius])` | list of tables | The AI vehicles (within `radius` m of the player's bus, when given): `{id, kind, name, x, y, z, heading, speed, max_speed, waiting_for, standing, braking, blinker, line, distance}`. `kind`: `"car"`, `"taxi"`, `"bus"`, `"truck"`, `"timetable_bus"`, `"tram"`, `"bicycle"`; `waiting_for` why it waits or slows (`"lead"`, `"light"`, `"yield"`, `"people"`, ...); `standing` the seconds it has stood. | 0.2.22 |
+| `omsi.traffic.nearest([kind])` | table or nil | The AI vehicle nearest to the player's bus (of that `kind`, when given), with its `distance`. | 0.2.22 |
+| `omsi.traffic.remove(id)` | boolean | Takes an AI vehicle off the road (a timetable bus too: its timetable forgets it); its passengers get out. *Permission: `traffic_write`.* | 0.2.22 |
+| `omsi.traffic.set_density(cars, [share])` | boolean | Changes the traffic's amount (as the game menu's slider: 0 to 500 cars) and, when given, the share not running to a timetable; it fills up or thins out over the next seconds. *Permission: `traffic_write`.* | 0.2.22 |
+
+#### People
+
+| Function | Returns | What it does | Since |
+| --- | --- | --- | --- |
+| `omsi.people.counts()` | walking, waiting, riding | The people of the map near the camera: walking, waiting at stops, riding a bus. | 0.2.22 |
+| `omsi.people.density()` | number or nil | The people setting: 0 to 3, 1 the map's own amount. | 0.2.22 |
+| `omsi.people.list([radius])` | list of tables | The people (within `radius` m of the player's bus, when given): `{id, x, y, z, state, aboard, ai_bus, stop, destination, ticket, complaint}`. `state`: `"strolling"`, `"idle"`, `"standing"`, `"waiting"`, `"to_bus"`, `"boarding"`, `"riding"`, `"seated"`, `"leaving"`, `"to_stop"`; `aboard` in the player's bus; `complaint` 0 to 3 (3: they leave). | 0.2.22 |
+| `omsi.people.set_density(value)` | boolean | Changes the people setting (0 to 3). *Permission: `traffic_write`.* | 0.2.22 |
+| `omsi.people.stops()` | list of tables | The stops near the camera where people wait: `{id, name, x, y, z, waiting}`. | 0.2.22 |
+| `omsi.people.waiting(stop)` | integer | How many people wait at a stop (its map object id). | 0.2.22 |
 
 #### Time
 

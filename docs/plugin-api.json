@@ -24,6 +24,649 @@
       "permission": null
     },
     {
+      "name": "bus.acceleration",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Its acceleration in its own frame, m/s² without gravity: to the right, forwards, up.",
+      "params": [],
+      "returns": "across, along, up",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "bus.action",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "A key action of the vehicles (`[vehicles]` of keyboard.cfg: `horn`, `parking_brake_toggle`, `kw_scheinwerfer_toggle`, `blinker_left_set`, `ticket_give`, ...): pressed and let go, or held (`down` true) and let go (`false`). `true` when the bus knows it.",
+      "params": [
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "down",
+          "type": "bool",
+          "optional": true
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "vehicle_write"
+    },
+    {
+      "name": "bus.controls",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "What the bus drives with now: the pedals (0 to 1) and the steering (-1 left to 1 right), from the keys, the mouse or a controller.",
+      "params": [],
+      "returns": "throttle, brake, clutch, steering",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "bus.damage",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "`{crashes, last_impact_kj, repair_minutes}`: the bus's crashes, the energy of the last one and how long a repair would take (`nil`: nothing to repair).",
+      "params": [],
+      "returns": "table or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.destination",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "The destination the bus shows and its index in `destinations` (nothing when none).",
+      "params": [],
+      "returns": "name, index",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "bus.destinations",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "The destinations of the bus's depot file: `{index, code, name, all_exit}` (`index` from 1, for `set_destination`).",
+      "params": [],
+      "returns": "list of tables",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.dirt",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "How dirty the bus is, 0 (clean) to 1.",
+      "params": [],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.door",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Whether door leaf `n` (from 1) is open.",
+      "params": [
+        {
+          "name": "n",
+          "type": "integer",
+          "optional": false
+        }
+      ],
+      "returns": "boolean or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.door_count",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "The doorways the door keys work, front to back.",
+      "params": [],
+      "returns": "integer",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.doors",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Each door leaf's position, front to back: 0 shut, 1 open (the scripts' `door_0`, `door_1`, ...).",
+      "params": [],
+      "returns": "list of numbers",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.doors_open",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Whether any door is open (by the passengers' door flags where the bus has them).",
+      "params": [],
+      "returns": "boolean or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.electrics",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Whether the bus's electrics are on (the main switch).",
+      "params": [],
+      "returns": "boolean or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.engine",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "The engine: whether it runs, its rpm (where the bus shows one) and whether the electrics are on.",
+      "params": [],
+      "returns": "running, rpm, electrics",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "bus.engine_running",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Whether the engine runs.",
+      "params": [],
+      "returns": "boolean or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.file",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "The bus's `.bus` file, relative to the game folder.",
+      "params": [],
+      "returns": "string or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.fuel",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "The fuel in the tank, litres (the scripts' `engine_tank_content`).",
+      "params": [],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.gear",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "The gear engaged (-1 reverse, 0 neutral), where the bus shows one.",
+      "params": [],
+      "returns": "integer or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.get_strings",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "The same for string variables.",
+      "params": [
+        {
+          "name": "names",
+          "type": "table",
+          "optional": true
+        }
+      ],
+      "returns": "table",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.get_vars",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Many script variables at once: a table name -> value of the names given, or of every variable of the bus without a list.",
+      "params": [
+        {
+          "name": "names",
+          "type": "table",
+          "optional": true
+        }
+      ],
+      "returns": "table",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.handbrake",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Whether the parking brake is on.",
+      "params": [],
+      "returns": "boolean or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.headlights",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "The headlights: 0 off, 1 side lights, 2 dipped, 3 high beam.",
+      "params": [],
+      "returns": "integer or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.horn",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Whether the horn sounds.",
+      "params": [],
+      "returns": "boolean or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.indicator",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "The indicators: `\"off\"`, `\"left\"`, `\"right\"` or `\"hazard\"`.",
+      "params": [],
+      "returns": "string or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.interior_light",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "The passenger room's light, 0 (off) to 1.",
+      "params": [],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.km_today",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Kilometres driven this session (as the personnel file counts them).",
+      "params": [],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.kneeling",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Whether the bus kneels.",
+      "params": [],
+      "returns": "boolean or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.mass",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "The bus's mass in kg.",
+      "params": [],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.number",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "The bus's fleet number.",
+      "params": [],
+      "returns": "string or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.odometer",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "The bus's odometer in km.",
+      "params": [],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.orientation",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Heading (degrees clockwise from north), pitch (nose up positive) and bank (right side down positive).",
+      "params": [],
+      "returns": "heading, pitch, bank",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "bus.passengers",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "The people aboard the bus: all, sitting, standing.",
+      "params": [],
+      "returns": "total, seated, standing",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "bus.play_sound",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Plays the bus's own sound of this event (a trigger name of its sound files, `ev_...`).",
+      "params": [
+        {
+          "name": "event",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "vehicle_write"
+    },
+    {
+      "name": "bus.retarder",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "The retarder's step, where the bus has one.",
+      "params": [],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.rpm",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "The engine's revolutions per minute.",
+      "params": [],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.sales",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Tickets sold this session and the money taken (the game knows no currency).",
+      "params": [],
+      "returns": "tickets, money",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "bus.set_destination",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Shows destination `index` (from 1, as `destinations` lists them).",
+      "params": [
+        {
+          "name": "index",
+          "type": "integer",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "vehicle_write"
+    },
+    {
+      "name": "bus.set_indicator",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Sets the indicators: `\"off\"`, `\"left\"`, `\"right\"` or `\"hazard\"`.",
+      "params": [
+        {
+          "name": "state",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "vehicle_write"
+    },
+    {
+      "name": "bus.set_interior_light",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Switches the passenger room's light on or off.",
+      "params": [
+        {
+          "name": "on",
+          "type": "bool",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "vehicle_write"
+    },
+    {
+      "name": "bus.set_line",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Types a line (route) into the bus's IBIS, as the player would.",
+      "params": [
+        {
+          "name": "line",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "vehicle_write"
+    },
+    {
+      "name": "bus.set_vars",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Sets many script variables at once (a table name -> number); how many the bus has.",
+      "params": [
+        {
+          "name": "values",
+          "type": "table",
+          "optional": false
+        }
+      ],
+      "returns": "integer",
+      "multi": false,
+      "permission": "vehicle_write"
+    },
+    {
+      "name": "bus.shift",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Puts a manual gearbox's lever in a gear (-1 reverse, 0 neutral).",
+      "params": [
+        {
+          "name": "gear",
+          "type": "integer",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "vehicle_write"
+    },
+    {
+      "name": "bus.sound_horn",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Holds the horn (`true`) or lets it go.",
+      "params": [
+        {
+          "name": "down",
+          "type": "bool",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "vehicle_write"
+    },
+    {
+      "name": "bus.start_up",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Starts the bus up the way Shift+U does (the battery, the electrics, the engine) - or shuts a running bus down; what the game says it does.",
+      "params": [],
+      "returns": "string or nil",
+      "multi": false,
+      "permission": "vehicle_write"
+    },
+    {
+      "name": "bus.state",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Everything a dashboard shows, in one table: `speed` (km/h, signed), `gear`, `engine` (running), `rpm`, `electrics`, `doors_open`, `indicator`, `headlights`, `dirt`, `passengers`, `odometer`, `km_today`, `throttle`, `brake`, `clutch`, `steering`, `fuel`, `handbrake`, `horn`, `stop_request` (a key is `nil` where the bus does not have it).",
+      "params": [],
+      "returns": "table or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.steering_angle",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "The front wheels' angle and the most they turn, degrees (right positive).",
+      "params": [],
+      "returns": "angle, max",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "bus.stop_brake",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Whether the stop brake (the door brake) holds the bus.",
+      "params": [],
+      "returns": "boolean or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.stop_requested",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Whether a passenger has asked to stop.",
+      "params": [],
+      "returns": "boolean or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.ticket_request",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "The ticket the passenger at the cash desk asks for (nothing when nobody asks).",
+      "params": [],
+      "returns": "name, price",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "bus.tickets",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "The tickets the map sells: `{name, price, day_ticket}`.",
+      "params": [],
+      "returns": "list of tables",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.toggle_door",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Presses the key of doorway `n` (from 1; 0 or none: all doors), as the player would.",
+      "params": [
+        {
+          "name": "n",
+          "type": "integer",
+          "optional": true
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "vehicle_write"
+    },
+    {
+      "name": "bus.toggle_handbrake",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Puts the parking brake on or off, as its key does.",
+      "params": [],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "vehicle_write"
+    },
+    {
+      "name": "bus.trailers",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Parts coupled behind the bus (an articulated bus's rear counts).",
+      "params": [],
+      "returns": "integer or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.triggers",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "The names of the bus's script triggers (for `trigger`, `press`).",
+      "params": [],
+      "returns": "list of strings",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.velocity",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "The bus's speed in km/h, negative backwards.",
+      "params": [],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "bus.velocity_vector",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Its velocity in the world, m/s (x east, y north, z up).",
+      "params": [],
+      "returns": "x, y, z",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "bus.wheels",
+      "group": "vehicle",
+      "since": "0.2.22",
+      "doc": "Each wheel: `{axle, side, rpm, radius, suspension, driven}` (`side` 0 left, 1 right; `suspension` the spring's travel).",
+      "params": [],
+      "returns": "list of tables",
+      "multi": false,
+      "permission": null
+    },
+    {
       "name": "cancel",
       "group": "events",
       "since": "0.1.5",
@@ -682,6 +1325,84 @@
       "permission": null
     },
     {
+      "name": "people.counts",
+      "group": "people",
+      "since": "0.2.22",
+      "doc": "The people of the map near the camera: walking, waiting at stops, riding a bus.",
+      "params": [],
+      "returns": "walking, waiting, riding",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "people.density",
+      "group": "people",
+      "since": "0.2.22",
+      "doc": "The people setting: 0 to 3, 1 the map's own amount.",
+      "params": [],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "people.list",
+      "group": "people",
+      "since": "0.2.22",
+      "doc": "The people (within `radius` m of the player's bus, when given): `{id, x, y, z, state, aboard, ai_bus, stop, destination, ticket, complaint}`. `state`: `\"strolling\"`, `\"idle\"`, `\"standing\"`, `\"waiting\"`, `\"to_bus\"`, `\"boarding\"`, `\"riding\"`, `\"seated\"`, `\"leaving\"`, `\"to_stop\"`; `aboard` in the player's bus; `complaint` 0 to 3 (3: they leave).",
+      "params": [
+        {
+          "name": "radius",
+          "type": "number",
+          "optional": true
+        }
+      ],
+      "returns": "list of tables",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "people.set_density",
+      "group": "people",
+      "since": "0.2.22",
+      "doc": "Changes the people setting (0 to 3).",
+      "params": [
+        {
+          "name": "value",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "traffic_write"
+    },
+    {
+      "name": "people.stops",
+      "group": "people",
+      "since": "0.2.22",
+      "doc": "The stops near the camera where people wait: `{id, name, x, y, z, waiting}`.",
+      "params": [],
+      "returns": "list of tables",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "people.waiting",
+      "group": "people",
+      "since": "0.2.22",
+      "doc": "How many people wait at a stop (its map object id).",
+      "params": [
+        {
+          "name": "stop",
+          "type": "integer",
+          "optional": false
+        }
+      ],
+      "returns": "integer",
+      "multi": false,
+      "permission": null
+    },
+    {
       "name": "plugin.broadcast",
       "group": "plugin",
       "since": "0.2.22",
@@ -1165,6 +1886,153 @@
       "returns": "number",
       "multi": false,
       "permission": null
+    },
+    {
+      "name": "traffic.ahead",
+      "group": "traffic",
+      "since": "0.2.22",
+      "doc": "The AI vehicle ahead of the player's bus within `reach` m (default 100) and 20° of its heading, with its `distance`: for a distance warning or a cruise control.",
+      "params": [
+        {
+          "name": "reach",
+          "type": "number",
+          "optional": true
+        }
+      ],
+      "returns": "table or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "traffic.clear",
+      "group": "traffic",
+      "since": "0.2.22",
+      "doc": "Takes every car not running to a timetable off the road; how many went.",
+      "params": [],
+      "returns": "integer or nil",
+      "multi": false,
+      "permission": "traffic_write"
+    },
+    {
+      "name": "traffic.counts",
+      "group": "traffic",
+      "since": "0.2.22",
+      "doc": "The AI vehicles: driving, timetable buses among them, asleep out of range, parked.",
+      "params": [],
+      "returns": "driving, buses, asleep, parked",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "traffic.density",
+      "group": "traffic",
+      "since": "0.2.22",
+      "doc": "How many cars the traffic keeps around the camera, and the share of them that do not run to a timetable (0 to 1).",
+      "params": [],
+      "returns": "cars, share",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "traffic.get",
+      "group": "traffic",
+      "since": "0.2.22",
+      "doc": "One AI vehicle by its id, as `traffic.list` gives them.",
+      "params": [
+        {
+          "name": "id",
+          "type": "integer",
+          "optional": false
+        }
+      ],
+      "returns": "table or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "traffic.light_ahead",
+      "group": "traffic",
+      "since": "0.2.22",
+      "doc": "The traffic light the player's bus comes to within `reach` m (default 80): `{aspect, change_in, distance}` - `aspect` `\"red\"`, `\"red_yellow\"`, `\"green\"`, `\"green_yellow\"`, `\"yellow\"` or `\"dark\"`, `change_in` the seconds to its next change.",
+      "params": [
+        {
+          "name": "reach",
+          "type": "number",
+          "optional": true
+        }
+      ],
+      "returns": "table or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "traffic.list",
+      "group": "traffic",
+      "since": "0.2.22",
+      "doc": "The AI vehicles (within `radius` m of the player's bus, when given): `{id, kind, name, x, y, z, heading, speed, max_speed, waiting_for, standing, braking, blinker, line, distance}`. `kind`: `\"car\"`, `\"taxi\"`, `\"bus\"`, `\"truck\"`, `\"timetable_bus\"`, `\"tram\"`, `\"bicycle\"`; `waiting_for` why it waits or slows (`\"lead\"`, `\"light\"`, `\"yield\"`, `\"people\"`, ...); `standing` the seconds it has stood.",
+      "params": [
+        {
+          "name": "radius",
+          "type": "number",
+          "optional": true
+        }
+      ],
+      "returns": "list of tables",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "traffic.nearest",
+      "group": "traffic",
+      "since": "0.2.22",
+      "doc": "The AI vehicle nearest to the player's bus (of that `kind`, when given), with its `distance`.",
+      "params": [
+        {
+          "name": "kind",
+          "type": "string",
+          "optional": true
+        }
+      ],
+      "returns": "table or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "traffic.remove",
+      "group": "traffic",
+      "since": "0.2.22",
+      "doc": "Takes an AI vehicle off the road (a timetable bus too: its timetable forgets it); its passengers get out.",
+      "params": [
+        {
+          "name": "id",
+          "type": "integer",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "traffic_write"
+    },
+    {
+      "name": "traffic.set_density",
+      "group": "traffic",
+      "since": "0.2.22",
+      "doc": "Changes the traffic's amount (as the game menu's slider: 0 to 500 cars) and, when given, the share not running to a timetable; it fills up or thins out over the next seconds.",
+      "params": [
+        {
+          "name": "cars",
+          "type": "integer",
+          "optional": false
+        },
+        {
+          "name": "share",
+          "type": "number",
+          "optional": true
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "traffic_write"
     },
     {
       "name": "trigger",
