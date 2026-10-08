@@ -108,7 +108,11 @@ Settings → Driving → *Mouse steering sensitivity* makes it more or less sens
 braking: above 100 % the pedal reaches full sooner and below 100 % it takes more travel.
 Mouse steering works in the driver's, the passenger and the outside view; the wheel follows
 the cursor smoothly (a short easing, no steps). With *Smooth mouse steering* off (Settings →
-Driving) the wheel and the pedals are where the cursor says at once, as in OMSI.
+Driving) the wheel and the pedals are where the cursor says at once, as in OMSI. While the mouse
+steers the cursor is held, so the wheel reaches its full lock past the window's edges and a
+cross shows where it steers; with *Hold the cursor while the mouse steers* off the system's
+crosshair stays free (it follows the hand without the frame's delay, and a graphics tablet's
+pen works with it) and the window's edges are the lock, as in OMSI.
 
 Two switches there change the steering keys (both off by default): *Steering linearity* turns
 the wheel at OMSI's own steady pace (the curvature grows by the same amount every millisecond
@@ -301,7 +305,8 @@ material its own light outright - `[matl_glow] <texture> <value>` (openOMSI's ow
 docs/FORMATS.md): the texture is a greyscale mask of where it shines (the light is the
 material's own colour) and `value` is on this slider's scale, so `6` is as bright as its default
 and `20` brighter than its top; the slider does not change it. `mouse_sens` (mouse steering,
-1 = OMSI's), `mouse_smooth` (0: the mouse's wheel follows the cursor without easing),
+1 = OMSI's), `mouse_smooth` (0: the mouse's wheel follows the cursor without easing), `mouse_hold` (0: the
+cursor stays free while the mouse steers),
 `ui_scale` (the size of the game's interface over the picture - its texts,
 the menu, the timetable, the navigator and the city map - from 0.5 to 2, 1 by default, on
 top of the screen's own scaling; on a window taller than 1080 lines the interface grows with
