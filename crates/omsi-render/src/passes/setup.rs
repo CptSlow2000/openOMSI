@@ -338,6 +338,21 @@ impl Renderer {
                 let wind = if lighting.windy_trees { lighting.wind.truncate() } else { glam::Vec2::ZERO };
                 [wind.x, wind.y, drift.x as f32, drift.y as f32]
             },
+            inside2_a: match lighting.puddle_parts.first() {
+                Some((o, h, _)) => {
+                    let r = (*o - ro).as_vec3();
+                    [r.x, r.y, r.z, (*h as f32).to_radians().sin()]
+                }
+                None => [0.0; 4],
+            },
+            inside2_b: match lighting.puddle_parts.first() {
+                Some((_, h, bb)) => [(*h as f32).to_radians().cos(), bb[0] * 0.5, bb[1] * 0.5, bb[2] * 0.5],
+                None => [1.0, 0.0, 0.0, 0.0],
+            },
+            inside2_c: match lighting.puddle_parts.first() {
+                Some((_, _, bb)) if lighting.inside.is_some() => [bb[3], bb[4], bb[5], 1.0],
+                _ => [0.0; 4],
+            },
         };
         self.queue
             .write_buffer(&self.camera_buf, 0, bytemuck::bytes_of(&cu));

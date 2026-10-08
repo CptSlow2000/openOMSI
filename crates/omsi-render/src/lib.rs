@@ -76,6 +76,13 @@ struct CameraUniform {
     /// Windy trees: xy the weather's wind (m/s, world; 0 with the setting off), zw how far
     /// the air has carried the gusts since the start (m, modulo the shaders' PATTERN_PERIOD).
     tree_wind: [f32; 4],
+    /// The rear section of the player's articulated vehicle as `inside_*` (w of the third
+    /// 0 without one): the weather stays out of it as well (#1967: it snowed and rained in
+    /// the back of an articulated bus). Last, so that the shaders that do not read it can
+    /// leave it out of their copy of this struct.
+    inside2_a: [f32; 4],
+    inside2_b: [f32; 4],
+    inside2_c: [f32; 4],
 }
 
 /// The period the sky's cloud patterns repeat with (m): 5 x the cloud field (14 km), 8 x
