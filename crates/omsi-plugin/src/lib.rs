@@ -29,6 +29,7 @@ pub mod api;
 pub mod io;
 pub mod lua;
 pub mod ui;
+pub mod wasm;
 
 pub use io::*;
 
