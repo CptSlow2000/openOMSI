@@ -26,6 +26,7 @@ pub(crate) fn traffic_tick(
 ) {
     t.others = lan_outlines(remotes);
     t.others.extend(own_outlines(player, placed));
+    t.other_blinkers = outline_indicators(remotes, player, placed);
     if !paused {
         t.player_priority = player.and_then(|p| p.vehicle.var("TrafficPriority")).is_some_and(|v| v > 0.5);
         t.player_blinker = player.map(|p| lan::indicator(&p.vehicle)).unwrap_or(0);

@@ -11,6 +11,7 @@ pub mod control;
 pub mod density;
 pub mod dormant;
 pub mod junctions;
+pub mod light_paths;
 pub mod lights;
 pub mod mirror;
 pub mod model;
@@ -201,6 +202,10 @@ pub struct TrafficSim {
     /// before each `tick`: the cars stop behind them and go round them as round the
     /// player's bus.
     pub others: Vec<(u32, PlayerBox)>,
+    /// The indicators of `others` by id (0 off, 1 left, 2 right, 3 hazard; a rear section
+    /// shows its towing vehicle's), set with them: a light path marked as a turn asks its
+    /// light for whoever stands on it indicating that way (`light_paths`).
+    pub other_blinkers: HashMap<u32, u8>,
     /// Where the last `tick` spent its time (s, OMSI_PROFILE): who is on which lane and the
     /// light programs, every car's plan, the bodies and scripts on the workers.
     pub tick_split: [f64; 3],

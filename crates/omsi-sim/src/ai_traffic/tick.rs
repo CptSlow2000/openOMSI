@@ -210,12 +210,26 @@ impl TrafficSim {
             .flat_map(|c| c.approach.iter().flatten().copied())
             .fold(160.0f32, f32::max)
             .min(1200.0);
+        let mut indicating: Vec<(PlayerBox, u8)> = Vec::new();
         for c in &self.cars {
+            // (a car indicating stands on the paths marked with its turn: the rear sections
+            // of an articulated bus too)
+            if matches!(c.state.blinker, 1 | 2) {
+                let v = &c.vehicle;
+                let bb = v.ty.def.bounding_box.unwrap_or(model::DEFAULT_BOX);
+                indicating.push((light_paths::box_outline(v.position, v.heading, bb, c.state.speed), c.state.blinker as u8));
+                for t in &v.trailers {
+                    if let Some(bb) = t.ty.def.bounding_box {
+                        indicating.push((light_paths::box_outline(t.position, t.heading, bb, c.state.speed), c.state.blinker as u8));
+                    }
+                }
+            }
             for (l, d) in self.way_lanes(&c.state, reach) {
                 if let Some((ci, li)) = self.net.lanes[l].traffic_light {
                     if let Some(ctl) = self.lights.get_mut(ci) {
                         let gap = d - c.state.front;
-                        if gap <= ctl.approach_dist(li) && d > -self.net.lanes[l].length() {
+                        // (asked until its rear has left the lane, not its middle)
+                        if gap <= ctl.approach_dist(li) && d + self.net.lanes[l].length() + c.state.rear >= 0.0 {
                             if let Some(r) = ctl.request.get_mut(li) {
                                 *r = true;
                             }
@@ -232,6 +246,11 @@ impl TrafficSim {
             .map(|p| (p.0, p.1))
             .chain(self.others.iter().map(|(_, b)| (b.0, b.1)))
             .collect();
+        indicating.extend(player.iter().map(|p| (*p, self.player_blinker)));
+        indicating.extend(self.others.iter().map(|(id, b)| (*b, self.other_blinkers.get(id).copied().unwrap_or(0))));
+        for (b, blinker) in &indicating {
+            self.request_indicated(b, *blinker);
+        }
         for &(pos, heading) in &askers {
             // (off the lanes - a depot yard, a car park - a gate's lane that starts just
             // ahead, the way the bus is facing, is asked all the same: standing a few metres
