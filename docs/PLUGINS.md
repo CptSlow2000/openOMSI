@@ -571,10 +571,17 @@ Every function and event, as the game's API registry describes them (also as JSO
 | `omsi.ui.clear()` | nil | Removes every panel of the plugin. *Permission: `ui`.* | 0.2.21 |
 | `omsi.ui.focus(on)` | boolean | `true`: the panels get the mouse (the cursor shows, a click goes to the panel under it and none to the bus); `false`, Esc or a menu of the game gives it back. Returns the new state. *Permission: `ui`.* | 0.2.21 |
 | `omsi.ui.focused()` | boolean | Whether the panels have the mouse. | 0.2.21 |
+| `omsi.ui.moved(panel)` | dx, dy | How far the player dragged a panel from where its table puts it (pixels). | 0.2.22 |
+| `omsi.ui.panels()` | list of strings | The ids of the plugin's panels. | 0.2.22 |
 | `omsi.ui.remove(id)` | boolean | Removes a panel; `true` when there was one. *Permission: `ui`.* | 0.2.21 |
 | `omsi.ui.screen()` | width, height, scale | The screen in the panels' pixels, and how many of the screen's own pixels one of them is. | 0.2.21 |
 | `omsi.ui.set(id, panel)` | true, or false and the reason | Creates the panel `id` or replaces it; a table that is not right gives `false` and where (`"children[2].size: a number is expected"`). The same table again changes nothing. *Permission: `ui`.* | 0.2.21 |
+| `omsi.ui.show(panel, [on])` | boolean | Shows a panel (or hides it with `false`; it is kept); `false` when there is none. *Permission: `ui`.* | 0.2.22 |
 | `omsi.ui.toast(text, [opts])` | true, or false and the reason | A notification card at the top right, newest at the top; it goes after `opts.seconds` (1 to 60, default 5). `opts`: `title`, `icon`, `color`. A plugin shows 8 at most: a ninth makes its oldest go. *Permission: `ui`.* | 0.2.21 |
+| `omsi.ui.toggle(panel)` | boolean | Shows a hidden panel or hides a shown one; whether it shows now. *Permission: `ui`.* | 0.2.22 |
+| `omsi.ui.typing()` | boolean | Whether the player types into a text field of a plugin now (the keys then go to the field, not to the bus). | 0.2.22 |
+| `omsi.ui.update(panel, element, values)` | true, or false and the reason | Changes one element of a panel in place, by its id: `text`, `color`, `value` (a bar, a slider), `checked`, `selected`, `name` (an icon), `values` (a chart), `rows` (a table), `src` (an image) - cheaper than setting the whole panel again. *Permission: `ui`.* | 0.2.22 |
+| `omsi.ui.value(panel, element)` | any | The value of a checkbox, slider, text field or tabs element now (as `ui_change` gives it). *Permission: `ui`.* | 0.2.22 |
 
 #### Events, timers and watches
 
@@ -633,6 +640,16 @@ Every function and event, as the game's API registry describes them (also as JSO
 | --- | --- | --- | --- |
 | `omsi.send(port, data)` | true, or false and the reason | Sends `data` as one UDP datagram to `127.0.0.1:port`: to another program on this computer, never over the network. Not sent when the port is below 1024 or one of the game's multiplayer ports (27015-27024), the message is longer than 8 KB, or the plugin sent 100 in the last second. *Permission: `network_local`.* | 0.2.21 |
 
+#### LAN games
+
+| Function | Returns | What it does | Since |
+| --- | --- | --- | --- |
+| `omsi.lan.active()` | boolean | Whether this game is in a LAN session. | 0.2.22 |
+| `omsi.lan.chat(text)` | true, or false and the reason | Says a line in the session's chat, as the player would (every player sees it; at most one a second). *Permission: `lan`.* | 0.2.22 |
+| `omsi.lan.me()` | id, name, host | This player in the session: its id (the host is 1), its name, whether it hosts. | 0.2.22 |
+| `omsi.lan.players()` | list of tables | The other players of the session: `{id, name, host, bus, line, tour, x, y, z, heading, speed, on_foot, passengers}`. | 0.2.22 |
+| `omsi.lan.send(to, text)` | true, or false and the reason | Sends a short text (at most 120 characters, no `\|`) to the same plugin on another player's game (`to` its id; 0: every other player); it hears `lan_message(from, text)`. A player sends at most about ten a second; a game without the plugin ignores them. *Permission: `lan`.* | 0.2.22 |
+
 #### The game
 
 | Function | Returns | What it does | Since |
@@ -640,6 +657,17 @@ Every function and event, as the game's API registry describes them (also as JSO
 | `omsi.command(name)` | boolean | Does what a line of the game menu does: `refuel`, `wash`, `repair`, `shot`, `save`, `load`, `weather`, `later`, `earlier`, `info`, `timetable`, `reset`, `couple`, `uncouple`; `true` when the game knows it (it runs after the frame). *Permission: `world_write`.* | 0.1.10 |
 | `omsi.debug([...])` | nil | A line of the log's debug level (shown with `RUST_LOG=debug`). | 0.2.22 |
 | `omsi.error([...])` | nil | The same as an error line (the plugin goes on). | 0.2.22 |
+| `omsi.game.action(name)` | boolean | A game action of keyboard.cfg's `[game]` (`sim_pause`, `view_set_map`, `view_toggle_informationdisplay`, `view_set_schedule`, ...), as its key does; `true` when the game knows it. *Permission: `world_write`.* | 0.2.22 |
+| `omsi.game.api()` | integer | The version of the plugin interface (`api_abi` of an `.oop`; raised only when something is taken away or changes). | 0.2.22 |
+| `omsi.game.fps()` | number or nil | Frames a second now. | 0.2.22 |
+| `omsi.game.has(name)` | boolean | Whether this game has an API function (`"weather.set"`): for a plugin that should also run in an older openOMSI. | 0.2.22 |
+| `omsi.game.menu_open()` | boolean | Whether the game menu is open. | 0.2.22 |
+| `omsi.game.notify(text, [kind], [seconds])` | boolean | A notification of the game's own (the cards the server's messages use): `kind` `"info"`, `"warning"` or `"alert"`. *Permission: `ui`.* | 0.2.22 |
+| `omsi.game.platform()` | string | The system the game runs on: `"windows"`, `"macos"`, `"linux"`, `"android"`. | 0.2.22 |
+| `omsi.game.screenshot()` | string or nil | Takes a screenshot with the next frame, as the camera key does; the file it goes to (the `screenshot` event says when it is there). *Permission: `ui`.* | 0.2.22 |
+| `omsi.game.settings()` | table | The settings a plugin may read: `graphics` (`"vanilla"`, `"vanilla_plus"`, `"enhanced"`), `language` (the cockpit's, `"ENG"`), `ui_language`, `ui_scale`, `volume`, `fov`, `render_scale`, `max_fps`, `fullscreen`, `vsync`, `msaa`, `shadows`, `time_speed`, `units` (`"metric"`: speeds are km/h everywhere), ... | 0.2.22 |
+| `omsi.game.stats()` | table | This session's counts, as the personnel file has them: `km`, `stops_served`, `stops_skipped`, `crashes`, `heavy_crashes`, `pedestrians`, `tickets`, `cash`, `passengers`, ... | 0.2.22 |
+| `omsi.game.version()` | string | The game's version (`"0.2.22"`). | 0.2.22 |
 | `omsi.info()` | table | What the game is doing: `map`, `clock` (seconds since midnight), `day`, `year`, `view`, `paused`, `on_foot`, `multiplayer`, `traffic`, `speed`, `delay`, `map_path`, `version`; with a bus also `tile_x`, `tile_y`, `tile_pos_x`, `tile_pos_y`, `heading`, `vehicle_manufacturer`, `vehicle_model`, `destination`, `passengers`; `crashes`, `heavy_crashes`, `pedestrians_hit`; `situation`; on a duty also `line`, `tour`, `trip`, `trips`, `trip_name`, `terminus`, `stops`, `trip_done`, `next_stop`, `next_stop_number`, `next_stop_arrival`, `next_stop_departure`, `next_stop_id`, `at_stop`, `previous_stop`, `previous_stop_id`, `next_stop_distance`, `previous_stop_distance` (see the plugin docs for each). | 0.1.10 |
 | `omsi.info_value(key)` | any | One value of `info()` without building the whole table: cheaper for a plugin that reads one or two every frame. | 0.2.22 |
 | `omsi.log([...])` | nil | A line in `game.log`, tagged `[lua <name>]` (`print` does the same). | 0.1.5 |

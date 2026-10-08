@@ -1558,6 +1558,144 @@
       "permission": null
     },
     {
+      "name": "game.action",
+      "group": "game",
+      "since": "0.2.22",
+      "doc": "A game action of keyboard.cfg's `[game]` (`sim_pause`, `view_set_map`, `view_toggle_informationdisplay`, `view_set_schedule`, ...), as its key does; `true` when the game knows it.",
+      "params": [
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "world_write"
+    },
+    {
+      "name": "game.api",
+      "group": "game",
+      "since": "0.2.22",
+      "doc": "The version of the plugin interface (`api_abi` of an `.oop`; raised only when something is taken away or changes).",
+      "params": [],
+      "returns": "integer",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "game.fps",
+      "group": "game",
+      "since": "0.2.22",
+      "doc": "Frames a second now.",
+      "params": [],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "game.has",
+      "group": "game",
+      "since": "0.2.22",
+      "doc": "Whether this game has an API function (`\"weather.set\"`): for a plugin that should also run in an older openOMSI.",
+      "params": [
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "game.menu_open",
+      "group": "game",
+      "since": "0.2.22",
+      "doc": "Whether the game menu is open.",
+      "params": [],
+      "returns": "boolean",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "game.notify",
+      "group": "game",
+      "since": "0.2.22",
+      "doc": "A notification of the game's own (the cards the server's messages use): `kind` `\"info\"`, `\"warning\"` or `\"alert\"`.",
+      "params": [
+        {
+          "name": "text",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "kind",
+          "type": "string",
+          "optional": true
+        },
+        {
+          "name": "seconds",
+          "type": "number",
+          "optional": true
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "ui"
+    },
+    {
+      "name": "game.platform",
+      "group": "game",
+      "since": "0.2.22",
+      "doc": "The system the game runs on: `\"windows\"`, `\"macos\"`, `\"linux\"`, `\"android\"`.",
+      "params": [],
+      "returns": "string",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "game.screenshot",
+      "group": "game",
+      "since": "0.2.22",
+      "doc": "Takes a screenshot with the next frame, as the camera key does; the file it goes to (the `screenshot` event says when it is there).",
+      "params": [],
+      "returns": "string or nil",
+      "multi": false,
+      "permission": "ui"
+    },
+    {
+      "name": "game.settings",
+      "group": "game",
+      "since": "0.2.22",
+      "doc": "The settings a plugin may read: `graphics` (`\"vanilla\"`, `\"vanilla_plus\"`, `\"enhanced\"`), `language` (the cockpit's, `\"ENG\"`), `ui_language`, `ui_scale`, `volume`, `fov`, `render_scale`, `max_fps`, `fullscreen`, `vsync`, `msaa`, `shadows`, `time_speed`, `units` (`\"metric\"`: speeds are km/h everywhere), ...",
+      "params": [],
+      "returns": "table",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "game.stats",
+      "group": "game",
+      "since": "0.2.22",
+      "doc": "This session's counts, as the personnel file has them: `km`, `stops_served`, `stops_skipped`, `crashes`, `heavy_crashes`, `pedestrians`, `tickets`, `cash`, `passengers`, ...",
+      "params": [],
+      "returns": "table",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "game.version",
+      "group": "game",
+      "since": "0.2.22",
+      "doc": "The game's version (`\"0.2.22\"`).",
+      "params": [],
+      "returns": "string",
+      "multi": false,
+      "permission": null
+    },
+    {
       "name": "has_vehicle",
       "group": "vehicle",
       "since": "0.1.5",
@@ -1712,6 +1850,73 @@
       "returns": "string",
       "multi": false,
       "permission": null
+    },
+    {
+      "name": "lan.active",
+      "group": "lan",
+      "since": "0.2.22",
+      "doc": "Whether this game is in a LAN session.",
+      "params": [],
+      "returns": "boolean",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "lan.chat",
+      "group": "lan",
+      "since": "0.2.22",
+      "doc": "Says a line in the session's chat, as the player would (every player sees it; at most one a second).",
+      "params": [
+        {
+          "name": "text",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "true, or false and the reason",
+      "multi": true,
+      "permission": "lan"
+    },
+    {
+      "name": "lan.me",
+      "group": "lan",
+      "since": "0.2.22",
+      "doc": "This player in the session: its id (the host is 1), its name, whether it hosts.",
+      "params": [],
+      "returns": "id, name, host",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "lan.players",
+      "group": "lan",
+      "since": "0.2.22",
+      "doc": "The other players of the session: `{id, name, host, bus, line, tour, x, y, z, heading, speed, on_foot, passengers}`.",
+      "params": [],
+      "returns": "list of tables",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "lan.send",
+      "group": "lan",
+      "since": "0.2.22",
+      "doc": "Sends a short text (at most 120 characters, no `|`) to the same plugin on another player's game (`to` its id; 0: every other player); it hears `lan_message(from, text)`. A player sends at most about ten a second; a game without the plugin ignores them.",
+      "params": [
+        {
+          "name": "to",
+          "type": "integer",
+          "optional": false
+        },
+        {
+          "name": "text",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "true, or false and the reason",
+      "multi": true,
+      "permission": "lan"
     },
     {
       "name": "log",
@@ -2943,6 +3148,32 @@
       "permission": null
     },
     {
+      "name": "ui.moved",
+      "group": "ui",
+      "since": "0.2.22",
+      "doc": "How far the player dragged a panel from where its table puts it (pixels).",
+      "params": [
+        {
+          "name": "panel",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "dx, dy",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "ui.panels",
+      "group": "ui",
+      "since": "0.2.22",
+      "doc": "The ids of the plugin's panels.",
+      "params": [],
+      "returns": "list of strings",
+      "multi": false,
+      "permission": null
+    },
+    {
       "name": "ui.remove",
       "group": "ui",
       "since": "0.2.21",
@@ -2990,6 +3221,27 @@
       "permission": "ui"
     },
     {
+      "name": "ui.show",
+      "group": "ui",
+      "since": "0.2.22",
+      "doc": "Shows a panel (or hides it with `false`; it is kept); `false` when there is none.",
+      "params": [
+        {
+          "name": "panel",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "on",
+          "type": "bool",
+          "optional": true
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "ui"
+    },
+    {
       "name": "ui.toast",
       "group": "ui",
       "since": "0.2.21",
@@ -3008,6 +3260,79 @@
       ],
       "returns": "true, or false and the reason",
       "multi": true,
+      "permission": "ui"
+    },
+    {
+      "name": "ui.toggle",
+      "group": "ui",
+      "since": "0.2.22",
+      "doc": "Shows a hidden panel or hides a shown one; whether it shows now.",
+      "params": [
+        {
+          "name": "panel",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "ui"
+    },
+    {
+      "name": "ui.typing",
+      "group": "ui",
+      "since": "0.2.22",
+      "doc": "Whether the player types into a text field of a plugin now (the keys then go to the field, not to the bus).",
+      "params": [],
+      "returns": "boolean",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "ui.update",
+      "group": "ui",
+      "since": "0.2.22",
+      "doc": "Changes one element of a panel in place, by its id: `text`, `color`, `value` (a bar, a slider), `checked`, `selected`, `name` (an icon), `values` (a chart), `rows` (a table), `src` (an image) - cheaper than setting the whole panel again.",
+      "params": [
+        {
+          "name": "panel",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "element",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "values",
+          "type": "table",
+          "optional": false
+        }
+      ],
+      "returns": "true, or false and the reason",
+      "multi": true,
+      "permission": "ui"
+    },
+    {
+      "name": "ui.value",
+      "group": "ui",
+      "since": "0.2.22",
+      "doc": "The value of a checkbox, slider, text field or tabs element now (as `ui_change` gives it).",
+      "params": [
+        {
+          "name": "panel",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "element",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "any",
+      "multi": false,
       "permission": "ui"
     },
     {

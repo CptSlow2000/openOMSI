@@ -61,8 +61,8 @@ fn api_manifest() {
     // (the manifest reads back)
     let back = json::decode(&manifest, true).unwrap();
     assert_eq!(back.get("abi"), Some(&Value::Int(api::ABI)));
-    assert!(back.get("functions").unwrap().items().len() >= 40);
-    assert!(back.get("events").unwrap().items().len() >= 17);
+    assert!(back.get("functions").unwrap().items().len() >= 200);
+    assert!(back.get("events").unwrap().items().len() >= 40);
 }
 
 #[test]
