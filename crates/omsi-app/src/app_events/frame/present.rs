@@ -275,15 +275,6 @@ impl App {
                 }
             }
         }
-        if self.cam.in_cab {
-            if let Some(w) = self.world.as_ref() {
-                self.gfx.mirror_hud.ensure_frame(r, scene);
-                let hud = self
-                    .settings
-                    .hud_viewport((s.config.width, s.config.height));
-                steps::push_mirror_hud(&self.gfx.mirror_hud, scene, w, hud, (self.input.cursor.0 - hud[0], self.input.cursor.1));
-            }
-        }
         if !mirrored
             && self.settings.triple.enabled
             && !self.settings.vr_requested()
