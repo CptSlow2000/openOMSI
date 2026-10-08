@@ -44,6 +44,10 @@ pub trait PluginIo {
     fn info(&self) -> Vec<(&'static str, InfoValue)> {
         Vec::new()
     }
+    /// One value of [`PluginIo::info`] (a game keeps the frame's table and reads it there).
+    fn info_value(&self, key: &str) -> Option<InfoValue> {
+        self.info().into_iter().find(|(k, _)| *k == key).map(|(_, v)| v)
+    }
     /// A game action by its game-menu id (`refuel`, `shot`, ...), run after the frame.
     /// False when the game does not know it.
     fn command(&mut self, _what: &str) -> bool {

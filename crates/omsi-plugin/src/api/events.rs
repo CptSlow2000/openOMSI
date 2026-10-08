@@ -157,7 +157,7 @@ fn var_of(ctx: &mut Ctx<'_>, names: &[&str]) -> Option<f32> {
 }
 
 fn info_of(ctx: &mut Ctx<'_>, key: &str) -> Value {
-    ctx.io().info().into_iter().find(|(k, _)| *k == key).map_or(Value::Nil, |(_, v)| v.into())
+    ctx.io().info_value(key).map_or(Value::Nil, Value::from)
 }
 
 /// The comparisons of this frame.

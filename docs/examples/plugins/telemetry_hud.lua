@@ -40,7 +40,7 @@ local function show()
     { type = "chart", values = history, height = 40, min = 0, fill = true },
     { type = "row", align = "between", children = {
       { type = "text", text = "Gear " .. tostring(s.gear or "-") },
-      { type = "text", text = s.rpm and string.format("%d rpm", s.rpm) or "" },
+      { type = "text", text = s.rpm and string.format("%d rpm", math.floor(s.rpm + 0.5)) or "" },
       { type = "text", text = string.format("%d aboard", s.passengers or 0) },
     } },
     { type = "row", children = { { type = "icon", name = "water_drop", size = 16 }, { type = "bar", value = fuel, grow = true, color = fuel < 0.15 and "#C62828" or nil } } },

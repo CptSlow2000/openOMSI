@@ -550,7 +550,7 @@ fn read_watch(ctx: &mut Ctx<'_>, kind: WatchKind, name: &str) -> Value {
         WatchKind::Var => Value::opt(if io.has_vehicle() { io.var(name).map(|v| v as f64) } else { None }),
         WatchKind::Str => Value::opt(if io.has_vehicle() { io.string(name) } else { None }),
         WatchKind::Sys => Value::opt(io.system(name).map(|v| v as f64)),
-        WatchKind::Info => io.info().into_iter().find(|(k, _)| *k == name).map_or(Value::Nil, |(_, v)| v.into()),
+        WatchKind::Info => io.info_value(name).map_or(Value::Nil, Value::from),
     }
 }
 

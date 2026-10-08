@@ -86,6 +86,8 @@ fn the_telemetry_hud_shows_and_sends() {
     let port = listener.local_addr().unwrap().port();
     let mut p = load("ex-hud", "telemetry_hud.lua");
     let mut g = Game::new();
+    // (a running engine: its rpm is no whole number)
+    g.engine = true;
     g.vars.insert("Velocity".into(), 42.0);
     p.frame(&mut g);
     // (a light comes into reach, showing red)

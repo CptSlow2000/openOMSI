@@ -165,6 +165,15 @@ fn kind(c: &omsi_sim::ai_traffic::model::AiCar) -> &'static str {
     }
 }
 
+/// A vehicle's manufacturer and type, else its file's name (many AI cars name neither).
+fn vehicle_name(v: &VehicleInstance) -> String {
+    let n = format!("{} {}", v.ty.def.manufacturer, v.ty.def.type_name).trim().to_string();
+    if !n.is_empty() {
+        return n;
+    }
+    v.ty.def.path.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default()
+}
+
 pub(crate) fn traffic_list(app: &App) -> Vec<op::AiCar> {
     let Some(t) = app.session.traffic.as_ref() else { return Vec::new() };
     t.cars
@@ -175,7 +184,7 @@ pub(crate) fn traffic_list(app: &App) -> Vec<op::AiCar> {
             op::AiCar {
                 id: c.id,
                 kind: kind(c),
-                name: format!("{} {}", v.ty.def.manufacturer, v.ty.def.type_name).trim().to_string(),
+                name: vehicle_name(v),
                 pos: [v.position.x, v.position.y, v.position.z, v.heading.rem_euclid(360.0)],
                 speed_kmh: (c.state.speed * 3.6) as f64,
                 max_speed_kmh: c.state.max_speed_kmh as f64,

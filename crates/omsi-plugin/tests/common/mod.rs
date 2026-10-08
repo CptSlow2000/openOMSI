@@ -177,7 +177,7 @@ impl PluginIo for Game {
         true
     }
     fn bus_engine(&self) -> Option<(bool, Option<f32>, bool)> {
-        Some((self.engine, Some(if self.engine { 750.0 } else { 0.0 }), true))
+        Some((self.engine, Some(if self.engine { 750.5 } else { 0.0 }), true))
     }
     fn bus_start_up(&mut self) -> Option<String> {
         self.engine = true;

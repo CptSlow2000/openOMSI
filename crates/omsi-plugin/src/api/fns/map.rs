@@ -90,8 +90,6 @@ pub static FNS: &[ApiFn] = &[
     }),
     def!("map.tile", "map", [], "tile_x, tile_y", "The tile the player's bus is on (nothing on foot).", NEW, None, true, |c, a| {
         let io = c.io();
-        let info = io.info();
-        let get = |k: &str| info.iter().find(|(key, _)| *key == k).map(|(_, v)| Value::from(v.clone()));
-        multi(get("tile_x").zip(get("tile_y")).map(|(x, y)| [x, y]))
+        multi(io.info_value("tile_x").zip(io.info_value("tile_y")).map(|(x, y)| [Value::from(x), Value::from(y)]))
     }),
 ];

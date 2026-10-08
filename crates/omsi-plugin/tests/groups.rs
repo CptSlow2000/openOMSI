@@ -31,7 +31,7 @@ fn the_bus() {
         assert(omsi.bus.headlights() == 2 and omsi.bus.interior_light() == 1)
         assert(omsi.bus.set_interior_light(false))
         local running, rpm, elec = omsi.bus.engine(); assert(running == false and elec == true)
-        assert(omsi.bus.start_up() == "Starting up" and omsi.bus.engine_running() and omsi.bus.rpm() == 750)
+        assert(omsi.bus.start_up() == "Starting up" and omsi.bus.engine_running() and omsi.bus.rpm() == 750.5)
         assert(omsi.bus.shift(-1) and omsi.bus.gear() == -1)
         assert(omsi.bus.fuel() == 180 and omsi.bus.dirt() == 0.25)
         local d = omsi.bus.damage(); assert(d.crashes == 1 and d.last_impact_kj == 136 and d.repair_minutes == 30)

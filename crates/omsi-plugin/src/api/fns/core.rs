@@ -101,7 +101,7 @@ fn ui_id(v: &Value) -> Result<String, String> {
 }
 
 fn info_value(ctx: &mut Ctx<'_>, key: &str) -> Value {
-    ctx.io().info().into_iter().find(|(k, _)| *k == key).map_or(Value::Nil, |(_, v)| v.into())
+    ctx.io().info_value(key).map_or(Value::Nil, Value::from)
 }
 
 pub static FNS: &[ApiFn] = &[

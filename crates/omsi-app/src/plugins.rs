@@ -362,7 +362,10 @@ impl Io<'_> {
     /// The value of `omsi.info()` an `.opl` list names as `openomsi_<key>` (any case).
     fn game_value(&self, name: &str) -> Option<InfoValue> {
         let key = Self::game_key(name)?;
-        self.info().into_iter().find(|(k, _)| k.eq_ignore_ascii_case(key)).map(|(_, v)| v)
+        if self.info.borrow().is_none() {
+            let _ = self.info();
+        }
+        self.info.borrow().as_ref()?.iter().find(|(k, _)| k.eq_ignore_ascii_case(key)).map(|(_, v)| v.clone())
     }
 
     fn game_number(&self, name: &str) -> Option<f32> {
@@ -478,6 +481,13 @@ impl PluginIo for Io<'_> {
             *cache = Some(self.app().map(game_info).unwrap_or_default());
         }
         cache.clone().unwrap_or_default()
+    }
+
+    fn info_value(&self, key: &str) -> Option<InfoValue> {
+        if self.info.borrow().is_none() {
+            let _ = self.info();
+        }
+        self.info.borrow().as_ref()?.iter().find(|(k, _)| *k == key).map(|(_, v)| v.clone())
     }
 
     fn command(&mut self, what: &str) -> bool {
