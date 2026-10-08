@@ -2115,6 +2115,8 @@ pub struct Renderer {
     /// The same, multisampled: the enhanced main pass's own depth laid first (see
     /// `render_inner`), so that its costly shading runs once per visible surface.
     prepass_msaa_pipelines: Option<[wgpu::RenderPipeline; 6]>,
+    /// Depth-only pipelines compatible with the existing HDR colour pass.
+    presurface_msaa_pipelines: Option<[wgpu::RenderPipeline; 4]>,
     /// Ambient occlusion and its blur; none on OpenGL (GLES), whose shading language cannot
     /// read a depth texture texel by texel - the pipelines failed there, AO off or not (#422).
     ssao_pipeline: Option<wgpu::RenderPipeline>,
@@ -3051,6 +3053,7 @@ impl Renderer {
             ao_buf: ssao.buf,
             prepass_pipelines: prepass.pipelines,
             prepass_msaa_pipelines: prepass.msaa_pipelines,
+            presurface_msaa_pipelines: prepass.presurface_pipelines,
             ssao_pipeline: ssao.ssao_pipeline,
             blur_pipeline: ssao.blur_pipeline,
             fog_lamps_pipeline: fog_lamps.pipeline,
@@ -10053,6 +10056,18 @@ mod tests {
         );
         let pane = quad(&renderer, &mut scene, 0.5, blend);
         scene.instances[pane].render_phase = RenderPhase::Normal;
+        // A small excavation in the corner activates the deferred prepass without
+        // covering the road, cutout and glass samples checked below.
+        let floor = quad(&renderer, &mut scene, -0.1, road_mat);
+        scene.instances[floor].presurface = true;
+        scene.instances[floor].transform = Mat4::from_translation(Vec3::new(7.0, 7.0, 0.0));
+        let clear = renderer.add_texture(&mut scene, &omsi_texture::Image {
+            width: 1, height: 1, rgba: vec![255, 255, 255, 0], has_alpha: true,
+        }, false);
+        let cover_material = renderer.add_material(&mut scene, Some(clear), AlphaMode::Blend, [1.0; 4], true);
+        let cover = quad(&renderer, &mut scene, 0.1, cover_material);
+        scene.instances[cover].presurface = true;
+        scene.instances[cover].transform = Mat4::from_translation(Vec3::new(7.0, 7.0, 0.0));
         let camera = Camera {
             position: DVec3::new(0.0, -0.105, 6.0),
             yaw: 0.0,
@@ -10062,7 +10077,11 @@ mod tests {
             near: 0.1,
             far: 100.0,
         };
-        for wetness in [0.0, 1.0] {
+        for (excavation, wetness) in [(false, 0.0), (false, 1.0), (true, 0.0), (true, 1.0)] {
+            scene.instances[floor].visible = excavation;
+            scene.instances[cover].visible = excavation;
+            Renderer::mark_changed(&mut scene, floor);
+            Renderer::mark_changed(&mut scene, cover);
             let lighting = Lighting {
                 enhanced: true,
                 shadows: false,
@@ -10086,7 +10105,7 @@ mod tests {
                 .unwrap();
             assert!(
                 delta <= 2,
-                "MSAA prepass changed layered surfaces by {delta}: wetness {wetness}"
+                "MSAA prepass changed layered surfaces by {delta}: excavation {excavation}, wetness {wetness}"
             );
             let pixel = |x: usize| &enabled[(32 * 64 + x) * 4..(32 * 64 + x) * 4 + 3];
             assert!(
@@ -10532,6 +10551,7 @@ mod tests {
                 },
             ))
             .expect("test renderer");
+            renderer.profiling = true;
             let mut scene = renderer.new_scene();
             let green = renderer.add_material(
                 &mut scene,
@@ -10596,6 +10616,15 @@ mod tests {
                 vec![transparent],
             );
             scene.instances[cover].presurface = true;
+            // A normal opaque object lies between the excavation floor and its cover.
+            // Prefilling its depth before the floor's colour erases the excavation, even
+            // though the cover will reject that object's later colour draw.
+            let background_mesh = quad(&renderer, &mut scene, 7.0, 2.0);
+            renderer.add_instance(&mut scene, background_mesh, DVec3::ZERO, Mat4::IDENTITY, vec![red]);
+            // Ordinary cutouts need shading to determine visibility on tile GPUs.
+            // Keep a transparent one in the view to exercise mixed-scene prefilling.
+            let foliage_mesh = quad(&renderer, &mut scene, 10.0, 0.25);
+            renderer.add_instance(&mut scene, foliage_mesh, DVec3::ZERO, Mat4::IDENTITY, vec![cutout]);
             let foreground_mesh = quad(&renderer, &mut scene, 2.0, 0.25);
             let foreground = renderer.add_instance(
                 &mut scene,
@@ -10619,6 +10648,15 @@ mod tests {
             let rgba = renderer
                 .render_to_image(&mut scene, 64, 64, &camera, &lighting)
                 .unwrap();
+            if enhanced && renderer.options.msaa > 1 {
+                assert!(renderer.counts.borrow().get("msaa prepass batches").copied().unwrap_or(0.0) > 0.0,
+                    "an excavation must not disable depth prefilling for the rest of the view");
+            }
+            let saved = renderer.prepass_msaa_pipelines.take();
+            let reference = renderer.render_to_image(&mut scene, 64, 64, &camera, &lighting).unwrap();
+            renderer.prepass_msaa_pipelines = saved;
+            assert!(rgba.iter().zip(&reference).all(|(a, b)| a.abs_diff(*b) <= 2),
+                "presurface depth optimization changed the image: {msaa}/{ssao}/{enhanced}");
             let centre = pixel(&rgba, 32);
             assert!(
                 centre[2] > centre[1] + 40,
@@ -11082,6 +11120,65 @@ mod tests {
             },
         ));
         assert!(res.is_ok(), "renderer should initialize on noop backend: {:?}", res.err());
+    }
+
+    #[test]
+    fn excavation_keeps_ordinary_depth_prefilling_without_a_gpu() {
+        let mut descriptor = wgpu::InstanceDescriptor::new_without_display_handle();
+        descriptor.backends = wgpu::Backends::NOOP;
+        descriptor.backend_options.noop = wgpu::NoopBackendOptions { enable: true };
+        let instance = wgpu::Instance::new(descriptor);
+        let mut renderer = pollster::block_on(Renderer::new_with(
+            &instance, None, Some(wgpu::TextureFormat::Rgba8UnormSrgb),
+            RenderOptions { msaa: 4, ssao: true, render_scale: 1.0, ..Default::default() },
+        )).expect("noop renderer");
+        renderer.profiling = true;
+        let mut scene = renderer.new_scene();
+        let material = renderer.add_material(&mut scene, None, AlphaMode::Opaque, [1.0; 4], true);
+        let mesh = renderer.add_mesh(&mut scene, &MeshData {
+            positions: vec![Vec3::new(-2.0, 4.0, -2.0), Vec3::new(2.0, 4.0, -2.0),
+                Vec3::new(2.0, 4.0, 2.0), Vec3::new(-2.0, 4.0, 2.0)],
+            normals: vec![-Vec3::Y; 4], uvs: vec![glam::Vec2::ZERO; 4],
+            indices: vec![0, 1, 2, 0, 2, 3], ranges: vec![(0, 6, 0)],
+            ..Default::default()
+        });
+        let floor = renderer.add_instance(&mut scene, mesh, DVec3::ZERO, Mat4::IDENTITY, vec![material]);
+        scene.instances[floor].presurface = true;
+        let transparent = renderer.add_material(&mut scene, None, AlphaMode::Blend, [1.0, 1.0, 1.0, 0.0], true);
+        let cover = renderer.add_surface_instance(&mut scene, mesh, DVec3::ZERO, Mat4::IDENTITY, vec![transparent]);
+        scene.instances[cover].presurface = true;
+        let glass_material = renderer.add_material(&mut scene, None, AlphaMode::Blend, [1.0, 1.0, 1.0, 0.25], true);
+        let glass = renderer.add_instance(&mut scene, mesh, DVec3::ZERO, Mat4::IDENTITY, vec![glass_material]);
+        let scenery = renderer.add_instance(&mut scene, mesh, DVec3::ZERO, Mat4::IDENTITY, vec![material]);
+        let camera = Camera { position: DVec3::ZERO, yaw: 0.0, pitch: 0.0, roll: 0.0,
+            fov_deg: 90.0, near: 0.1, far: 100.0 };
+        let lighting = Lighting { enhanced: true, shadows: false, fog_density: 0.0, ..Default::default() };
+        // Exercise the actual render planner on CI's CPU-only backend. A presurface
+        // must not turn off prefilling for ordinary scenery, but ground must stay out:
+        // its authored blends have to finish before later surface coverage writes depth.
+        for phase in RenderPhase::DRAW_ORDER {
+            scene.instances[scenery].render_phase = phase;
+            renderer.counts.borrow_mut().clear();
+            renderer.render_to_image(&mut scene, 16, 16, &camera, &lighting).unwrap();
+            let batches = renderer.counts.borrow().get("msaa prepass batches").copied().unwrap_or(0.0);
+            let ordinary = matches!(phase, RenderPhase::BeforeNormal | RenderPhase::Normal
+                | RenderPhase::AfterNormal | RenderPhase::AfterVehicles);
+            assert_eq!(batches > 0.0, ordinary, "phase {phase:?}");
+        }
+        // The explicit presurface flag overrides even an ordinary authored phase.
+        scene.instances[scenery].render_phase = RenderPhase::Normal;
+        scene.instances[scenery].presurface = true;
+        renderer.counts.borrow_mut().clear();
+        renderer.render_to_image(&mut scene, 16, 16, &camera, &lighting).unwrap();
+        assert_eq!(renderer.counts.borrow().get("msaa prepass batches"), None);
+        if cfg!(target_vendor = "apple") {
+            scene.instances[scenery].presurface = false;
+            scene.instances[glass].visible = false;
+            renderer.counts.borrow_mut().clear();
+            renderer.render_to_image(&mut scene, 16, 16, &camera, &lighting).unwrap();
+            assert_eq!(renderer.counts.borrow().get("msaa prepass batches"), None,
+                "an opaque-only view keeps native hidden-surface removal even with an excavation");
+        }
     }
 
     #[test]
