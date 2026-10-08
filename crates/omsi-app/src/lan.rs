@@ -451,6 +451,14 @@ fn sync_table(game: &mut LanGame, v: &omsi_sim::VehicleInstance) -> Arc<SyncTabl
 
 /// Another player's bus as we draw and hear it: their vehicle type run as an AI vehicle
 /// whose pose comes off the network instead of a lane.
+impl RemoteVehicle {
+    /// The figure they are drawn as: the one at their wheel, which their avatar on foot
+    /// wears too (`sync_remote_walkers`).
+    pub(crate) fn figure_type(&self) -> Option<Arc<omsi_sim::human::HumanType>> {
+        self.driver.as_ref().map(|d| d.human_type())
+    }
+}
+
 pub struct RemoteVehicle {
     vehicle: omsi_sim::VehicleInstance,
     render: scene::VehicleRender,
@@ -486,7 +494,10 @@ pub struct RemoteVehicle {
     made_as: (String, String),
     /// The driver at the wheel (their bus stood empty here), hidden while they walk about.
     driver: Option<crate::driver::DriverFigure>,
-    driver_tried: bool,
+    /// The figure (`Pose::figure`) the driver was made for: made again when another comes.
+    /// (Made once, it kept the figure guessed before their INFO named theirs - one of the
+    /// map's drivers -, and on foot they were a passenger picked by their id.)
+    driver_for: Option<String>,
     /// Their states by their clock (s), oldest first, and how far our clock (`lan_now`) is
     /// ahead of theirs as the quickest state showed it: the bus is drawn where their states
     /// put it a little in the past, between two of them - never pulled towards the newest
@@ -2658,7 +2669,7 @@ fn new_remote(
         last: pose.clone(),
         made_as: (pose.bus.clone(), pose.paint.clone()),
         driver: None,
-        driver_tried: false,
+        driver_for: None,
         samples: std::collections::VecDeque::new(),
         offset: None,
         play: Default::default(),
@@ -3460,8 +3471,11 @@ pub fn tick(
     }
     // draw them like AI traffic
     for (id, rv) in game.remotes.iter_mut() {
-        if !rv.driver_tried && !rv.stand_in {
-            rv.driver_tried = true;
+        if rv.driver_for.as_deref() != Some(rv.last.figure.as_str()) && !rv.stand_in {
+            rv.driver_for = Some(rv.last.figure.clone());
+            if let Some(mut d) = rv.driver.take() {
+                d.hide(r, scene);
+            }
             // their own figure at the wheel (a figure picked by their id otherwise)
             rv.driver = crate::driver::DriverFigure::new_named(w, r, scene, &rv.vehicle, &rv.last.figure, 1000 + *id as u64);
         }

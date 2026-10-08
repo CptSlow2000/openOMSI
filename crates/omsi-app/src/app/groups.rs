@@ -32,8 +32,8 @@ pub(crate) struct VrState {
 
 /// The multiplayer session: the LAN or server connection and the other players seen in it.
 pub(crate) struct NetState {
-    /// Other players on foot whose avatars are drawn (their ids).
-    pub(crate) remote_walkers: Vec<u32>,
+    /// Other players on foot whose avatars are drawn: their ids and figures (`kind`).
+    pub(crate) remote_walkers: Vec<(u32, u64)>,
     /// The player on foot is in this other player's bus (see `lan`: drawn from inside).
     pub(crate) inside_remote: Option<u32>,
     /// A dedicated server said we administer it (`admin`).
