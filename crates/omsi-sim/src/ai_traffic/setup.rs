@@ -124,6 +124,7 @@ impl TrafficSim {
             player_signalling: 0.0,
             way_users: Vec::new(),
             others: Vec::new(),
+            other_blinkers: HashMap::new(),
             tick_split: [0.0; 3],
             others_still: HashMap::new(),
             geo_prev: Vec::new(),
