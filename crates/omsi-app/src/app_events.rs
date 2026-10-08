@@ -135,6 +135,15 @@ impl ApplicationHandler for App {
                 if event.state == ElementState::Released
                     && matches!(event.physical_key, PhysicalKey::Code(c) if input_script::is_modifier(c) && !self.input.keys.contains(&c)) => {}
             WindowEvent::KeyboardInput { event, .. } => {
+                // a plugin's text field being typed into takes the keys pressed (their
+                // releases go on, so that nothing held stays held)
+                if event.state == ElementState::Pressed {
+                    if let PhysicalKey::Code(code) = event.physical_key {
+                        if self.plugin_typing_key(code, event.text.as_deref()) {
+                            return;
+                        }
+                    }
+                }
                 if event.state == ElementState::Pressed && self.menus.menu_edit_icao {
                     if let Some(text)=event.text.as_deref(){ self.icao_edit_text(text); }
                 }
