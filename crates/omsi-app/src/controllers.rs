@@ -1035,6 +1035,20 @@ impl HeldButtons {
             actions.push((action, false));
         }
     }
+
+    /// Let go of the buttons held down, but not of the latching switches: a switch stays
+    /// where it is while the pause menu is open or the window is in the background, and
+    /// when it comes out later its release still reaches the bus. Let go of with the rest,
+    /// the switch went out in the game at ESC or alt-tab and only came back once it was
+    /// switched off and on again by hand (#1876).
+    fn release_momentary(&mut self, actions: &mut Vec<(String, bool)>) {
+        self.0.retain(|(_, _, action, latching)| {
+            if !latching {
+                actions.push((action.clone(), false));
+            }
+            *latching
+        });
+    }
 }
 
 /// Save only to the writable openOMSI overlay. The original OMSI installation is read-only.
@@ -1178,7 +1192,7 @@ impl Controllers {
     }
 
     pub(crate) fn set_editing(&mut self, editing: bool) {
-        if editing && !self.editing { self.held.release(&mut self.actions); }
+        if editing && !self.editing { self.held.release_momentary(&mut self.actions); }
         self.editing = editing;
     }
 
@@ -1194,7 +1208,7 @@ impl Controllers {
         self.devices.set_focus(focused);
         if !focused {
             self.steer = None;
-            self.held.release(&mut self.actions);
+            self.held.release_momentary(&mut self.actions);
             self.raw_buttons.clear();
             self.ff_source_logged = None;
         }
@@ -3020,6 +3034,22 @@ mod hot_reload_tests {
         assert_eq!(c.actions, vec![("horn".into(), true), ("horn".into(), false)]);
         c.set_editing(false);
         assert!(!c.editing);
+    }
+
+    #[test]
+    fn a_latching_switch_stays_in_through_the_menu_and_the_focus() {
+        let cfg = vec![DeviceCfg { name: "Test wheel".into(), buttons: vec![(String::new(), String::new()), ("bus_stopbrake".into(), String::new()), ("bus_horn".into(), String::new())], latching: vec![1], ..Default::default() }];
+        let mut held = HeldButtons::default();
+        let mut actions = Vec::new();
+        held.event(&cfg, "Test wheel", 1, true, &mut actions);
+        held.event(&cfg, "Test wheel", 2, true, &mut actions);
+        actions.clear();
+        held.release_momentary(&mut actions);
+        assert_eq!(actions, vec![("bus_horn".to_string(), false)]);
+        actions.clear();
+        // switched out later: its release and the latch's way back still come
+        held.event(&cfg, "Test wheel", 1, false, &mut actions);
+        assert_eq!(actions.first(), Some(&("bus_stopbrake".to_string(), false)));
     }
 
     #[test]
