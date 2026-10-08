@@ -3,10 +3,18 @@
 openOMSI runs two kinds of plugins from the `plugins` folder of the game (and of every
 content root):
 
-* **Lua plugins** (`.lua`) - new in openOMSI 0.1.5: a text file, no compiler, works the
-  same on Windows, macOS, Linux and Android, and is loaded again the moment you save it.
+* **Lua plugins** (`.lua`) - a text file, no compiler, works the same on Windows, macOS,
+  Linux and Android, and is loaded again the moment you save it. They reach the whole game
+  through the plugin API: the player's bus, the duty and timetable, the map, the AI traffic
+  and the people, the weather and the clock, the camera, input, sound, panels of their own
+  on the screen, storage, settings and the LAN session - about 270 functions and 60 events.
 * **OMSI plugins** (`.opl` + DLL) - the original's plugins, unchanged (see
   [below](#omsi-plugins-plugins-opl-dll)).
+
+The plugin API is one registry in the game (`crates/omsi-plugin/src/api`): every function
+and event is described there once, and the [reference](#reference) at the end of this page
+and [`plugin-api.json`](plugin-api.json) are written from it. Other plugin languages bind to
+the same registry.
 
 ## Lua plugins
 
@@ -34,10 +42,10 @@ Edit the file while the game runs and save it - the plugin is loaded again withi
 
 ### Where plugins live
 
-| Path | The plugin's name |
-| --- | --- |
-| `plugins/<name>.lua` | a one-file plugin |
-| `plugins/<name>/main.lua` | a plugin with several files: `require("util")` loads `plugins/<name>/util.lua` (or `util/init.lua`) |
+| Path | The plugin's name | Its data folder |
+| --- | --- | --- |
+| `plugins/<name>.lua` | a one-file plugin | `plugins/<name>.data/` |
+| `plugins/<name>/main.lua` | a plugin with several files: `require("util")` loads `plugins/<name>/util.lua` (or `util/init.lua`), and its pictures, sounds and data files sit beside them | `plugins/<name>/data/` |
 
 Other `.lua` files are not started on their own, so a folder plugin's modules stay modules.
 `OMSI_NO_PLUGINS=1` leaves every plugin out, Lua ones included.
@@ -48,117 +56,128 @@ The file's top level runs once when the game starts. After that the plugin react
 **events**. A handler is registered with `omsi.on(event, fn)` (as many as you like), or
 by defining a global function `on_<event>`:
 
-| Event | Arguments | When |
-| --- | --- | --- |
-| `start` | - | right after the file was loaded (also after a reload) |
-| `vehicle` | name or `nil` | the player got into a vehicle, changed it, or left it |
-| `frame` | `dt` (seconds) | every frame of the game, after the bus's own scripts; not while paused |
-| `stop` | - | the game ends, or the file is about to be loaded again |
-| `key` | key name, `true`/`false` | a key went down / came up (`"KeyH"`, `"F5"`, `"Numpad8"`, ...) |
-| `next_stop` | new, old | the duty's next stop changed, also to one of the same name (`omsi.info().next_stop_number` tells them apart) |
-| `view` | new, old | the view changed (`"driver"`, `"pax"`, `"outside"`, `"free"`, `"foot"`) |
-| `duty` | line, tour | a line and tour were taken (or given up: `nil`) |
-| `crash` | energy (kJ), speed (km/h) | the player's bus crashed: every crash, also one the same as the last (the screen's "Crash: 136 kJ"); above 50 kJ it is a heavy one |
-| `pedestrian` | how many | the bus knocked people down |
-| `stops_skipped` | how many, due at, now at | the duty jumped ahead: the bus passed stops of its trip without stopping (or was moved) and is now at a later one; the stops are numbered in the trip from 1, as `next_stop_number` |
-| `service` | kind, by, amount | the player's bus was serviced or moved. `kind`: `"refuel"` (amount: litres put in), `"wash"` (amount: the dirt left, 0 to 1) - both once the pump or the wash is done or the bus drove off -, `"repair"` (amount: the game minutes it took, the team's way there too; 0 at once), `"reset"` (put back on its wheels) or `"teleport"` (moved: a start point, a place on the map, beside another player); `by`: `"player"` (the game menu), `"plugin"` (`omsi.command`), `"host"` (the LAN host or an admin) or `"game"` (fallen through the ground and put back) |
-| `trip_done` | trip, how, driving, comfort, ticket selling | a trip of the duty the bus was driven on ended, once (a trip a page reopens by going back ends again): `trip` is its number in the duty (as `omsi.info().trip`), `how` is `"arrived"` (the bus reached its last stop, or stands at the next trip's first stop from its last leg), `"skipped"` (the last stop was skipped) or `"given_up"` (half an hour past its end, the duty went on); then the trip's ratings in per cent, as the personnel file rates a driver but for this trip alone: driving (from 100 at the trip's start, every jolt, pedal see-saw or crash costs, kilometres driven win it back), comfort (of the people who stepped in, those without a complaint) and ticket selling (the points for the tickets asked for: 2 for the right change, 1 for the wrong); 100 where nobody stepped in or asked. A trip counts from the end of the one before: the people boarding at its first stop while the bus waits there are its own |
-| `jolt` | along, across, speed (km/h, also backwards), passengers | the bus braked, sped up or cornered hard enough to cost driving rating: the smoothed accelerations along and across it (m/s², signed) passed 5 and 3 m/s²; at most one a second |
-| `ticket_sold` | name, price | a ticket was sold at the cash desk: its name and price as the bus's ticket list has them (the game knows no currency) |
-| `ui_click` | panel id, element id (`nil`: the panel itself) | a button (or another clickable part) of one of the plugin's [panels](#on-screen-panels) was clicked |
-| `ui_focus` | `true`/`false` | the panels got the mouse or gave it back (also by Esc, or a menu of the game opening) |
-
 ```lua
 function on_frame(dt)
   -- runs ~60 times a second: keep it short, prefer omsi.every for slow work
 end
-```
 
-You can send your own events too: `omsi.emit("my_event", 1, 2)` calls every
-`omsi.on("my_event", ...)` handler (handy between the modules of a bigger plugin).
-
-### The `omsi` table
-
-#### The player's bus
-
-Every name is a variable, string variable or trigger of the bus's scripts - the same names
-the `.osc` files and the `.opl` lists use (`Velocity`, `elec_busbar_main`,
-`IBIS_terminus_name`, `bus_doorfront0`, ...). Without a bus, or for a name the bus does not
-have, reads give `nil` and writes do nothing.
-
-| Function | What it does |
-| --- | --- |
-| `omsi.has_vehicle()` | `true` while the player drives a vehicle |
-| `omsi.vehicle()` | the vehicle's name (manufacturer and type), or `nil` |
-| `omsi.vehicle_manufacturer()` / `omsi.vehicle_model()` | the two parts of that name apart, as the bus's `[friendlyname]` has them (`"Solaris III Gen"`, `"Urbino 10 / 2D"`), or `nil` |
-| `omsi.var(name)` | a script variable, a number |
-| `omsi.set_var(name, value)` | sets it; `true` when the bus has that variable |
-| `omsi.str(name)` | a string variable |
-| `omsi.set_str(name, text)` | sets it; `true` when the bus has it |
-| `omsi.sys(name)` | a system variable: `Time`, `Day`, `Weather_Temperature`, ... (read only) |
-| `omsi.trigger(name)` | a key press: fires the trigger, then `<name>_off` |
-| `omsi.press(name)` / `omsi.release(name)` | holds a key down / lets it go (`name`, later `name_off`) |
-| `omsi.position()` | `x, y, z, heading` of the bus (map metres, degrees), or nothing on foot |
-| `omsi.others(radius)` | the other vehicles within `radius` m of the bus (default 300): a list of `{id, kind, name, x, y, z, heading}`, `kind` being `"ai"` (the traffic) or `"player"` (another player's bus in a LAN game); empty on foot |
-| `omsi.other_var(id, name)` | a script variable of one of them, or `nil` |
-| `omsi.set_other_var(id, name, value)` | sets it; `true` when that vehicle has the variable. An AI vehicle keeps it until its scripts write it again; another player's bus takes its values from the network again |
-
-#### The game
-
-| Function | What it does |
-| --- | --- |
-| `omsi.info()` | a table of what the game is doing: `map`, `clock` (seconds since midnight), `day`, `year`, `view`, `paused`, `on_foot`, `multiplayer`, `traffic` (AI vehicles), `speed` (km/h), `delay` (s, late positive), `map_path` (the map's global.cfg), `version` (of openOMSI); with a bus also `tile_x`, `tile_y` (its tile, as global.cfg's `[map]` list numbers them), `tile_pos_x`, `tile_pos_y` (metres in that tile, x east, y north), `heading` (degrees, clockwise from north), `vehicle_manufacturer`, `vehicle_model`, `destination` (the terminus the bus shows), `passengers` (aboard); `crashes`, `heavy_crashes` and `pedestrians_hit` this session (as the personnel file counts them); `situation`, the situation file the game started from (the launcher's "continue" loads `maps/<map>/laststn.osn`), `nil` for a new game; on a duty also `line`, `tour`, `trip` (its number in the duty), `trips`, `trip_name` (the timetable's name of the trip), `terminus`, `stops` (how many the trip has), `trip_done` (`true` once the bus has reached the trip's last stop, the stop was skipped, or a saved game was left there: the trip is over, though the duty moves on to the next trip only a minute before it leaves), `next_stop`, `next_stop_number` (from 1), `next_stop_arrival`, `next_stop_departure`, `next_stop_id` (the stop's object ID in the map, as the timetable names it: the same name can stand for two stops, the ID cannot), `at_stop` (`true` while the bus stands at the next stop), `previous_stop` and `previous_stop_id` (the last stop before the next one the trip calls at; none before the first), `next_stop_distance` and `previous_stop_distance` (metres in a straight line from the bus, where the stop's place is known) |
-| `omsi.clock()` | the game's time of day as `"HH:MM:SS"` |
-| `omsi.speed()` | the bus's speed in km/h (0 on foot) |
-| `omsi.distance(x, y)` | metres from the bus to a map point, or `nil` on foot |
-| `omsi.vars()` / `omsi.vars("str")` | the names of every variable / string variable of the bus's scripts |
-| `omsi.command(name)` | does what a line of the game menu does: `refuel`, `wash`, `repair`, `shot`, `save`, `load`, `weather`, `later`, `earlier`, `info`, `timetable`, `reset`, `couple`, `uncouple`; `true` when the game knows it |
-
-```lua
--- H: the time and the next stop on the screen
-omsi.on("key", function(key, down)
-  if key == "KeyH" and down then
-    local i = omsi.info()
-    omsi.message(omsi.clock() .. (i.next_stop and ("  next: " .. i.next_stop) or ""), 4)
-  end
+omsi.on("stop_arrive", function(name, id, number, delay)
+  omsi.ui.toast(string.format("%s, %s", name, omsi.fmt.delay(delay)))
 end)
 ```
 
-#### Time, timers and watches
+The [events](#events) table lists them all: the game's (a crash, a ticket sold, a trip
+done), what changed (a door opened, the engine started, the bus arrived at a stop, a new
+minute, a red light run), the panels' (a click, a slider moved), messages from other
+plugins and from other players' games. An event the game has to work out by comparing two
+frames - doors, gears, stops, the traffic light ahead - is only worked out while some plugin
+listens to it.
 
-| Function | What it does |
-| --- | --- |
-| `omsi.time()` | seconds of game time since the plugin started (stands still while paused) |
-| `omsi.after(seconds, fn)` | runs `fn` once, later; returns an id |
-| `omsi.every(seconds, fn)` | runs `fn` every `seconds`; returns an id |
-| `omsi.watch(name, fn)` | runs `fn(new, old)` whenever the bus variable changes |
-| `omsi.watch(kind, name, fn)` | the same for `"var"`, `"str"` or `"sys"` |
-| `omsi.cancel(id)` | stops a timer or a watch |
-| `omsi.on(event, fn)` / `omsi.off(event, fn)` | adds / removes an event handler |
-| `omsi.emit(event, ...)` | sends an event to the handlers |
+`omsi.after`, `omsi.every` and `omsi.watch` call a function later, regularly, or when a
+value changes; `omsi.emit("my_event", 1, 2)` sends an event to the plugin's own handlers
+(handy between the modules of a bigger plugin), `omsi.plugin.send` to another plugin.
+
+### The API
+
+Every function is `omsi.<name>` - `omsi.bus.state()`, `omsi.ui.set(...)`. A few rules hold
+for all of them:
+
+* **Without the thing they read, readings are `nil`** (no bus, on foot, no duty, no
+  timetable on the map), lists are empty, and changes give `false`. A plugin works on
+  every map and with every bus; a bus that lacks a script variable gives `nil` for it.
+* **Several results** come as several values: `local x, y, z, heading = omsi.position()`;
+  none at all when there is nothing (`if omsi.position() then`).
+* **Changes that can fail** give `true`, or `false` and the reason:
+  `local ok, why = omsi.weather.set({ temperature = -5 })`.
+* **A wrong argument is an error** that names the function and the argument
+  (`omsi.var: argument 1 (name) must be a string, not table`); catch it with `pcall`
+  where it may happen.
+* **Units**: metres, map coordinates x east, y north, z up; headings in degrees clockwise
+  from north; speeds km/h; times seconds (of the day since midnight for clock times).
+* **New functions come with new openOMSI versions.** `omsi.game.has("weather.set")` tells
+  whether this game has one; the reference says since which version each exists.
+
+The parts of the API, with a taste of each (the [reference](#reference) has every
+function):
 
 ```lua
--- a message when the bus comes to a stop after driving
-omsi.watch("Velocity", function(v, old)
-  if old and old >= 1 and v < 1 then omsi.message("Stopped", 2) end
-end)
+-- the player's bus: a dashboard in one table, and its parts by name
+local s = omsi.bus.state()            -- speed, gear, rpm, doors_open, indicator, fuel, ...
+omsi.bus.toggle_door(1)               -- the front door's key
+omsi.bus.set_indicator("left")
+local all, seated, standing = omsi.bus.passengers()
+omsi.var("elec_busbar_main")          -- any script variable; omsi.trigger("bus_horn") any trigger
+
+-- the duty and the timetable
+local d = omsi.duty.get()             -- line, tour, trip, next_stop, delay, ...
+for _, stop in ipairs(omsi.duty.stops()) do print(stop.name, omsi.fmt.clock(stop.departure)) end
+omsi.duty.start("136", "3")           -- as the game menu takes a duty
+
+-- the map and moving the bus
+local ground = omsi.map.ground(x, y)
+omsi.map.teleport(x, y, nil, 90)      -- z nil: onto the ground there
+local limit = omsi.map.speed_limit()
+
+-- the AI traffic and the people
+local ahead = omsi.traffic.ahead(80)  -- the car in front, with its distance
+local light = omsi.traffic.light_ahead()
+omsi.traffic.set_density(50)
+local waiting = omsi.people.waiting(stop_id)
+
+-- time and weather, read and set as the game menu does
+omsi.world.set_time("07:30")
+omsi.weather.set({ precipitation = "snow", precipitation_rate = 0.5, temperature = -3 })
+omsi.weather.preset(omsi.weather.presets()[1].file, 60)
+
+-- camera, input, sound
+local sx, sy = omsi.camera.project(x, y, z + 3)   -- where a map point is on the screen
+omsi.input.hotkey("Ctrl+KeyH", function() ... end)
+local id = omsi.audio.play("gong.wav", { on_bus = true, volume = 0.8 })
+
+-- storage, files, settings, other plugins
+omsi.storage.set("best_trip", 812)
+omsi.files.append("trips.csv", "136,3,+30\n")
+local settings = omsi.plugin.settings({ { key = "volume", type = "number", default = 50 } })
+omsi.plugin.broadcast("delay", omsi.duty.delay())
+
+-- the LAN session
+for _, p in ipairs(omsi.lan.players()) do print(p.name, p.line) end
+omsi.lan.send(0, "hello")             -- to this plugin on every other player's game
 ```
 
-#### On screen and in the log
+#### `omsi.info()` in detail
 
-| Function | What it does |
-| --- | --- |
-| `omsi.message(text, seconds)` | a line of text on the screen (5 seconds when not given) |
-| `omsi.log(...)` / `print(...)` | a line in `game.log`, tagged `[lua <name>]` |
-| `omsi.warn(...)` | the same as a warning |
-| `omsi.name` / `omsi.version` | the plugin's name / the game's version |
+`omsi.info()` is the game's state as one table (`omsi.info_value(key)` reads one key
+without building the table):
+
+`map`, `clock` (seconds since midnight), `day`, `year`, `view`, `paused`, `on_foot`,
+`multiplayer`, `traffic` (AI vehicles), `speed` (km/h), `delay` (s, late positive),
+`map_path` (the map's global.cfg), `version` (of openOMSI); with a bus also `tile_x`,
+`tile_y` (its tile, as global.cfg's `[map]` list numbers them), `tile_pos_x`, `tile_pos_y`
+(metres in that tile, x east, y north), `heading` (degrees, clockwise from north),
+`vehicle_manufacturer`, `vehicle_model`, `destination` (the terminus the bus shows),
+`passengers` (aboard); `crashes`, `heavy_crashes` and `pedestrians_hit` this session (as
+the personnel file counts them); `situation`, the situation file the game started from (the
+launcher's "continue" loads `maps/<map>/laststn.osn`), `nil` for a new game; on a duty also
+`line`, `tour`, `trip` (its number in the duty), `trips`, `trip_name` (the timetable's name
+of the trip), `terminus`, `stops` (how many the trip has), `trip_done` (`true` once the bus
+has reached the trip's last stop, the stop was skipped, or a saved game was left there: the
+trip is over, though the duty moves on to the next trip only a minute before it leaves),
+`next_stop`, `next_stop_number` (from 1), `next_stop_arrival`, `next_stop_departure`,
+`next_stop_id` (the stop's object ID in the map, as the timetable names it: the same name
+can stand for two stops, the ID cannot), `at_stop` (`true` while the bus stands at the next
+stop), `previous_stop` and `previous_stop_id` (the last stop before the next one the trip
+calls at; none before the first), `next_stop_distance` and `previous_stop_distance` (metres
+in a straight line from the bus, where the stop's place is known).
 
 #### Saved data
 
 `omsi.data` is a table that survives the session: it is written when the game ends (and
 before a reload) and read back on the next start. Numbers, strings, booleans and tables of
 them are kept. `omsi.save()` writes it at once. The file is `<name>.save.lua` next to a
-one-file plugin, `data.save.lua` in a folder plugin's folder.
+one-file plugin, `data.save.lua` in a folder plugin's folder. `omsi.storage` is the same
+idea as keys and values, kept as JSON in the plugin's data folder (and the same for every
+plugin language).
 
 ```lua
 -- plugins/odometer.lua: kilometres driven, over every session
@@ -171,12 +190,19 @@ omsi.every(60, function()
 end)
 ```
 
+#### Settings
+
+`omsi.plugin.settings({...})` declares the plugin's settings and gives back the values the
+player chose. The game makes a panel of them (`omsi.plugin.show_settings()`: checkboxes,
+sliders, text fields, tabs; it can be dragged and closed), keeps them in the data folder and
+tells the plugin each change (`setting(key, value)`).
+
 #### Talking to other programs
 
 `omsi.send(port, text)` sends `text` as one UDP datagram to `127.0.0.1:port`: to another
 program on this computer (an overlay, a dashboard, a company's tracker), never over the
 network. It does not wait and nothing comes back: a message sent while no program listens
-is lost, so keep what must not be lost in `omsi.data` as well.
+is lost, so keep what must not be lost in `omsi.storage` as well.
 
 | Returns | When |
 | --- | --- |
@@ -186,12 +212,20 @@ is lost, so keep what must not be lost in `omsi.data` as well.
 ```lua
 -- plugins/live.lua: the speed and the next stop, twice a second, for a program on port 47800
 omsi.every(0.5, function()
-  local i = omsi.info()
-  omsi.send(47800, string.format('{"speed":%.1f,"next_stop":%q}', i.speed or 0, i.next_stop or ""))
+  local d = omsi.duty.get()
+  omsi.send(47800, omsi.json.encode({ speed = omsi.speed(), next_stop = d and d.next_stop and d.next_stop.name }))
 end)
 ```
 
 `nc -lu 47800` in a terminal shows what arrives.
+
+#### Between plugins and between players
+
+`omsi.plugin.send(to, topic, data)` and `omsi.plugin.broadcast(topic, data)` reach other
+plugins in their next frame (`message(from, topic, data)`); `omsi.plugin.list()` names the
+plugins loaded. In a LAN game `omsi.lan.send(player, text)` reaches the same plugin on
+another player's game (`lan_message(from, text)`): short texts (120 characters), about ten
+a second, carried in the session's own messages - a game without the plugin ignores them.
 
 ### On-screen panels
 
@@ -199,8 +233,9 @@ end)
 game's icons, dark rounded cards with a shadow, as large as the rest of the interface (the
 interface size setting and the window's height scale them). A plugin describes a panel as a
 table once and sets it again when its content changes - every half second, say, not every
-frame; the same table again changes nothing. The game lays the panel out and draws it again
-only when it did change.
+frame; the same table again changes nothing. `omsi.ui.update(panel, element, {...})`
+changes one element in place. The game lays the panel out and draws it again only when it
+did change.
 
 ```lua
 -- plugins/trip_panel.lua: the next stop, the speed and a button
@@ -232,17 +267,8 @@ end)
 F10 gives the panels the mouse; a click on the button sounds the horn. The whole example is
 [`docs/examples/plugins/trip_panel.lua`](examples/plugins/trip_panel.lua).
 
-| Function | What it does |
-| --- | --- |
-| `omsi.ui.version` | `1`; test `if omsi.ui and omsi.ui.version >= 1` in a plugin that should also run in an older openOMSI (and use `omsi.message` there) |
-| `omsi.ui.set(id, panel)` | creates the panel `id` (a text) or replaces it; `true`, or `false` and the reason for a table that is not right (`"children[2].size: a number is expected"`) |
-| `omsi.ui.remove(id)` | removes it; `true` when there was one |
-| `omsi.ui.clear()` | removes every panel of the plugin |
-| `omsi.ui.toast(text, opts)` | a notification card at the top right (under the navigator when it is there), newest at the top; it slides in and goes after `opts.seconds` (1 to 60, default 5). `opts`: `title`, `icon`, `color` (its stripe, icon and title). `true`, or `false` and the reason. A plugin shows 8 at most: a ninth makes its oldest go |
-| `omsi.ui.focus(on)` | `true`: the panels get the mouse - the cursor shows, a click goes to the panel under it (`ui_click`) and none to the bus or its cab, and the mouse steering holds the wheel and the pedals as they are. `false`, Esc, or a menu of the game opening gives the mouse back. Returns the new state (`false` while the game hides the panels). The keyboard stays the bus's, and the `key` event comes as always |
-| `omsi.ui.focused()` | whether the panels have the mouse |
-| `omsi.ui.screen()` | `width, height, scale`: the screen in the panels' pixels, and how many of the screen's own pixels one of them is |
-
+`omsi.ui.version` is `2` (`1` before the controls below): test
+`if omsi.ui and omsi.ui.version >= 2` in a plugin that should also run in an older openOMSI.
 The panels are the plugin's own: one plugin cannot change or remove another's, and when the
 plugin stops, or is loaded again after a change of its file, its panels go (its
 notifications run their time). They show over the picture and the navigator and under the
@@ -263,12 +289,14 @@ omsi.ui.set("trip", {
   accent = "#F47F30",         -- a stripe along the left edge
   visible = true,             -- false hides it and keeps it
   clickable = false,          -- true: a click anywhere on it is ui_click(id, nil)
+  draggable = false,          -- true: while the panels have the mouse it can be moved by its free parts
   children = { ... },         -- elements, top to bottom
 })
 ```
 
 Sizes are pixels of a 1080p screen at the normal interface size. A panel stays on the screen
-whatever its offset.
+whatever its offset; one the player dragged keeps its new place when it is set again
+(`omsi.ui.moved(id)` says how far).
 
 #### Elements
 
@@ -284,6 +312,13 @@ Every element can have an `id`, a `color` and `visible = false` (left out, no ro
 | `divider` | `color` | a thin line (in a row: upright) |
 | `space` | `size` (default 8) | empty room (in a row: across) |
 | `button` | `id` (needed), `text`, `icon`, `color` | a button 34 high, across the panel (in a row as wide as its label, or what it grows to); a click on it is `ui_click(panel id, button id)` |
+| `image` | `src` (a PNG, JPEG, BMP or TGA of the plugin's folder), `width`, `height` (default 64) | the picture, made smaller to fit the width it has |
+| `checkbox` | `id` (needed), `text`, `checked` | a box ticked and unticked by a click: `ui_change(panel, id, true/false)` |
+| `slider` | `id` (needed), `value`, `min` (0), `max` (1), `step` (0: any) | a track with a knob, set where it is pressed and followed while the button is held: `ui_change(panel, id, number)` |
+| `input` | `id` (needed), `text`, `placeholder`, `max` (characters, default 100) | a text field: clicked, it takes what is typed (the keys do not reach the bus meanwhile) - `ui_change` at every key, Enter is a `ui_click` on it, Esc or a click elsewhere leaves it |
+| `tabs` | `id` (needed), `tabs` (a list of texts), `selected` (from 1) | a row of tabs: `ui_change(panel, id, number)` when one is chosen |
+| `chart` | `values` (up to 512 numbers), `min`, `max` (default: the values'), `height` (48), `style` (`line`, `bars`), `fill` | the values over the width: a line (filled below with `fill`) or bars |
+| `table` | `columns` (header texts), `rows` (a list of lists of texts), `widths` (shares of the width), `size` (13) | columns of texts, the header bold over a line |
 
 Another element with an `id` and `clickable = true` (a whole row, say) is clicked as a
 button is. Texts are shown as they are: they are not translated into the game's language.
@@ -292,41 +327,35 @@ Keys the game does not know are left alone and an element of an unknown `type` i
 so a plugin written for a later openOMSI still shows its panels here. A key of the wrong
 kind makes `set` return `false` and the reason. Limits, each plugin: 16 panels, 200
 elements in a panel (those in rows counted), 500 characters in a text, 64 in an id, rows 8
-deep.
+deep, 512 values in a chart or cells in a table.
 
-### A bigger example: a stop announcer
+### Example plugins
 
-```lua
--- plugins/announcer/main.lua
-local say = require("say")   -- plugins/announcer/say.lua: return function(t) omsi.message(t, 4) end
-local last
+Complete plugins to start from (each runs in the tests against a stand-in game):
 
-omsi.watch("str", "IBIS_busstop_name", function(stop)
-  if stop and stop ~= "" and stop ~= last then
-    last = stop
-    say("Next stop: " .. stop)
-    omsi.data.announced = (omsi.data.announced or 0) + 1
-  end
-end)
-
-function on_stop()
-  omsi.log("announced", omsi.data.announced or 0, "stops this time")
-end
-```
+| Plugin | What it shows |
+| --- | --- |
+| [`trip_panel.lua`](examples/plugins/trip_panel.lua) | a panel with the line, the next stop and a button |
+| [`dispatcher/`](examples/plugins/dispatcher/main.lua) | a dispatcher and a small career: a draggable panel with tabs, the duty's next stops in a table, a chart of the delays, pay for stops and trips kept in the storage, today's duties offered and taken with a click, settings, hotkeys |
+| [`telemetry_hud.lua`](examples/plugins/telemetry_hud.lua) | a HUD: the speed with a chart of the last minute, gear, rpm, fuel, passengers, the speed limit and the traffic light ahead; a warning before a red light; the values as JSON over UDP for a program beside the game |
+| [`weather_controller.lua`](examples/plugins/weather_controller.lua) | the weather files as tabs, sliders for temperature, visibility and rain, snow cover, the clock moved by buttons, and a day cycle of its own |
 
 ### Safety and errors
 
 A Lua plugin gets Lua 5.4 with the safe libraries only: `string`, `table`, `math`, `utf8`,
 `coroutine`, `require` for its own folder, and `os.clock/time/date/difftime`. There is no
-`io`, no `os.execute` (not through `require("os")` either), no C modules, no `dofile` and
-no binary chunks for `load`, so a plugin you download cannot touch
-your files beyond its own saved data. It cannot reach the network either: `omsi.send` talks
-only to programs on this computer, and only to ports from 1024 up.
+`io`, no `os.execute` (not through `require("os")` either), no C modules, no `dofile`, and no
+binary chunks anywhere: plugin files, modules and `load` read text only (Lua has no checker
+for compiled code), and `string.dump` gives no code. A plugin reads and writes files only in
+its own data folder (`..` and absolute paths are refused) and reads its own folder; it
+cannot reach the network either: `omsi.send` talks only to programs on this computer, and
+only to ports from 1024 up. It holds at most 256 MB of memory.
 
 * An error in a handler is written to `game.log` and shown on the screen; the other
   plugins and the game carry on. After 10 errors the plugin is switched off until you
   change its file or restart the game.
-* A handler that runs longer than a second (an endless loop) is stopped with an error.
+* A call into the plugin that runs longer than 50 ms (an endless loop) is stopped and the
+  plugin switched off, with a line in `game.log`; loading it may take a second.
 * A file that does not compile is left out, with the Lua error in `game.log`.
 
 ### Tips
@@ -334,14 +363,19 @@ only to programs on this computer, and only to ports from 1024 up.
 * Watch `game.log` (in `~/.openomsi/`) while you write a plugin: every `omsi.log` line and
   every error is there.
 * `OMSI_WATCH_VARS=Velocity,throttle` logs changes of bus variables - useful to find the
-  names a bus uses; the bus's `.osc` scripts list them all.
-* Keep `on_frame` light; use `omsi.every` and `omsi.watch` for everything that does not
-  need every frame.
+  names a bus uses; the bus's `.osc` scripts list them all, `omsi.vars()` too.
+* Keep `on_frame` light; use `omsi.every`, `omsi.watch` and the events for everything that
+  does not need every frame. Read what you need (`omsi.bus.velocity()`,
+  `omsi.info_value("delay")`) rather than whole tables every frame.
+* `omsi.ui.update` changes one element of a panel; setting the whole panel every frame
+  costs more.
 
 ### Reference
 
 Every function and event, as the game's API registry describes them (also as JSON in
-[`plugin-api.json`](plugin-api.json), for tools and other plugin languages).
+[`plugin-api.json`](plugin-api.json), for tools and other plugin languages). `[x]` is an
+optional argument; a permission is what a plugin packed with a list of permissions must have
+declared to call the function (a plain `.lua` file has them all).
 
 <!-- api:begin (written from the registry: OMSI_API_BLESS=1 cargo test -p omsi-plugin api_manifest) -->
 
