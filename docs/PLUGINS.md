@@ -499,6 +499,69 @@ Every function and event, as the game's API registry describes them (also as JSO
 | Function | Returns | What it does | Since |
 | --- | --- | --- | --- |
 | `omsi.clock()` | string | The game's time of day as `"HH:MM:SS"`. | 0.1.10 |
+| `omsi.world.date()` | table or nil | The game's date: `{year, month, day, weekday, day_of_year}` (`weekday` 1 Monday to 7 Sunday). | 0.2.22 |
+| `omsi.world.pause()` | boolean | Pauses the game, as P does (not in a LAN game). The plugins stand still with it: the player resumes it. *Permission: `world_write`.* | 0.2.22 |
+| `omsi.world.paused()` | boolean | Whether the game stands still (a plugin hears `pause` and runs no more until `resume`). | 0.2.22 |
+| `omsi.world.play_time()` | number or nil | Seconds played this session (game time, never wraps). | 0.2.22 |
+| `omsi.world.season()` | folder, snow | The season's texture folder (`nil`: the base textures) and whether snow lies. | 0.2.22 |
+| `omsi.world.set_date(year, month, day)` | boolean | Sets the game's date (the season's textures follow). *Permission: `world_write`.* | 0.2.22 |
+| `omsi.world.set_time(time)` | boolean | Sets the time of day: seconds since midnight or `"HH:MM"` / `"HH:MM:SS"`, as the game menu's clock does (the timetable starts again after a jump of minutes). Not in a LAN game as a client, nor while the clock follows the computer's. *Permission: `world_write`.* | 0.2.22 |
+| `omsi.world.set_time_speed(factor)` | boolean | Sets how much faster the clock runs (1 to 30; not in a LAN game). *Permission: `world_write`.* | 0.2.22 |
+| `omsi.world.sun_altitude()` | number or nil | The sun's height over the horizon, degrees. | 0.2.22 |
+| `omsi.world.time()` | number or nil | The game's time of day, seconds since midnight. | 0.2.22 |
+| `omsi.world.time_speed()` | number or nil | How much faster than real time the game's clock runs (1 to 30). | 0.2.22 |
+
+#### Weather
+
+| Function | Returns | What it does | Since |
+| --- | --- | --- | --- |
+| `omsi.weather.get()` | table or nil | The weather now: `{name, visibility (m), wind_direction (°), wind_speed (m/s), temperature (°C), humidity (%), absolute_humidity (g/m³), pressure (hPa), clouds, cloud_base (m), precipitation ("none", "rain", "snow"), precipitation_rate (0..1), snow_cover, snow_on_road, wetness (the roads, 0..1), changing, locked}` (`locked`: it follows a real weather station and cannot be set). | 0.2.22 |
+| `omsi.weather.precipitation()` | kind, rate | `"none"`, `"rain"` or `"snow"`, and how hard (0 to 1). | 0.2.22 |
+| `omsi.weather.preset(file, [seconds])` | true, or false and the reason | Changes to a weather file (as `weather.presets` names it; `""`: the map's own, changing with the day) over `seconds` (default 1). *Permission: `world_write`.* | 0.2.22 |
+| `omsi.weather.presets()` | list of tables | The weather files installed: `{file, name}`. | 0.2.22 |
+| `omsi.weather.set(values)` | true, or false and the reason | Changes the weather as the game menu's sliders do; any of `visibility`, `wind_direction`, `wind_speed`, `temperature`, `pressure`, `clouds` (`"-1"` none, `"Cumulus 1"`..`"3"`, `"Overcast 1"`), `cloud_base`, `precipitation` (`"none"`, `"rain"`, `"snow"`), `precipitation_rate` (0..1), `snow_cover`, `snow_on_road`, `wetness`; the rest stays. Held to the game's ranges; refused in a LAN game as a client or while the weather follows a station. *Permission: `world_write`.* | 0.2.22 |
+| `omsi.weather.temperature()` | number or nil | The air temperature, °C. | 0.2.22 |
+| `omsi.weather.visibility()` | number or nil | How far one sees, metres. | 0.2.22 |
+| `omsi.weather.wetness()` | number or nil | How wet the roads are, 0 (dry) to 1. | 0.2.22 |
+| `omsi.weather.wind()` | direction, speed | The wind: where it comes from (degrees) and its speed (m/s). | 0.2.22 |
+
+#### Camera
+
+| Function | Returns | What it does | Since |
+| --- | --- | --- | --- |
+| `omsi.camera.fov()` | number or nil | Its vertical field of view, degrees. | 0.2.22 |
+| `omsi.camera.get()` | table or nil | The camera: `{view, x, y, z, yaw, pitch, roll, fov, in_cab, zoom, look_yaw, look_pitch, width, height}` - map metres, degrees (yaw clockwise from north, pitch up positive), the vertical field of view, the picture's pixels. | 0.2.22 |
+| `omsi.camera.in_cab()` | boolean | Whether the camera is in the player's own bus (driver or passenger view). | 0.2.22 |
+| `omsi.camera.look(yaw, pitch)` | boolean | Turns the head (driver, passenger view) or swings the outside camera round the bus: degrees from straight ahead. *Permission: `camera`.* | 0.2.22 |
+| `omsi.camera.orientation()` | yaw, pitch, roll | Where it looks, degrees. | 0.2.22 |
+| `omsi.camera.position()` | x, y, z | Where the camera is (map metres). | 0.2.22 |
+| `omsi.camera.project(x, y, z)` | screen_x, screen_y | Where a map point is seen on the screen, in the panels' pixels (as `ui.screen` measures them); nothing when it is behind the camera. For labels over buses, stops, people. | 0.2.22 |
+| `omsi.camera.set_free(x, y, z, [yaw], [pitch])` | boolean | Puts the free camera at a map point looking along `yaw` and `pitch` (degrees); the view becomes `"free"` (the player moves it on from there). *Permission: `camera`.* | 0.2.22 |
+| `omsi.camera.set_view(view)` | boolean | Switches the view: `"driver"`, `"pax"`, `"outside"`, `"map"` (the free camera above the bus), `"ego"` (walking), or a `view_*` action of keyboard.cfg. *Permission: `camera`.* | 0.2.22 |
+| `omsi.camera.set_zoom(zoom)` | boolean | The zoom of the view now (its field of view times this, 0.2 to 3). *Permission: `camera`.* | 0.2.22 |
+| `omsi.camera.view()` | string or nil | The view: `"driver"`, `"pax"`, `"outside"`, `"free"` or `"foot"`. | 0.2.22 |
+
+#### Input
+
+| Function | Returns | What it does | Since |
+| --- | --- | --- | --- |
+| `omsi.input.bindings([vehicles])` | list of tables | The key bindings: `{action, key}` of the game's keys, or the vehicles' with `true` (`key` as the game writes it: `"Ctrl+D"`). | 0.2.22 |
+| `omsi.input.controllers()` | list of tables | The steering wheels, pedals, joysticks and gamepads: `{name, gamepad, axes, buttons}` (`axes` each axis's value; `buttons` how many it has - the `controller_button` event tells presses). | 0.2.22 |
+| `omsi.input.hotkey(keys, fn)` | integer id | Runs `fn(key)` when a key combination is pressed: `"F10"`, `"Ctrl+KeyH"`, `"Shift+Alt+Digit1"` (modifiers exact: `"KeyH"` is not `Ctrl+KeyH`). The keys still reach the bus. `cancel(id)` removes it. | 0.2.22 |
+| `omsi.input.key_down(key)` | boolean | Whether a key is held now (winit's names, as the `key` event: `"KeyW"`, `"ShiftLeft"`, `"F5"`). | 0.2.22 |
+| `omsi.input.keys_down()` | list of strings | Every key held now. | 0.2.22 |
+| `omsi.input.mouse()` | x, y, left, right, middle | The mouse: where it is in the panels' pixels and its buttons held. | 0.2.22 |
+
+#### Sound
+
+| Function | Returns | What it does | Since |
+| --- | --- | --- | --- |
+| `omsi.audio.play(file, [opts])` | integer id or nil, reason | Plays a WAV file of the plugin's folder. `opts`: `volume` (1), `pitch` (1), `loop`, `range` (metres heard at full volume, 5), and either `x, y, z` (a sound at a map point) or `on_bus = true` (it moves with the player's bus); none: heard alike everywhere. The game's volume setting applies. A plugin plays 32 at most. *Permission: `audio`.* | 0.2.22 |
+| `omsi.audio.playing(id)` | boolean | Whether a sound of the plugin's still plays. | 0.2.22 |
+| `omsi.audio.set(id, opts)` | boolean | Changes a sound of the plugin's: `volume`, `pitch`, `range`, `x, y, z` / `on_bus`. *Permission: `audio`.* | 0.2.22 |
+| `omsi.audio.stop(id)` | boolean | Stops a sound of the plugin's. *Permission: `audio`.* | 0.2.22 |
+| `omsi.audio.stop_all()` | nil | Stops every sound of the plugin's. *Permission: `audio`.* | 0.2.22 |
+| `omsi.audio.volume()` | number or nil | The game's volume setting, 0 to 1. | 0.2.22 |
 
 #### On screen
 

@@ -24,6 +24,100 @@
       "permission": null
     },
     {
+      "name": "audio.play",
+      "group": "audio",
+      "since": "0.2.22",
+      "doc": "Plays a WAV file of the plugin's folder. `opts`: `volume` (1), `pitch` (1), `loop`, `range` (metres heard at full volume, 5), and either `x, y, z` (a sound at a map point) or `on_bus = true` (it moves with the player's bus); none: heard alike everywhere. The game's volume setting applies. A plugin plays 32 at most.",
+      "params": [
+        {
+          "name": "file",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "opts",
+          "type": "table",
+          "optional": true
+        }
+      ],
+      "returns": "integer id or nil, reason",
+      "multi": true,
+      "permission": "audio"
+    },
+    {
+      "name": "audio.playing",
+      "group": "audio",
+      "since": "0.2.22",
+      "doc": "Whether a sound of the plugin's still plays.",
+      "params": [
+        {
+          "name": "id",
+          "type": "integer",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "audio.set",
+      "group": "audio",
+      "since": "0.2.22",
+      "doc": "Changes a sound of the plugin's: `volume`, `pitch`, `range`, `x, y, z` / `on_bus`.",
+      "params": [
+        {
+          "name": "id",
+          "type": "integer",
+          "optional": false
+        },
+        {
+          "name": "opts",
+          "type": "table",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "audio"
+    },
+    {
+      "name": "audio.stop",
+      "group": "audio",
+      "since": "0.2.22",
+      "doc": "Stops a sound of the plugin's.",
+      "params": [
+        {
+          "name": "id",
+          "type": "integer",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "audio"
+    },
+    {
+      "name": "audio.stop_all",
+      "group": "audio",
+      "since": "0.2.22",
+      "doc": "Stops every sound of the plugin's.",
+      "params": [],
+      "returns": "nil",
+      "multi": false,
+      "permission": "audio"
+    },
+    {
+      "name": "audio.volume",
+      "group": "audio",
+      "since": "0.2.22",
+      "doc": "The game's volume setting, 0 to 1.",
+      "params": [],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
       "name": "bus.acceleration",
       "group": "vehicle",
       "since": "0.2.22",
@@ -663,6 +757,181 @@
       "doc": "Each wheel: `{axle, side, rpm, radius, suspension, driven}` (`side` 0 left, 1 right; `suspension` the spring's travel).",
       "params": [],
       "returns": "list of tables",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "camera.fov",
+      "group": "camera",
+      "since": "0.2.22",
+      "doc": "Its vertical field of view, degrees.",
+      "params": [],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "camera.get",
+      "group": "camera",
+      "since": "0.2.22",
+      "doc": "The camera: `{view, x, y, z, yaw, pitch, roll, fov, in_cab, zoom, look_yaw, look_pitch, width, height}` - map metres, degrees (yaw clockwise from north, pitch up positive), the vertical field of view, the picture's pixels.",
+      "params": [],
+      "returns": "table or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "camera.in_cab",
+      "group": "camera",
+      "since": "0.2.22",
+      "doc": "Whether the camera is in the player's own bus (driver or passenger view).",
+      "params": [],
+      "returns": "boolean",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "camera.look",
+      "group": "camera",
+      "since": "0.2.22",
+      "doc": "Turns the head (driver, passenger view) or swings the outside camera round the bus: degrees from straight ahead.",
+      "params": [
+        {
+          "name": "yaw",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "pitch",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "camera"
+    },
+    {
+      "name": "camera.orientation",
+      "group": "camera",
+      "since": "0.2.22",
+      "doc": "Where it looks, degrees.",
+      "params": [],
+      "returns": "yaw, pitch, roll",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "camera.position",
+      "group": "camera",
+      "since": "0.2.22",
+      "doc": "Where the camera is (map metres).",
+      "params": [],
+      "returns": "x, y, z",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "camera.project",
+      "group": "camera",
+      "since": "0.2.22",
+      "doc": "Where a map point is seen on the screen, in the panels' pixels (as `ui.screen` measures them); nothing when it is behind the camera. For labels over buses, stops, people.",
+      "params": [
+        {
+          "name": "x",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "z",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "screen_x, screen_y",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "camera.set_free",
+      "group": "camera",
+      "since": "0.2.22",
+      "doc": "Puts the free camera at a map point looking along `yaw` and `pitch` (degrees); the view becomes `\"free\"` (the player moves it on from there).",
+      "params": [
+        {
+          "name": "x",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "z",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "yaw",
+          "type": "number",
+          "optional": true
+        },
+        {
+          "name": "pitch",
+          "type": "number",
+          "optional": true
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "camera"
+    },
+    {
+      "name": "camera.set_view",
+      "group": "camera",
+      "since": "0.2.22",
+      "doc": "Switches the view: `\"driver\"`, `\"pax\"`, `\"outside\"`, `\"map\"` (the free camera above the bus), `\"ego\"` (walking), or a `view_*` action of keyboard.cfg.",
+      "params": [
+        {
+          "name": "view",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "camera"
+    },
+    {
+      "name": "camera.set_zoom",
+      "group": "camera",
+      "since": "0.2.22",
+      "doc": "The zoom of the view now (its field of view times this, 0.2 to 3).",
+      "params": [
+        {
+          "name": "zoom",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "camera"
+    },
+    {
+      "name": "camera.view",
+      "group": "camera",
+      "since": "0.2.22",
+      "doc": "The view: `\"driver\"`, `\"pax\"`, `\"outside\"`, `\"free\"` or `\"foot\"`.",
+      "params": [],
+      "returns": "string or nil",
       "multi": false,
       "permission": null
     },
@@ -1322,6 +1591,89 @@
       ],
       "returns": "any",
       "multi": false,
+      "permission": null
+    },
+    {
+      "name": "input.bindings",
+      "group": "input",
+      "since": "0.2.22",
+      "doc": "The key bindings: `{action, key}` of the game's keys, or the vehicles' with `true` (`key` as the game writes it: `\"Ctrl+D\"`).",
+      "params": [
+        {
+          "name": "vehicles",
+          "type": "bool",
+          "optional": true
+        }
+      ],
+      "returns": "list of tables",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "input.controllers",
+      "group": "input",
+      "since": "0.2.22",
+      "doc": "The steering wheels, pedals, joysticks and gamepads: `{name, gamepad, axes, buttons}` (`axes` each axis's value; `buttons` how many it has - the `controller_button` event tells presses).",
+      "params": [],
+      "returns": "list of tables",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "input.hotkey",
+      "group": "input",
+      "since": "0.2.22",
+      "doc": "Runs `fn(key)` when a key combination is pressed: `\"F10\"`, `\"Ctrl+KeyH\"`, `\"Shift+Alt+Digit1\"` (modifiers exact: `\"KeyH\"` is not `Ctrl+KeyH`). The keys still reach the bus. `cancel(id)` removes it.",
+      "params": [
+        {
+          "name": "keys",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "fn",
+          "type": "function",
+          "optional": false
+        }
+      ],
+      "returns": "integer id",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "input.key_down",
+      "group": "input",
+      "since": "0.2.22",
+      "doc": "Whether a key is held now (winit's names, as the `key` event: `\"KeyW\"`, `\"ShiftLeft\"`, `\"F5\"`).",
+      "params": [
+        {
+          "name": "key",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "input.keys_down",
+      "group": "input",
+      "since": "0.2.22",
+      "doc": "Every key held now.",
+      "params": [],
+      "returns": "list of strings",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "input.mouse",
+      "group": "input",
+      "since": "0.2.22",
+      "doc": "The mouse: where it is in the panels' pixels and its buttons held.",
+      "params": [],
+      "returns": "x, y, left, right, middle",
+      "multi": true,
       "permission": null
     },
     {
@@ -3158,6 +3510,251 @@
         }
       ],
       "returns": "integer id",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "weather.get",
+      "group": "weather",
+      "since": "0.2.22",
+      "doc": "The weather now: `{name, visibility (m), wind_direction (°), wind_speed (m/s), temperature (°C), humidity (%), absolute_humidity (g/m³), pressure (hPa), clouds, cloud_base (m), precipitation (\"none\", \"rain\", \"snow\"), precipitation_rate (0..1), snow_cover, snow_on_road, wetness (the roads, 0..1), changing, locked}` (`locked`: it follows a real weather station and cannot be set).",
+      "params": [],
+      "returns": "table or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "weather.precipitation",
+      "group": "weather",
+      "since": "0.2.22",
+      "doc": "`\"none\"`, `\"rain\"` or `\"snow\"`, and how hard (0 to 1).",
+      "params": [],
+      "returns": "kind, rate",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "weather.preset",
+      "group": "weather",
+      "since": "0.2.22",
+      "doc": "Changes to a weather file (as `weather.presets` names it; `\"\"`: the map's own, changing with the day) over `seconds` (default 1).",
+      "params": [
+        {
+          "name": "file",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "seconds",
+          "type": "number",
+          "optional": true
+        }
+      ],
+      "returns": "true, or false and the reason",
+      "multi": true,
+      "permission": "world_write"
+    },
+    {
+      "name": "weather.presets",
+      "group": "weather",
+      "since": "0.2.22",
+      "doc": "The weather files installed: `{file, name}`.",
+      "params": [],
+      "returns": "list of tables",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "weather.set",
+      "group": "weather",
+      "since": "0.2.22",
+      "doc": "Changes the weather as the game menu's sliders do; any of `visibility`, `wind_direction`, `wind_speed`, `temperature`, `pressure`, `clouds` (`\"-1\"` none, `\"Cumulus 1\"`..`\"3\"`, `\"Overcast 1\"`), `cloud_base`, `precipitation` (`\"none\"`, `\"rain\"`, `\"snow\"`), `precipitation_rate` (0..1), `snow_cover`, `snow_on_road`, `wetness`; the rest stays. Held to the game's ranges; refused in a LAN game as a client or while the weather follows a station.",
+      "params": [
+        {
+          "name": "values",
+          "type": "table",
+          "optional": false
+        }
+      ],
+      "returns": "true, or false and the reason",
+      "multi": true,
+      "permission": "world_write"
+    },
+    {
+      "name": "weather.temperature",
+      "group": "weather",
+      "since": "0.2.22",
+      "doc": "The air temperature, °C.",
+      "params": [],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "weather.visibility",
+      "group": "weather",
+      "since": "0.2.22",
+      "doc": "How far one sees, metres.",
+      "params": [],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "weather.wetness",
+      "group": "weather",
+      "since": "0.2.22",
+      "doc": "How wet the roads are, 0 (dry) to 1.",
+      "params": [],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "weather.wind",
+      "group": "weather",
+      "since": "0.2.22",
+      "doc": "The wind: where it comes from (degrees) and its speed (m/s).",
+      "params": [],
+      "returns": "direction, speed",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "world.date",
+      "group": "time",
+      "since": "0.2.22",
+      "doc": "The game's date: `{year, month, day, weekday, day_of_year}` (`weekday` 1 Monday to 7 Sunday).",
+      "params": [],
+      "returns": "table or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "world.pause",
+      "group": "time",
+      "since": "0.2.22",
+      "doc": "Pauses the game, as P does (not in a LAN game). The plugins stand still with it: the player resumes it.",
+      "params": [],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "world_write"
+    },
+    {
+      "name": "world.paused",
+      "group": "time",
+      "since": "0.2.22",
+      "doc": "Whether the game stands still (a plugin hears `pause` and runs no more until `resume`).",
+      "params": [],
+      "returns": "boolean",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "world.play_time",
+      "group": "time",
+      "since": "0.2.22",
+      "doc": "Seconds played this session (game time, never wraps).",
+      "params": [],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "world.season",
+      "group": "time",
+      "since": "0.2.22",
+      "doc": "The season's texture folder (`nil`: the base textures) and whether snow lies.",
+      "params": [],
+      "returns": "folder, snow",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "world.set_date",
+      "group": "time",
+      "since": "0.2.22",
+      "doc": "Sets the game's date (the season's textures follow).",
+      "params": [
+        {
+          "name": "year",
+          "type": "integer",
+          "optional": false
+        },
+        {
+          "name": "month",
+          "type": "integer",
+          "optional": false
+        },
+        {
+          "name": "day",
+          "type": "integer",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "world_write"
+    },
+    {
+      "name": "world.set_time",
+      "group": "time",
+      "since": "0.2.22",
+      "doc": "Sets the time of day: seconds since midnight or `\"HH:MM\"` / `\"HH:MM:SS\"`, as the game menu's clock does (the timetable starts again after a jump of minutes). Not in a LAN game as a client, nor while the clock follows the computer's.",
+      "params": [
+        {
+          "name": "time",
+          "type": "any",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "world_write"
+    },
+    {
+      "name": "world.set_time_speed",
+      "group": "time",
+      "since": "0.2.22",
+      "doc": "Sets how much faster the clock runs (1 to 30; not in a LAN game).",
+      "params": [
+        {
+          "name": "factor",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "world_write"
+    },
+    {
+      "name": "world.sun_altitude",
+      "group": "time",
+      "since": "0.2.22",
+      "doc": "The sun's height over the horizon, degrees.",
+      "params": [],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "world.time",
+      "group": "time",
+      "since": "0.2.22",
+      "doc": "The game's time of day, seconds since midnight.",
+      "params": [],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "world.time_speed",
+      "group": "time",
+      "since": "0.2.22",
+      "doc": "How much faster than real time the game's clock runs (1 to 30).",
+      "params": [],
+      "returns": "number or nil",
       "multi": false,
       "permission": null
     }
