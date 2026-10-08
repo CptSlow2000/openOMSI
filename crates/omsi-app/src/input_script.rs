@@ -13,6 +13,7 @@ pub(crate) fn is_game_action(name: &str) -> bool {
         || matches!(
             name.as_str(),
             "sim_pause"
+                | "open_menu"
                 | "screenshot"
                 | "quicksave"
                 | "toggel_mouse_ctrl"

@@ -1255,8 +1255,9 @@ fn mb(v: i64) -> String {
 /// The game's own actions a controller's button can be given, besides the bus's: the doors
 /// and gears of any bus, looking round while held, the bus radio while held, the cameras
 /// and the views - both of OMSI's view resets, the one view's (C) and every view's (Space),
-/// which a controller could not bring back to the first camera (#1167).
-const PAD_GAME_ACTIONS: [&str; 26] = ["doors_all", "door_4", "door_3", "door_2", "door_1", "gear_up", "gear_down", "view_look_left", "view_look_right", "view_look_up", "view_look_down", "view_reset_direction", "view_reset_all_directions", "view_interiorcam_plus", "view_interiorcam_minus", "view_toggle_viewpoint", "view_toggle_interior", "view_set_driver", "view_set_passenger", "view_set_outside", "sim_pause", "screenshot", "quicksave", "toggel_mouse_ctrl", "toggel_ctrler", "voice_radio"];
+/// which a controller could not bring back to the first camera (#1167) - and the main menu,
+/// which Esc opens and a controller has no Esc for.
+const PAD_GAME_ACTIONS: [&str; 27] = ["doors_all", "door_4", "door_3", "door_2", "door_1", "gear_up", "gear_down", "view_look_left", "view_look_right", "view_look_up", "view_look_down", "view_reset_direction", "view_reset_all_directions", "view_interiorcam_plus", "view_interiorcam_minus", "view_toggle_viewpoint", "view_toggle_interior", "view_set_driver", "view_set_passenger", "view_set_outside", "sim_pause", "open_menu", "screenshot", "quicksave", "toggel_mouse_ctrl", "toggel_ctrler", "voice_radio"];
 
 fn action_text(names: &crate::describe::ControlNames, a: &str) -> String {
     known_action(a).unwrap_or_else(|| names.control(a))
@@ -1321,6 +1322,7 @@ fn known_action(a: &str) -> Option<String> {
         ("chat_toggle", "Multiplayer: show / hide the chat"),
         ("voice_radio", "Multiplayer: bus radio (hold)"),
         ("sim_pause", "Pause"),
+        ("open_menu", "Open / close the main menu"),
         ("screenshot", "Screenshot"),
         ("quicksave", "Quicksave"),
         ("toggel_mouse_ctrl", "Toggle mouse steering"),
@@ -2987,6 +2989,9 @@ mod pad_action_tests {
         assert!(super::PAD_GAME_ACTIONS.contains(&"view_reset_all_directions"));
         assert!(super::PAD_GAME_ACTIONS.contains(&"voice_radio"));
         assert_eq!(super::known_action("voice_radio").as_deref(), Some("Multiplayer: bus radio (hold)"));
+        // the main menu, which a controller has no Esc for
+        assert!(super::PAD_GAME_ACTIONS.contains(&"open_menu"));
+        assert_eq!(super::known_action("open_menu").as_deref(), Some("Open / close the main menu"));
         for a in super::PAD_GAME_ACTIONS {
             let held = a.starts_with("view_look_") || a == "voice_radio";
             let handled = held

@@ -229,8 +229,10 @@ impl App {
             let menu_open = self.menus.game_menu.is_some() || self.menus.chooser.is_some();
             let mut game: Vec<String> = Vec::new();
             actions.retain(|(name, down)| {
-                if menu_open && *down { return false; }
                 let n = name.to_ascii_lowercase();
+                // (with a menu open the buttons do nothing - but the one that opened it
+                // closes it again)
+                if menu_open && *down && n != "open_menu" { return false; }
                 if let Some(k) = ["view_look_left", "view_look_right", "view_look_up", "view_look_down"].iter().position(|x| *x == n) {
                     self.input.pad_look[k] = *down;
                     return false;
