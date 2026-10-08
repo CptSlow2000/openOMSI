@@ -530,6 +530,8 @@ pub(crate) fn spawn_player_prepared(
         auto_shift: crate::settings::Settings::load().auto_shift,
         auto_shift_wait: 0.0,
         auto_shift_idle: 0.0,
+        auto_shift_max: 0.0,
+        auto_shift_climb: (0.0, 0.0),
         side_lights_by_l: false,
         driver: None,
         ibis_duty: None,
