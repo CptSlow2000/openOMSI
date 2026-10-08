@@ -338,6 +338,25 @@ only to programs on this computer, and only to ports from 1024 up.
 * Keep `on_frame` light; use `omsi.every` and `omsi.watch` for everything that does not
   need every frame.
 
+## The telemetry file (for programs beside the game)
+
+A program that only wants to follow the player's bus - a fleet map, an in-vehicle
+terminal, a stream overlay - can read `~/.openomsi/telemetry.json` (on Windows
+`%USERPROFILE%\.openomsi\telemetry.json`) instead of being a plugin. The game writes it
+**only while the file exists**: the program (or you) creates it once, empty, and the game
+fills it from then on; deleting it stops the writing. It stays on this computer.
+
+About twice a second the file is replaced as a whole (written beside it and renamed), so a
+reader never sees half of it. It holds (`version` 2): `pid`, `updated` (Unix seconds),
+`paused`; `player` (`null` without a bus): `x`, `y`, `z`, `tile_x`, `tile_y`, `local_x`,
+`local_y`, `heading`, `speed_kmh`, `delay_s`, `passengers`; `duty` (`null` without one):
+`line`, `tour`, `trip`, `trip_index`, `trip_count`, `terminus`, `next_stop_index`,
+`next_stop_id`, `next_stop_name`, `next_stop_dist`, `prev_stop_id`, `at_stop` and `stops`
+(each `object_id`, `name`, `stops`, `arr`, `dep`, `x`, `y`); `ai_buses`, the timetable
+buses on the road (`id`, `line`, `tour`, `trip`, `terminus`, `depart`, `next_stop_id`,
+`at_stop`, `trip_done`, `delay_s`, `x`, `y`, `number`). The stop IDs are the map's, as in
+`omsi.info()`. A file whose `updated` stops moving belongs to a game that ended.
+
 ## OMSI plugins (`plugins/*.opl` + DLL)
 
 What OMSI does with plugins, and how
