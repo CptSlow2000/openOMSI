@@ -180,6 +180,19 @@ impl App {
         // works at the screen)
         let want = steering && self.input.window_focused && !vr_on && !self.input.touch.enabled
             && !omsi_cfg::flags::OMSI_BACKGROUND.is_set();
+        // (the setting off: the cursor stays the system's crosshair, free and shown - it
+        // shows the point without the frame's delay, #1948 - and its place steers)
+        if want && !self.settings.mouse_hold {
+            match self.input.mouse_grab.mode {
+                Some(GrabMode::Plain) => {}
+                Some(mode) => {
+                    self.free_cursor(mode);
+                    self.input.mouse_grab.mode = Some(GrabMode::Plain);
+                }
+                None => self.input.mouse_grab.mode = Some(GrabMode::Plain),
+            }
+            return;
+        }
         match (self.input.mouse_grab.mode, want) {
             (None, true) => self.catch_cursor(),
             (Some(mode), false) => self.free_cursor(mode),
