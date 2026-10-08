@@ -26111,3 +26111,30 @@ _version: 2
   id: "Tekstur DXT/BC tetap terkompresi di GPU"
   ms: "Tekstur DXT/BC kekal dimampatkan pada GPU"
   tl: "DXT/BC textures stay compressed on the GPU"
+
+"CAVOK":
+  zh-tw: "晴空"
+
+"Eiseskälte":
+  zh-tw: "冰冷寒氣"
+
+"Starker Schneefall":
+  zh-tw: "大雪"
+
+"Ueberfrierende Naesse":
+  zh-tw: "結冰濕氣"
+
+"Bodennebel":
+  zh-tw: "地面霧"
+
+"Daemmerungsnebel":
+  zh-tw: "暮霧"
+
+"Schmuddelwetter":
+  zh-tw: "陰濕天氣"
+
+"Sommerlich":
+  zh-tw: "夏日天氣"
+
+"Sturm":
+  zh-tw: "暴風雨"
