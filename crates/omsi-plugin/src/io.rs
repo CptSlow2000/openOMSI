@@ -159,7 +159,7 @@ pub trait PluginIo {
         None
     }
     /// Crashes of the bus, the energy of the last (J) and the minutes a repair would take.
-    fn bus_damage(&self) -> Option<(u32, f32, Option<f32>)> {
+    fn bus_damage(&mut self) -> Option<(u32, f32, Option<f32>)> {
         None
     }
     /// What the bus drives with: throttle, brake, clutch (0..1) and steering (-1..1, right +).
@@ -311,6 +311,15 @@ pub trait PluginIo {
     }
     fn map_tiles(&self) -> Vec<Tile> {
         Vec::new()
+    }
+    /// The tile of a map point and the metres in it (the map's own tile size and, on a
+    /// `[worldcoordinates]` map, its scale).
+    fn map_tile_at(&self, _x: f64, _y: f64) -> Option<((i32, i32), (f64, f64))> {
+        None
+    }
+    /// The map point of a place in a tile.
+    fn map_from_tile(&self, _tx: i32, _ty: i32, _lx: f64, _ly: f64) -> Option<(f64, f64)> {
+        None
     }
     /// The bus stops of the tiles loaded.
     fn map_stops(&self) -> Vec<MapStop> {

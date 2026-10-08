@@ -193,7 +193,7 @@ impl PluginIo for Game {
     fn bus_dirt(&self) -> Option<f32> {
         Some(0.25)
     }
-    fn bus_damage(&self) -> Option<(u32, f32, Option<f32>)> {
+    fn bus_damage(&mut self) -> Option<(u32, f32, Option<f32>)> {
         Some((1, 136000.0, Some(30.0)))
     }
     fn bus_controls(&self) -> Option<[f32; 4]> {

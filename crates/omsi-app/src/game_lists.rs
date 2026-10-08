@@ -191,7 +191,7 @@ fn ibis_line_number(v: &omsi_sim::VehicleInstance) -> Option<String> {
 /// `IBIS_LinieKurs`, the IBIS's number without its letter, a pick made 92E into 92 on the
 /// IBIS and the matrix. Not `SetLineTo` on any other bus: no script of its own writes it,
 /// only an earlier pick, so a line typed on the IBIS since went back to that pick's.
-fn destination_line(v: &omsi_sim::VehicleInstance) -> String {
+pub(crate) fn destination_line(v: &omsi_sim::VehicleInstance) -> String {
     let blind = crate::schedule::has_roller_blind(v).then(|| v.str_var("SetLineTo"));
     [Some(v.str_var("Matrix_Nr")), blind]
         .into_iter()

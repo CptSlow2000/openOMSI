@@ -597,6 +597,8 @@ pub enum WorldUpdate {
 pub struct LanGame {
     pub remotes: hashbrown::HashMap<u32, RemoteVehicle>,
     pub chat: Chat,
+    /// The chat's lines (name, text) not yet handed to the plugins (`lan_chat`).
+    pub plugin_chat: Vec<(String, String)>,
     /// The shared world: the host's traffic and people (`lan_world`).
     pub world: crate::lan_world::LanWorld,
     tables: hashbrown::HashMap<PathBuf, Arc<SyncTable>>,
@@ -3322,6 +3324,12 @@ pub fn tick(
         }
     }
     for e in lan.take_events() {
+        if let LanEvent::Chat { name, text, .. } = &e {
+            // (for the plugins' `lan_chat`, a few kept while nobody takes them)
+            if game.plugin_chat.len() < 32 {
+                game.plugin_chat.push((name.clone(), crate::ui::filter_chat(text)));
+            }
+        }
         game.chat.push(match e {
             LanEvent::Chat { name, text, .. } => format!("{name}: {}", crate::ui::filter_chat(&text)),
             LanEvent::Notice(n) => format!("* {n}"),

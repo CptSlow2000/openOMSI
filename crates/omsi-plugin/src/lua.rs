@@ -283,6 +283,11 @@ impl LuaPlugin {
         }
     }
 
+    /// Whether the plugin listens to `event` (through `on`, or its global `on_<event>`).
+    pub fn hears(&self, event: &str) -> bool {
+        !self.disabled && (self.state.listens(event) || self.binding.as_ref().is_some_and(|b| b.has_global_handler(event)))
+    }
+
     /// One event now, outside the frame (`Plugins::emit`).
     pub fn emit(&mut self, io: &mut dyn PluginIo, event: &str, args: Vec<Value>) {
         if self.disabled || self.binding.is_none() {

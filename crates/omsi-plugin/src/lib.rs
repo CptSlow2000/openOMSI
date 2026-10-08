@@ -706,6 +706,12 @@ impl Plugins {
         self.hub.direct.borrow_mut().push((plugin.to_string(), event, args));
     }
 
+    /// Whether a plugin listens to `event` (its comparison or bookkeeping can be left out
+    /// when none does).
+    pub fn hears(&self, event: &str) -> bool {
+        self.lua.iter().any(|p| p.hears(event))
+    }
+
     /// Whether a Lua plugin of this name is loaded.
     pub fn has(&self, plugin: &str) -> bool {
         self.lua.iter().any(|p| p.name.eq_ignore_ascii_case(plugin))

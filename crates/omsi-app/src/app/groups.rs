@@ -53,6 +53,12 @@ pub(crate) struct Integrations {
     /// stops skipped, services and moves of the bus, trips ended, jolts, tickets sold (see
     /// `plugins::queue_event`).
     pub(crate) plugin_events: Vec<omsi_plugin::GameEvent>,
+    /// The same for events whose values are tables (see `plugins::queue_event_ex`).
+    pub(crate) plugin_events_ex: Vec<(&'static str, Vec<omsi_plugin::api::Value>)>,
+    /// The plugins' sounds playing, and whether each moves with the player's bus.
+    pub(crate) plugin_voices: Vec<(u64, bool)>,
+    /// What the plugins' events last saw of the game (see `plugins::Seen`).
+    pub(crate) plugin_seen: crate::plugins::Seen,
     /// A plugin's `omsi.command` is running: what it does is the plugin's (the `service`
     /// event's `by`).
     pub(crate) plugin_command: bool,

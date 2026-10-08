@@ -107,6 +107,7 @@ mod on_foot;
 mod route_arrows;
 mod server;
 mod player;
+mod plugin_io;
 mod plugin_ui;
 mod plugins;
 mod services;
@@ -719,6 +720,9 @@ fn assemble_app(args: Args, settings: settings::Settings) -> App {
         integrations: Integrations {
             plugin_keys: Vec::new(),
             plugin_events: Vec::new(),
+            plugin_events_ex: Vec::new(),
+            plugin_voices: Vec::new(),
+            plugin_seen: Default::default(),
             plugin_command: false,
             plugin_panels: Default::default(),
             discord: None,

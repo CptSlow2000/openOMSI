@@ -51,7 +51,11 @@ impl App {
             && self.window.is_some()
         {
             if let Some(shot) = shot {
+                let file = shot.0.to_string_lossy().into_owned();
                 self.frame_shot(shot, lighting);
+                if self.integrations.plugins.as_ref().is_some_and(|p| !p.is_empty()) {
+                    crate::plugins::queue_event(&mut self.integrations.plugin_events, "screenshot", vec![omsi_plugin::InfoValue::Text(file)]);
+                }
             }
             let (frame, view, shown_nothing) = self.frame_acquire(&mut reconfigure);
             match view {
