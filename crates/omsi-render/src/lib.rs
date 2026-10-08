@@ -2770,6 +2770,10 @@ impl Renderer {
             Some("nostorage") => ArrayPath::NoStorage,
             _ if !downlevel.contains(wgpu::DownlevelFlags::FRAGMENT_STORAGE) || storage < 2 => ArrayPath::NoStorage,
             _ if !downlevel.contains(wgpu::DownlevelFlags::VERTEX_STORAGE) || storage < 3 => ArrayPath::VertexTextures,
+            // (the draw list and the lamps' grid are arrays of u32, 4 bytes, which such a device
+            // cannot bind as storage buffers: ANGLE on Vulkan, an Exynos' Xclipse, failed the
+            // shadow pipeline with "a size that is a multiple of 16 bytes", #1857)
+            _ if !downlevel.contains(wgpu::DownlevelFlags::BUFFER_BINDINGS_NOT_16_BYTE_ALIGNED) => ArrayPath::NoStorage,
             _ => ArrayPath::Storage,
         };
         ARRAY_PATH.store(path as u8, std::sync::atomic::Ordering::Relaxed);
