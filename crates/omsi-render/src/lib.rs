@@ -4,6 +4,7 @@ pub mod atmosphere;
 pub mod clouds;
 mod passes;
 use passes::{Encoders, FrameArgs, FrameEnv, PassTimers, StageClock};
+pub mod pipeline_cache;
 mod pipelines;
 mod puddles;
 mod rt;
@@ -2752,6 +2753,10 @@ impl Renderer {
             // textures are decoded to RGBA by upload_texture on this device.
             required_features = wgpu::Features::empty();
         }
+        // the driver's compiled pipelines kept for the next start (Vulkan, OpenGL)
+        if !intel_vulkan_safe {
+            required_features |= pipeline_cache::wanted(&adapter);
+        }
         // Enhanced+: hardware ray queries where the device has them (Apple silicon from the
         // M3/A17 on, RTX and RDNA 2 cards and newer through Vulkan and Direct3D 12 - with DXC,
         // which the Windows build ships beside the game); OMSI_NO_RT=1 leaves them out. Should
@@ -2807,6 +2812,7 @@ impl Renderer {
             .await
             .context("request_device")?;
         log::info!("graphics device opened; compiling renderer pipelines");
+        pipeline_cache::open(&device, &info);
         // the same choice wgpu-core makes when it validates a texture or a pipeline
         let adapter_table = device
             .features()
@@ -2876,6 +2882,7 @@ impl Renderer {
         }
         if let Some(why) = made.as_ref().ok().and_then(|r| r.device_lost()) {
             drop(made);
+            pipeline_cache::close(&device);
             if basic_pipelines() {
                 return Err(anyhow!("the graphics device was lost while the pipelines were made: {why}"));
             }
@@ -2884,6 +2891,10 @@ impl Renderer {
             // (and so from the start next time, see `fallback_load`)
             fallback_store(&name, Some((1, true)));
             return Box::pin(Self::new_on(adapter, surface, asked_format, asked_options)).await;
+        }
+        match &made {
+            Ok(_) => pipeline_cache::save(),
+            Err(_) => pipeline_cache::close(&device),
         }
         made
     }

@@ -65,6 +65,8 @@ impl ApplicationHandler for App {
         self.input.touch.drop_gpu();
         self.input_lost();
         self.save_last_situation();
+        // (a phone's app in the background is often ended without `exiting`)
+        omsi_render::pipeline_cache::save();
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
@@ -388,6 +390,8 @@ impl ApplicationHandler for App {
     fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
         crate::game_lists::flush_settings(true);
         self.finish_session();
+        // (with the pipelines made since the start: puddles, Enhanced+)
+        omsi_render::pipeline_cache::save();
         // ("playing now" ends with the game)
         self.integrations.presence = None;
         if let Some(lan) = self.net.lan.take() {
