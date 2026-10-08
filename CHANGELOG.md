@@ -4,6 +4,26 @@ Every push to `main` is released as `MAJOR.MINOR.COMMIT` (see
 [docs/VERSIONING.md](docs/VERSIONING.md)); the downloads are on the
 [Releases](https://github.com/openOMSI-Project/openOMSI/releases) page.
 
+## 0.2.20 - 2026-10-08
+
+### New
+- **Gamepads**: ready-made Xbox, PS4 and PS5 profiles with default buttons, a Gamepad settings page (stick dead zone, steering speed), and the Menu/Options button opens the main menu [#1939](https://github.com/openOMSI-Project/openOMSI/pull/1939); a controller action to open and close the main menu [#1594](https://github.com/openOMSI-Project/openOMSI/pull/1594).
+- **Key bindings**: "Add binding" on the Controls page lists every action - the installed buses' own script triggers too, with how many buses use each - searchable [#1437](https://github.com/openOMSI-Project/openOMSI/pull/1437).
+- **Platform screen doors**: light paths marked as a turn work as detectors for that indicator, for every vehicle, so BRT platform doors open for the bus that stops there [#1889](https://github.com/openOMSI-Project/openOMSI/pull/1889).
+- **HTML LED destination signs** glow at night like the LED panels, with the same LED glow setting [#1905](https://github.com/openOMSI-Project/openOMSI/pull/1905).
+- Lua plugins: a `service` event (refuel, wash, repair, reset, teleport) [#1882](https://github.com/openOMSI-Project/openOMSI/pull/1882), and `trip_done` with the trip's ratings, `jolt` and `ticket_sold` events [#1937](https://github.com/openOMSI-Project/openOMSI/pull/1937).
+- `telemetry.json` for outside tools (the player's bus, the duty and its stops, the AI buses): written only while the file exists, see `docs/PLUGINS.md` [#1909](https://github.com/openOMSI-Project/openOMSI/pull/1909).
+- Translations: Dutch completed [#1944](https://github.com/openOMSI-Project/openOMSI/pull/1944), German reviewed [#1936](https://github.com/openOMSI-Project/openOMSI/pull/1936), Chinese [#1587](https://github.com/openOMSI-Project/openOMSI/pull/1587), French [#1713](https://github.com/openOMSI-Project/openOMSI/pull/1713), the game menu in every language [#1540](https://github.com/openOMSI-Project/openOMSI/pull/1540), the stock weather names [#1598](https://github.com/openOMSI-Project/openOMSI/pull/1598); messages with a number or a name in them are translated too [#1724](https://github.com/openOMSI-Project/openOMSI/pull/1724).
+
+### Fixes
+- Dedicated server and LAN host: AI cars no longer appear or vanish in plain view of the other players [#1893](https://github.com/openOMSI-Project/openOMSI/pull/1893).
+- Enhanced at night: no more black disc under street lamps whose light sits inside the lamp (the Ufo lamps of Spandau), and the lamp shadows got faster [#1915](https://github.com/openOMSI-Project/openOMSI/pull/1915).
+- Faster in scenes with excavations (U-Bahn entrances): the MSAA depth prepass is kept, about 1.5 ms less per frame there [#1614](https://github.com/openOMSI-Project/openOMSI/pull/1614).
+- A Shift, Ctrl or Alt whose release was missed (after a screenshot shortcut) no longer sticks [#1901](https://github.com/openOMSI-Project/openOMSI/pull/1901).
+- Vehicle descriptions are shown in full, and the phone launcher's vehicle sheet scrolls [#1932](https://github.com/openOMSI-Project/openOMSI/pull/1932).
+- The German tutorial pages show their special characters [#1552](https://github.com/openOMSI-Project/openOMSI/pull/1552).
+- Documentation fixes [#1917](https://github.com/openOMSI-Project/openOMSI/pull/1917), [#1918](https://github.com/openOMSI-Project/openOMSI/pull/1918), [#1919](https://github.com/openOMSI-Project/openOMSI/pull/1919); a deprecated call replaced [#1947](https://github.com/openOMSI-Project/openOMSI/pull/1947).
+
 ## 0.2.19 - 2026-10-08
 
 ### Fixes
