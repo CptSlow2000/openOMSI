@@ -333,6 +333,9 @@ impl Offscreen<'_> {
         if crash > 0.0 {
             log::warn!("crash: {:.0} kJ", crash / 1000.0);
         }
+        for j in career.take_jolts() {
+            log::info!("plugin event: jolt {j:?}");
+        }
         if i < drive_frames {
             self.drive_step(i, t_s);
         }
@@ -721,6 +724,9 @@ impl Offscreen<'_> {
                 if hurt > 0 {
                     log::warn!("{hurt} pedestrian(s) knocked down");
                 }
+            }
+            for (name, price) in h.take_sales() {
+                log::info!("plugin event: ticket_sold {} {price}", name.trim());
             }
             if std::mem::take(&mut h.stop_request) {
                 if let Some(p) = player.as_mut() {

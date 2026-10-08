@@ -102,6 +102,10 @@ impl App {
         }
         if let (Some(h), Some(p)) = (self.session.humans.as_mut(), self.player.as_ref()) {
             let hurt = steps::people_in_career(&mut self.session.career, h, p, self.settings.collision_pedestrians);
+            for (name, price) in h.take_sales() {
+                let args = vec![omsi_plugin::InfoValue::Text(name.trim().to_string()), crate::plugins::num_f32(price)];
+                crate::plugins::queue_event(&mut self.integrations.plugin_events, "ticket_sold", args);
+            }
             if hurt > 0 {
                 self.service_msg = Some(("Pedestrian knocked down!".into(), 6.0));
                 crate::plugins::queue_event(&mut self.integrations.plugin_events, "pedestrian", vec![omsi_plugin::InfoValue::Num(hurt as f64)]);

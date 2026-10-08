@@ -50,7 +50,8 @@ pub(crate) struct Integrations {
     /// Keys pressed (true) and let go since the Lua plugins' last frame.
     pub(crate) plugin_keys: Vec<(String, bool)>,
     /// What happened since the Lua plugins' last frame: crashes, people knocked down,
-    /// stops skipped, services and moves of the bus (see `plugins::queue_event`).
+    /// stops skipped, services and moves of the bus, trips ended, jolts, tickets sold (see
+    /// `plugins::queue_event`).
     pub(crate) plugin_events: Vec<omsi_plugin::GameEvent>,
     /// A plugin's `omsi.command` is running: what it does is the plugin's (the `service`
     /// event's `by`).
