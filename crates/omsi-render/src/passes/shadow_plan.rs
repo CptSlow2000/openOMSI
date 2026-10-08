@@ -134,16 +134,18 @@ impl Renderer {
 
     /// The shadow casters of each cascade (near, far, close) and of the street lamps'
     /// maps, as batches over the frame's draw list.
-    pub(crate) fn plan_shadow_casters(&self, scene: &Scene, f: &FrameCtx, sh: &ShadowPlan, list: &mut Vec<u32>) -> [Vec<Batch>; 4] {
+    pub(crate) fn plan_shadow_casters(&self, scene: &Scene, f: &FrameCtx, sh: &ShadowPlan, list: &mut Vec<u32>) -> [Vec<Batch>; SHADOW_LISTS] {
         let (camera, cam_rel, rt_frame) = (f.camera, f.cam_rel, f.rt_frame);
         let (moon_shadows, draw_shadows, redraw_near, redraw_far) = (sh.moon_shadows, sh.draw_shadows, sh.redraw_near, sh.redraw_far);
         let (light_view_proj, light_view_proj_far, light_view_proj_close) = (sh.light_view_proj, sh.light_view_proj_far, sh.light_view_proj_close);
         let lamp_shadows = &f.lamp_shadows;
         let debug_draws = f.env.debug_draws;
         // near, far, close
-        // (3: the street lamps' maps, every caster within a chosen lamp's reach under its head)
-        let mut shadow_batches: [Vec<Batch>; 4] = [Vec::new(), Vec::new(), Vec::new(), Vec::new()];
-        let lamp_reach = |c: Vec3, r: f32| lamp_shadows.iter().any(|l| c.z - r < l.position.z && (c - l.position).length() < l.range + r);
+        // (3..: each street lamp's map, every caster within that lamp's reach under its head;
+        // a source embedded in a pole's fixture leaves its own fixture out, see `PointLight::shadow_owner`)
+        let mut shadow_batches: [Vec<Batch>; SHADOW_LISTS] = std::array::from_fn(|_| Vec::new());
+        let lamp_reaches = |l: &LampShadow, c: Vec3, r: f32| c.z - r < l.position.z && (c - l.position).length() < l.range + r;
+        let lamp_reach = |c: Vec3, r: f32| lamp_shadows.iter().any(|l| lamp_reaches(l, c, r));
         // an instance's screen size as the camera pass measures it for the LOD choice
         let lod_fov = camera.fov_deg.to_radians().max(1e-3);
         let lod_size = |inst: &Instance| -> f32 {
@@ -162,8 +164,8 @@ impl Renderer {
             .unwrap_or(3.0);
         // (a copy: the casters are gathered on the worker pool, the renderer is not shared)
         let omsi_shadow_casters = self.options.omsi_shadow_casters;
-        let casters = |span: std::ops::Range<usize>| -> [Vec<DrawItem>; 4] {
-            let mut out: [Vec<DrawItem>; 4] = [Vec::new(), Vec::new(), Vec::new(), Vec::new()];
+        let casters = |span: std::ops::Range<usize>| -> [Vec<DrawItem>; SHADOW_LISTS] {
+            let mut out: [Vec<DrawItem>; SHADOW_LISTS] = std::array::from_fn(|_| Vec::new());
             let mut ranges: Vec<(u8, u32, u32, usize, u32)> = Vec::new();
             for inst in &scene.instances[span] {
                 if !inst.visible || !inst.casts_shadow || (omsi_shadow_casters && !inst.omsi_caster) {
@@ -216,10 +218,17 @@ impl Renderer {
                     ranges.push((kind, ri as u32, *slot, mat_id, mat.look));
                 }
                 if !lamp_shadows.is_empty() && !(m.bounds_radius > 0.0 && m.bounds_radius < 0.1) && lamp_reach(c, r) {
-                    for &(kind, ri, slot, mat_id, look) in &ranges {
-                        let kind = if kind == PIPE_KINDS { PIPE_OPAQUE } else { kind };
-                        let (material, look) = depth_only_material(kind, mat_id, look);
-                        out[3].push(DrawItem { pipe: kind, mesh: inst.mesh as u32, range: ri, material, look, entry: inst.base + slot });
+                    // (each lamp's map takes the casters within its own reach: one list
+                    // drawn into every map cost each lamp the others' casters as well)
+                    for (k, light) in lamp_shadows.iter().enumerate() {
+                        if (light.owner.is_some() && light.owner == inst.shadow_owner) || !lamp_reaches(light, c, r) {
+                            continue;
+                        }
+                        for &(kind, ri, slot, mat_id, look) in &ranges {
+                            let kind = if kind == PIPE_KINDS { PIPE_OPAQUE } else { kind };
+                            let (material, look) = depth_only_material(kind, mat_id, look);
+                            out[3 + k].push(DrawItem { pipe: kind, mesh: inst.mesh as u32, range: ri, material, look, entry: inst.base + slot });
+                        }
                     }
                 }
                 for (cascade, &(range, lvp, min_radius)) in boxes.iter().enumerate() {
@@ -283,9 +292,9 @@ impl Renderer {
                     })
                 })
             };
-            let mut found: [Vec<DrawItem>; 4] = [Vec::new(), Vec::new(), Vec::new(), Vec::new()];
+            let mut found: [Vec<DrawItem>; SHADOW_LISTS] = std::array::from_fn(|_| Vec::new());
             for part in run_parts(self.encoding_pool.as_ref(), parts, |p| {
-                let mut out: [Vec<DrawItem>; 4] = [Vec::new(), Vec::new(), Vec::new(), Vec::new()];
+                let mut out: [Vec<DrawItem>; SHADOW_LISTS] = std::array::from_fn(|_| Vec::new());
                 let end = ((p + 1) * chunk).min(n);
                 let mut b = p * chunk;
                 while b < end {
@@ -303,7 +312,7 @@ impl Renderer {
                     a.extend(b);
                 }
             }
-            for cascade in 0..4 {
+            for cascade in 0..SHADOW_LISTS {
                 if cascade < 3 && !active[cascade] {
                     continue;
                 }

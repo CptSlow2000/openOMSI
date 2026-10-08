@@ -443,8 +443,8 @@ impl World {
                 deform,
                 collision,
                 paint,
-                camera: Default::default(),
-                collision_shape: Default::default(),
+                // (worked out on first use)
+                camera: Default::default(), collision_shape: Default::default(), embedded_lights: Default::default(),
             }))
         })();
         // the other season's look: its own copy of the type (its own textures on the GPU),
