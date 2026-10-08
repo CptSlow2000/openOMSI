@@ -241,7 +241,7 @@ pub fn run() -> Result<()> {
         return launcher::run(graphics_instance());
     }
     let Some(app) = make_app(args, server_cfg)? else { return Ok(()) };
-    let event_loop = EventLoop::new()?;
+    let event_loop = game_event_loop()?;
     // SIGTERM (the launcher's Stop) and Ctrl+C end the session the way Escape does
     let proxy = event_loop.create_proxy();
     quit::install(move |_| {
@@ -253,6 +253,17 @@ pub fn run() -> Result<()> {
     lan_mods::clean_up();
     r?;
     Ok(())
+}
+
+/// The game's event loop. With OMSI_HIDDEN_WINDOW the process stays out of the Dock and the
+/// menu bar on macOS, as its window stays out of sight.
+fn game_event_loop() -> Result<EventLoop<()>> {
+    #[cfg(target_os = "macos")]
+    if omsi_cfg::flags::OMSI_HIDDEN_WINDOW.is_set() {
+        use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};
+        return Ok(EventLoop::builder().with_activation_policy(ActivationPolicy::Accessory).build()?);
+    }
+    Ok(EventLoop::new()?)
 }
 
 /// The showroom is drawn the way the game will be.
@@ -661,6 +672,7 @@ fn assemble_app(args: Args, settings: settings::Settings) -> App {
             governor: (0.0, 0, 0.0),
             governor_low: 0,
             governor_wait_prev: 0.0,
+            play_started: None,
             cpu_mark: None,
             profile_mark: None,
             frame_times: Vec::new(),

@@ -1,9 +1,9 @@
 //! OMSI_PROFILE's exit summary (`--exit-after`) measured from the end of the warm-up (15 s
-//! after the start, where the CPU mark is taken): frame-time percentiles and the frames
-//! over 16.7/33.3/50/100 ms in the log, and with OMSI_PROFILE_JSON=<file> the same summary
-//! with the stages and the GPU passes as a file, for `scripts/compare-performance.py` to
-//! compare two runs of the same scene. Nothing of it runs without OMSI_PROFILE: the frame
-//! times are kept only while profiling.
+//! of play after the map has loaded, where the CPU mark is taken): frame-time percentiles
+//! and the frames over 16.7/33.3/50/100 ms in the log, and with OMSI_PROFILE_JSON=<file>
+//! the same summary with the stages and the GPU passes as a file, for
+//! `scripts/compare-performance.py` to compare two runs of the same scene. Nothing of it
+//! runs without OMSI_PROFILE: the frame times are kept only while profiling.
 
 use serde_json::{json, Value};
 use std::collections::BTreeMap;

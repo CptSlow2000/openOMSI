@@ -179,7 +179,8 @@ impl App {
         // (not a test window in the background, OMSI_BACKGROUND: the cursor is whoever's
         // works at the screen)
         let want = steering && self.input.window_focused && !vr_on && !self.input.touch.enabled
-            && !omsi_cfg::flags::OMSI_BACKGROUND.is_set();
+            && !omsi_cfg::flags::OMSI_BACKGROUND.is_set()
+            && !omsi_cfg::flags::OMSI_HIDDEN_WINDOW.is_set();
         // (the setting off: the cursor stays the system's crosshair, free and shown - it
         // shows the point without the frame's delay, #1948 - and its place steers)
         if want && !self.settings.mouse_hold {

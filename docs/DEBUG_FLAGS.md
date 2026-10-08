@@ -165,7 +165,7 @@ effect. On Android, `openOMSI/env.txt` holds `NAME=value` lines that are set bef
 | `OMSI_GLASS_WIND` | num | - | use | app | Offscreen: the rain on the glass as met at this speed in m/s. |
 | `OMSI_GPU_LIMITS` | text | - | use | render | default or downlevel: request only the WebGPU default (or downlevel) limits. Set by the small_chip test. |
 | `OMSI_GROUND_SAMPLE` | text | - | use | app | Offscreen CSV: what the wheels stand on every metre along the lanes near the start. |
-| `OMSI_HIDDEN_WINDOW` | bool | off | use | app | The game's window is made and never shown: a run of the whole game (its frame, the plugins, --exit-after) with nothing on the screen. |
+| `OMSI_HIDDEN_WINDOW` | bool | off | use | app | The game's window is made and never shown (no Dock icon on macOS): a run of the whole game (its frame, the plugins, --exit-after) beside whoever works at the screen; its frames are drawn into a texture, for benchmarks. |
 | `OMSI_HIDE_MESH` | text | - | use | app | a\|b: leave out the meshes whose file names contain one of the parts. |
 | `OMSI_HIDE_WINDOW` | text | - | use | app | from,to: treat the window as hidden between these seconds. |
 | `OMSI_HOLE_PHOTO` | bool | off | use | app | With OMSI_ROAD_PHOTO: photograph from above down to 25 m under the lane (holes in the world). |

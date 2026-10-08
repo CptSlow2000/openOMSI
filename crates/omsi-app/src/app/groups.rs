@@ -108,6 +108,8 @@ pub(crate) struct PerfState {
     pub(crate) governor_low: u32,
     /// Cumulative presentation wait at the previous frame, independent of OMSI_PROFILE.
     pub(crate) governor_wait_prev: f64,
+    /// OMSI_PROFILE: the first frame of play (the map loaded), which the warm-up counts from.
+    pub(crate) play_started: Option<Instant>,
     /// OMSI_PROFILE: process CPU seconds, time and frame count once the start-up is over,
     /// for the CPU time a frame costs (the wall time says little on a busy machine).
     pub(crate) cpu_mark: Option<(f64, Instant, u32)>,

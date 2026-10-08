@@ -169,7 +169,7 @@ impl App {
             wgpu::CurrentSurfaceTexture::Success(frame)
             | wgpu::CurrentSurfaceTexture::Suboptimal(frame) => (Some(frame), None),
             wgpu::CurrentSurfaceTexture::Occluded
-            if omsi_cfg::flags::OMSI_RENDER_OCCLUDED.is_set() =>
+            if omsi_cfg::flags::OMSI_RENDER_OCCLUDED.is_set() || omsi_cfg::flags::OMSI_HIDDEN_WINDOW.is_set() =>
                 {
                     let (w, h) = (s.config.width, s.config.height);
                     if self
@@ -516,9 +516,12 @@ impl App {
         let mut finish = false;
         self.perf.frames += 1;
         let profiling = omsi_cfg::flags::OMSI_PROFILE.is_set();
+        // (the warm-up: 15 s of play, not of the process - a big map's loading took most of
+        // 15 s, and the summary then held the first heavy frames of play)
+        let playing = *self.perf.play_started.get_or_insert_with(Instant::now);
         if profiling
             && self.perf.cpu_mark.is_none()
-            && self.started.elapsed().as_secs_f32() > 15.0
+            && playing.elapsed().as_secs_f32() > 15.0
         {
             self.perf.cpu_mark =
                 process_cpu_seconds().map(|c| (c, Instant::now(), self.perf.total_frames));
@@ -527,7 +530,7 @@ impl App {
         if let (Some(limit), false) = (self.args.exit_after, self.exiting) {
             if self.started.elapsed().as_secs_f32() > limit {
                 self.exiting = true;
-                log::info!("exit after {limit} s: {} frames total ({} with the window hidden{}), {:.1} fps average, {} frames over 50 ms, worst {:.0} ms", self.perf.total_frames, self.gfx.hidden_frames, if omsi_cfg::flags::OMSI_RENDER_OCCLUDED.is_set() { ", drawn off-screen" } else { ", not drawn" }, self.perf.total_frames as f32 / self.started.elapsed().as_secs_f32(), self.perf.spikes, self.perf.worst_ms);
+                log::info!("exit after {limit} s: {} frames total ({} with the window hidden{}), {:.1} fps average, {} frames over 50 ms, worst {:.0} ms", self.perf.total_frames, self.gfx.hidden_frames, if omsi_cfg::flags::OMSI_RENDER_OCCLUDED.is_set() || omsi_cfg::flags::OMSI_HIDDEN_WINDOW.is_set() { ", drawn off-screen" } else { ", not drawn" }, self.perf.total_frames as f32 / self.started.elapsed().as_secs_f32(), self.perf.spikes, self.perf.worst_ms);
                 if let (Some(st), Some(w)) =
                     (self.gfx.streamer.as_ref(), self.world.as_ref())
                 {

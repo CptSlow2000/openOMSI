@@ -153,13 +153,15 @@ impl App {
         }
         // OMSI_BACKGROUND=1: a test window that does not take the keyboard from whoever is
         // working at the screen (OMSI_INPUT drives the handlers directly, it needs no focus)
-        if omsi_cfg::flags::OMSI_BACKGROUND.is_set() {
+        if omsi_cfg::flags::OMSI_BACKGROUND.is_set() || omsi_cfg::flags::OMSI_HIDDEN_WINDOW.is_set() {
             attrs = attrs.with_active(false);
         }
-        // OMSI_HIDDEN_WINDOW=1: the whole game runs with its window never shown (its frames
-        // go the hidden window's way: the simulation, the plugins, nothing drawn)
+        // OMSI_HIDDEN_WINDOW=1: the window is never shown at all, so a benchmark of the
+        // window's own frame (its steps, OMSI_PROFILE's stages) can run beside whoever works
+        // at the screen; macOS then reports it occluded and the frames are drawn into a
+        // texture of its size (see `frame_acquire`)
         if omsi_cfg::flags::OMSI_HIDDEN_WINDOW.is_set() {
-            attrs = attrs.with_visible(false).with_active(false);
+            attrs = attrs.with_visible(false);
         }
         let window = match given {
             Some(w) => w,
