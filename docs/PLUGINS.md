@@ -422,6 +422,49 @@ Every function and event, as the game's API registry describes them (also as JSO
 | `omsi.vehicle_manufacturer()` | string or nil | The manufacturer part of the vehicle's name, as its `[friendlyname]` has it (`"Solaris III Gen"`). | 0.2.21 |
 | `omsi.vehicle_model()` | string or nil | The model part of the vehicle's name (`"Urbino 10 / 2D"`). | 0.2.21 |
 
+#### Duty and timetable
+
+| Function | Returns | What it does | Since |
+| --- | --- | --- | --- |
+| `omsi.duty.active()` | boolean | Whether the player drives a duty (a line and tour of the timetable). | 0.2.22 |
+| `omsi.duty.at_stop()` | boolean | Whether the bus stands at the next stop (within 25 m of it). | 0.2.22 |
+| `omsi.duty.delay()` | number or nil | Seconds the bus is late (early negative), worked out between the stops as the game's timetable does. | 0.2.22 |
+| `omsi.duty.finish()` | boolean | Gives the duty up (the bus drives on without a timetable); `true` when there was one. *Permission: `world_write`.* | 0.2.22 |
+| `omsi.duty.get()` | table or nil | The duty now: `line`, `tour`, `trip` (its number in the duty, from 1), `trips`, `trip_name`, `terminus`, `departure`, `arrival`, `stops`, `next_stop` and `previous_stop` (each a stop: `{number, name, id, arrival, departure, stops, x, y, z}`), `at_stop`, `trip_done`, `delay` (seconds, late positive). | 0.2.22 |
+| `omsi.duty.next_stop()` | table or nil | The next stop of the trip (as `duty.stops` gives them). | 0.2.22 |
+| `omsi.duty.skip_stop()` | string or nil | Skips the next stop (the duty goes on to the one after); the name of the stop skipped. *Permission: `world_write`.* | 0.2.22 |
+| `omsi.duty.skip_to(stop)` | boolean | Makes stop `stop` (from 1) of the trip the next one, forwards or back. *Permission: `world_write`.* | 0.2.22 |
+| `omsi.duty.start(line, tour, [trip], [stop])` | true, or false and the reason | Takes a duty, as the game menu's "Line and tour" does: a line and tour of `timetable.lines`, its trip (from 1 in the order they leave; default the first) and the stop to start at (from 1 among those the trip calls at; default the first). The bus stays where it is. *Permission: `world_write`.* | 0.2.22 |
+| `omsi.duty.stops()` | list of tables | The stops of the trip now: `{number, name, id, arrival, departure, stops, passed, x, y, z}` (`stops` false: the bus passes it; `x, y, z` where the stop's place is known; `id` the map's object id). | 0.2.22 |
+| `omsi.duty.trip_stops(trip)` | list of tables or nil | The stops of a trip of the duty (from 1), as `duty.stops` gives them. | 0.2.22 |
+| `omsi.duty.trips()` | list of tables | The trips of the duty: `{number, name, line, terminus, departure, arrival, stops}`. | 0.2.22 |
+| `omsi.timetable.buses()` | list of tables | The timetable buses of the AI on the road: `{id, line, tour, trip, terminus, departure, next_stop_id, at_stop, trip_done, delay, x, y, number}`. | 0.2.22 |
+| `omsi.timetable.lines()` | list of tables | The map's lines: `{name, user_allowed, tours}`, each tour `{number, today, trips}` (`today`: it runs on the game's date). | 0.2.22 |
+| `omsi.timetable.stop_names()` | list of tables | The stops the timetable knows: `{id, name}` (`id` the map's object id). | 0.2.22 |
+| `omsi.timetable.stops(line, tour, [trip])` | list of tables | The stops of a tour's trips (or of its trip `trip`, from 1 in the order they leave) that the bus calls at: `{trip, station, name, departure}`. | 0.2.22 |
+
+#### The map
+
+| Function | Returns | What it does | Since |
+| --- | --- | --- | --- |
+| `omsi.map.entrypoints()` | list of tables | The map's start points: `{index, name, x, y, z, heading}` (`index` from 1; the place where the game has read its tile). | 0.2.22 |
+| `omsi.map.ground(x, y)` | number or nil | The height of the ground (the road where there is one, else the terrain) at a map point, where its tile is loaded. | 0.2.22 |
+| `omsi.map.info()` | table or nil | `{name, friendly_name, path, left_hand_traffic, tile_size}`: the map's names, its global.cfg and the side it drives on. | 0.2.22 |
+| `omsi.map.lane(x, y)` | table or nil | The traffic lane nearest to a map point: `{index, distance, speed_limit, name, traffic_light}`. | 0.2.22 |
+| `omsi.map.name()` | string or nil | The map's name (its folder's). | 0.2.22 |
+| `omsi.map.object(id)` | x, y, z, heading | Where a map object is, by its id (a stop's id of the timetable, say); nothing when the game has not read its tile. | 0.2.22 |
+| `omsi.map.objects_near(x, y, [radius])` | list of tables | The map objects within `radius` m (default 50, at most 2000 of them, nearest first): `{id, x, y, z, heading, distance}`. | 0.2.22 |
+| `omsi.map.place_on_road(x, y)` | boolean | Puts the player's bus on the street nearest to a map point (within 300 m), along it. *Permission: `world_write`.* | 0.2.22 |
+| `omsi.map.speed_limit()` | number or nil | The speed limit (km/h) of the lane the player's bus drives on (`nil` off the lanes). | 0.2.22 |
+| `omsi.map.stops()` | list of tables | The bus stops of the tiles loaded (around the camera): `{id, name, x, y, z, heading}`. | 0.2.22 |
+| `omsi.map.teleport(x, y, [z], [heading])` | boolean | Moves the player's bus to a map point (z none: onto the highest ground there) facing `heading` (default north), as the game menu's move does; the `service` event says `teleport`. *Permission: `world_write`.* | 0.2.22 |
+| `omsi.map.teleport_to(index)` | boolean | Moves the player's bus to start point `index` (from 1, as `map.entrypoints` lists them). *Permission: `world_write`.* | 0.2.22 |
+| `omsi.map.terrain(x, y)` | number or nil | The terrain's height alone at a map point. | 0.2.22 |
+| `omsi.map.tile()` | tile_x, tile_y | The tile the player's bus is on (nothing on foot). | 0.2.22 |
+| `omsi.map.tile_at(x, y)` | tile_x, tile_y, local_x, local_y | The tile of a map point and the metres in it (x east, y north). | 0.2.22 |
+| `omsi.map.tiles()` | list of tables | The map's tiles: `{x, y, file, loaded}` (numbered as global.cfg's `[map]` list). | 0.2.22 |
+| `omsi.map.to_world(tile_x, tile_y, local_x, local_y)` | x, y | A place given by its tile and the metres in it, in map coordinates. | 0.2.22 |
+
 #### AI traffic
 
 | Function | Returns | What it does | Since |

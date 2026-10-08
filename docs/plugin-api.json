@@ -746,6 +746,159 @@
       "permission": null
     },
     {
+      "name": "duty.active",
+      "group": "duty",
+      "since": "0.2.22",
+      "doc": "Whether the player drives a duty (a line and tour of the timetable).",
+      "params": [],
+      "returns": "boolean",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "duty.at_stop",
+      "group": "duty",
+      "since": "0.2.22",
+      "doc": "Whether the bus stands at the next stop (within 25 m of it).",
+      "params": [],
+      "returns": "boolean",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "duty.delay",
+      "group": "duty",
+      "since": "0.2.22",
+      "doc": "Seconds the bus is late (early negative), worked out between the stops as the game's timetable does.",
+      "params": [],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "duty.finish",
+      "group": "duty",
+      "since": "0.2.22",
+      "doc": "Gives the duty up (the bus drives on without a timetable); `true` when there was one.",
+      "params": [],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "world_write"
+    },
+    {
+      "name": "duty.get",
+      "group": "duty",
+      "since": "0.2.22",
+      "doc": "The duty now: `line`, `tour`, `trip` (its number in the duty, from 1), `trips`, `trip_name`, `terminus`, `departure`, `arrival`, `stops`, `next_stop` and `previous_stop` (each a stop: `{number, name, id, arrival, departure, stops, x, y, z}`), `at_stop`, `trip_done`, `delay` (seconds, late positive).",
+      "params": [],
+      "returns": "table or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "duty.next_stop",
+      "group": "duty",
+      "since": "0.2.22",
+      "doc": "The next stop of the trip (as `duty.stops` gives them).",
+      "params": [],
+      "returns": "table or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "duty.skip_stop",
+      "group": "duty",
+      "since": "0.2.22",
+      "doc": "Skips the next stop (the duty goes on to the one after); the name of the stop skipped.",
+      "params": [],
+      "returns": "string or nil",
+      "multi": false,
+      "permission": "world_write"
+    },
+    {
+      "name": "duty.skip_to",
+      "group": "duty",
+      "since": "0.2.22",
+      "doc": "Makes stop `stop` (from 1) of the trip the next one, forwards or back.",
+      "params": [
+        {
+          "name": "stop",
+          "type": "integer",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "world_write"
+    },
+    {
+      "name": "duty.start",
+      "group": "duty",
+      "since": "0.2.22",
+      "doc": "Takes a duty, as the game menu's \"Line and tour\" does: a line and tour of `timetable.lines`, its trip (from 1 in the order they leave; default the first) and the stop to start at (from 1 among those the trip calls at; default the first). The bus stays where it is.",
+      "params": [
+        {
+          "name": "line",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "tour",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "trip",
+          "type": "integer",
+          "optional": true
+        },
+        {
+          "name": "stop",
+          "type": "integer",
+          "optional": true
+        }
+      ],
+      "returns": "true, or false and the reason",
+      "multi": true,
+      "permission": "world_write"
+    },
+    {
+      "name": "duty.stops",
+      "group": "duty",
+      "since": "0.2.22",
+      "doc": "The stops of the trip now: `{number, name, id, arrival, departure, stops, passed, x, y, z}` (`stops` false: the bus passes it; `x, y, z` where the stop's place is known; `id` the map's object id).",
+      "params": [],
+      "returns": "list of tables",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "duty.trip_stops",
+      "group": "duty",
+      "since": "0.2.22",
+      "doc": "The stops of a trip of the duty (from 1), as `duty.stops` gives them.",
+      "params": [
+        {
+          "name": "trip",
+          "type": "integer",
+          "optional": false
+        }
+      ],
+      "returns": "list of tables or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "duty.trips",
+      "group": "duty",
+      "since": "0.2.22",
+      "doc": "The trips of the duty: `{number, name, line, terminus, departure, arrival, stops}`.",
+      "params": [],
+      "returns": "list of tables",
+      "multi": false,
+      "permission": null
+    },
+    {
       "name": "emit",
       "group": "events",
       "since": "0.1.5",
@@ -1222,6 +1375,301 @@
       ],
       "returns": "nil",
       "multi": false,
+      "permission": null
+    },
+    {
+      "name": "map.entrypoints",
+      "group": "map",
+      "since": "0.2.22",
+      "doc": "The map's start points: `{index, name, x, y, z, heading}` (`index` from 1; the place where the game has read its tile).",
+      "params": [],
+      "returns": "list of tables",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "map.ground",
+      "group": "map",
+      "since": "0.2.22",
+      "doc": "The height of the ground (the road where there is one, else the terrain) at a map point, where its tile is loaded.",
+      "params": [
+        {
+          "name": "x",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "map.info",
+      "group": "map",
+      "since": "0.2.22",
+      "doc": "`{name, friendly_name, path, left_hand_traffic, tile_size}`: the map's names, its global.cfg and the side it drives on.",
+      "params": [],
+      "returns": "table or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "map.lane",
+      "group": "map",
+      "since": "0.2.22",
+      "doc": "The traffic lane nearest to a map point: `{index, distance, speed_limit, name, traffic_light}`.",
+      "params": [
+        {
+          "name": "x",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "table or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "map.name",
+      "group": "map",
+      "since": "0.2.22",
+      "doc": "The map's name (its folder's).",
+      "params": [],
+      "returns": "string or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "map.object",
+      "group": "map",
+      "since": "0.2.22",
+      "doc": "Where a map object is, by its id (a stop's id of the timetable, say); nothing when the game has not read its tile.",
+      "params": [
+        {
+          "name": "id",
+          "type": "integer",
+          "optional": false
+        }
+      ],
+      "returns": "x, y, z, heading",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "map.objects_near",
+      "group": "map",
+      "since": "0.2.22",
+      "doc": "The map objects within `radius` m (default 50, at most 2000 of them, nearest first): `{id, x, y, z, heading, distance}`.",
+      "params": [
+        {
+          "name": "x",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "radius",
+          "type": "number",
+          "optional": true
+        }
+      ],
+      "returns": "list of tables",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "map.place_on_road",
+      "group": "map",
+      "since": "0.2.22",
+      "doc": "Puts the player's bus on the street nearest to a map point (within 300 m), along it.",
+      "params": [
+        {
+          "name": "x",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "world_write"
+    },
+    {
+      "name": "map.speed_limit",
+      "group": "map",
+      "since": "0.2.22",
+      "doc": "The speed limit (km/h) of the lane the player's bus drives on (`nil` off the lanes).",
+      "params": [],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "map.stops",
+      "group": "map",
+      "since": "0.2.22",
+      "doc": "The bus stops of the tiles loaded (around the camera): `{id, name, x, y, z, heading}`.",
+      "params": [],
+      "returns": "list of tables",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "map.teleport",
+      "group": "map",
+      "since": "0.2.22",
+      "doc": "Moves the player's bus to a map point (z none: onto the highest ground there) facing `heading` (default north), as the game menu's move does; the `service` event says `teleport`.",
+      "params": [
+        {
+          "name": "x",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "z",
+          "type": "number",
+          "optional": true
+        },
+        {
+          "name": "heading",
+          "type": "number",
+          "optional": true
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "world_write"
+    },
+    {
+      "name": "map.teleport_to",
+      "group": "map",
+      "since": "0.2.22",
+      "doc": "Moves the player's bus to start point `index` (from 1, as `map.entrypoints` lists them).",
+      "params": [
+        {
+          "name": "index",
+          "type": "integer",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "world_write"
+    },
+    {
+      "name": "map.terrain",
+      "group": "map",
+      "since": "0.2.22",
+      "doc": "The terrain's height alone at a map point.",
+      "params": [
+        {
+          "name": "x",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "map.tile",
+      "group": "map",
+      "since": "0.2.22",
+      "doc": "The tile the player's bus is on (nothing on foot).",
+      "params": [],
+      "returns": "tile_x, tile_y",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "map.tile_at",
+      "group": "map",
+      "since": "0.2.22",
+      "doc": "The tile of a map point and the metres in it (x east, y north).",
+      "params": [
+        {
+          "name": "x",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "tile_x, tile_y, local_x, local_y",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "map.tiles",
+      "group": "map",
+      "since": "0.2.22",
+      "doc": "The map's tiles: `{x, y, file, loaded}` (numbered as global.cfg's `[map]` list).",
+      "params": [],
+      "returns": "list of tables",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "map.to_world",
+      "group": "map",
+      "since": "0.2.22",
+      "doc": "A place given by its tile and the metres in it, in map coordinates.",
+      "params": [
+        {
+          "name": "tile_x",
+          "type": "integer",
+          "optional": false
+        },
+        {
+          "name": "tile_y",
+          "type": "integer",
+          "optional": false
+        },
+        {
+          "name": "local_x",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "local_y",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "x, y",
+      "multi": true,
       "permission": null
     },
     {
@@ -1884,6 +2332,62 @@
       "doc": "Seconds of game time since the plugin started (stands still while paused).",
       "params": [],
       "returns": "number",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "timetable.buses",
+      "group": "duty",
+      "since": "0.2.22",
+      "doc": "The timetable buses of the AI on the road: `{id, line, tour, trip, terminus, departure, next_stop_id, at_stop, trip_done, delay, x, y, number}`.",
+      "params": [],
+      "returns": "list of tables",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "timetable.lines",
+      "group": "duty",
+      "since": "0.2.22",
+      "doc": "The map's lines: `{name, user_allowed, tours}`, each tour `{number, today, trips}` (`today`: it runs on the game's date).",
+      "params": [],
+      "returns": "list of tables",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "timetable.stop_names",
+      "group": "duty",
+      "since": "0.2.22",
+      "doc": "The stops the timetable knows: `{id, name}` (`id` the map's object id).",
+      "params": [],
+      "returns": "list of tables",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "timetable.stops",
+      "group": "duty",
+      "since": "0.2.22",
+      "doc": "The stops of a tour's trips (or of its trip `trip`, from 1 in the order they leave) that the bus calls at: `{trip, station, name, departure}`.",
+      "params": [
+        {
+          "name": "line",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "tour",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "trip",
+          "type": "integer",
+          "optional": true
+        }
+      ],
+      "returns": "list of tables",
       "multi": false,
       "permission": null
     },
