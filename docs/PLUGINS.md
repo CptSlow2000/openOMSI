@@ -338,6 +338,229 @@ only to programs on this computer, and only to ports from 1024 up.
 * Keep `on_frame` light; use `omsi.every` and `omsi.watch` for everything that does not
   need every frame.
 
+### Reference
+
+Every function and event, as the game's API registry describes them (also as JSON in
+[`plugin-api.json`](plugin-api.json), for tools and other plugin languages).
+
+<!-- api:begin (written from the registry: OMSI_API_BLESS=1 cargo test -p omsi-plugin api_manifest) -->
+
+#### The player's bus
+
+| Function | Returns | What it does | Since |
+| --- | --- | --- | --- |
+| `omsi.distance(x, y)` | number or nil | Metres from the bus to a map point, or `nil` on foot. | 0.1.10 |
+| `omsi.has_vehicle()` | boolean | `true` while the player drives a vehicle. | 0.1.5 |
+| `omsi.position()` | x, y, z, heading | Where the bus is: map metres (x east, y north, z up) and its heading in degrees clockwise from north; nothing on foot. | 0.1.10 |
+| `omsi.press(name)` | nil | Holds a key of the bus down: fires the trigger `name` (let it go with `release`). *Permission: `vehicle_write`.* | 0.1.5 |
+| `omsi.release(name)` | nil | Lets a key go: fires `<name>_off`. *Permission: `vehicle_write`.* | 0.1.5 |
+| `omsi.set_str(name, text)` | boolean | Sets a string variable; `true` when the bus has it. *Permission: `vehicle_write`.* | 0.1.5 |
+| `omsi.set_var(name, value)` | boolean | Sets a script variable; `true` when the bus has that variable. *Permission: `vehicle_write`.* | 0.1.5 |
+| `omsi.speed()` | number | The bus's speed in km/h, forwards or backwards (0 on foot). | 0.1.10 |
+| `omsi.str(name)` | string or nil | A string variable of the bus's scripts (`IBIS_terminus_name`). | 0.1.5 |
+| `omsi.sys(name)` | number or nil | A system variable of the scripts: `Time`, `Day`, `Weather_Temperature`, `SunAlt`, ... (read only). | 0.1.5 |
+| `omsi.trigger(name)` | nil | A key press of the bus: fires the trigger, then `<name>_off`. *Permission: `vehicle_write`.* | 0.1.5 |
+| `omsi.var(name)` | number or nil | A script variable of the bus (`Velocity`, `elec_busbar_main`, the names the `.osc` files and `.opl` lists use); `nil` without a bus or for a name it does not have. | 0.1.5 |
+| `omsi.vars([kind])` | list of strings | The names of every variable of the bus's scripts, or of every string variable with `"str"`. | 0.1.10 |
+| `omsi.vehicle()` | string or nil | The vehicle's name (manufacturer and type), or `nil` on foot. | 0.1.5 |
+| `omsi.vehicle_manufacturer()` | string or nil | The manufacturer part of the vehicle's name, as its `[friendlyname]` has it (`"Solaris III Gen"`). | 0.2.21 |
+| `omsi.vehicle_model()` | string or nil | The model part of the vehicle's name (`"Urbino 10 / 2D"`). | 0.2.21 |
+
+#### AI traffic
+
+| Function | Returns | What it does | Since |
+| --- | --- | --- | --- |
+| `omsi.other_var(id, name)` | number or nil | A script variable of one of `others`, or `nil`. | 0.2.21 |
+| `omsi.others([radius])` | list of tables | The other vehicles within `radius` m of the bus (default 300): each `{id, kind, name, x, y, z, heading}`, `kind` being `"ai"` (the traffic) or `"player"` (another player's bus in a LAN game); empty on foot. | 0.2.21 |
+| `omsi.set_other_var(id, name, value)` | boolean | Sets a script variable of one of `others`; `true` when that vehicle has it. An AI vehicle keeps it until its scripts write it again; another player's bus takes its values from the network again. *Permission: `traffic_write`.* | 0.2.21 |
+
+#### Time
+
+| Function | Returns | What it does | Since |
+| --- | --- | --- | --- |
+| `omsi.clock()` | string | The game's time of day as `"HH:MM:SS"`. | 0.1.10 |
+
+#### On screen
+
+| Function | Returns | What it does | Since |
+| --- | --- | --- | --- |
+| `omsi.message(text, [seconds])` | nil | A line of text on the screen (5 seconds when not given). *Permission: `ui`.* | 0.1.5 |
+| `omsi.ui.clear()` | nil | Removes every panel of the plugin. *Permission: `ui`.* | 0.2.21 |
+| `omsi.ui.focus(on)` | boolean | `true`: the panels get the mouse (the cursor shows, a click goes to the panel under it and none to the bus); `false`, Esc or a menu of the game gives it back. Returns the new state. *Permission: `ui`.* | 0.2.21 |
+| `omsi.ui.focused()` | boolean | Whether the panels have the mouse. | 0.2.21 |
+| `omsi.ui.remove(id)` | boolean | Removes a panel; `true` when there was one. *Permission: `ui`.* | 0.2.21 |
+| `omsi.ui.screen()` | width, height, scale | The screen in the panels' pixels, and how many of the screen's own pixels one of them is. | 0.2.21 |
+| `omsi.ui.set(id, panel)` | true, or false and the reason | Creates the panel `id` or replaces it; a table that is not right gives `false` and where (`"children[2].size: a number is expected"`). The same table again changes nothing. *Permission: `ui`.* | 0.2.21 |
+| `omsi.ui.toast(text, [opts])` | true, or false and the reason | A notification card at the top right, newest at the top; it goes after `opts.seconds` (1 to 60, default 5). `opts`: `title`, `icon`, `color`. A plugin shows 8 at most: a ninth makes its oldest go. *Permission: `ui`.* | 0.2.21 |
+
+#### Events, timers and watches
+
+| Function | Returns | What it does | Since |
+| --- | --- | --- | --- |
+| `omsi.after(seconds, fn)` | integer id | Runs `fn` once, `seconds` of game time later. | 0.1.5 |
+| `omsi.cancel(id)` | boolean | Stops a timer, a watch or a hotkey; `true` when there was one. | 0.1.5 |
+| `omsi.emit(event, [...])` | nil | Sends an event to this plugin's own handlers at once (handy between the modules of a bigger plugin); an error of a handler is this call's. | 0.1.5 |
+| `omsi.every(seconds, fn)` | integer id | Runs `fn` every `seconds` of game time. | 0.1.5 |
+| `omsi.off(event, fn)` | nil | Removes a handler added with `on`. | 0.1.5 |
+| `omsi.on(event, fn)` | the function | Adds a handler of an event (see the events); several may hear one event, in the order they were added. | 0.1.5 |
+| `omsi.time()` | number | Seconds of game time since the plugin started (stands still while paused). | 0.1.5 |
+| `omsi.watch(kind, name, [fn])` | integer id | Runs `fn(new, old)` whenever a value changes: `watch(name, fn)` a variable of the bus, `watch(kind, name, fn)` of kind `"var"`, `"str"`, `"sys"` or `"info"` (a key of `info()`). | 0.1.5 |
+
+#### The plugin itself
+
+| Function | Returns | What it does | Since |
+| --- | --- | --- | --- |
+| `omsi.plugin.broadcast(topic, [data])` | nil | Sends a message to every other plugin loaded. | 0.2.22 |
+| `omsi.plugin.disable([reason])` | nil | Switches the plugin off until its file changes or the game starts again (its `stop` comes). | 0.2.22 |
+| `omsi.plugin.errors()` | integer | How many errors the plugin had (at 10 it is switched off). | 0.2.22 |
+| `omsi.plugin.files([dir])` | list of tables | The files of the plugin's own folder (or a folder in it): `{name, dir, size}`. | 0.2.22 |
+| `omsi.plugin.list()` | list of strings | The names of the plugins loaded, this one too. | 0.2.22 |
+| `omsi.plugin.name()` | string | The plugin's name: its file's, or its folder's for a `main.lua`. | 0.2.22 |
+| `omsi.plugin.permissions()` | list of strings | The permissions the plugin has (a plain `.lua` file has them all). | 0.2.22 |
+| `omsi.plugin.read(path)` | text, or nil and the reason | A file of the plugin's own folder (a table of stops, a translation): read only, relative to the folder. | 0.2.22 |
+| `omsi.plugin.send(to, topic, [data])` | nil | Sends a message to another plugin (by its name): it hears `message(from, topic, data)` in its next frame. The data is numbers, texts, booleans or tables of them. | 0.2.22 |
+| `omsi.plugin.set_setting(key, value)` | boolean | Changes a setting (held to its range; saved); `true` when it took the value. | 0.2.22 |
+| `omsi.plugin.setting(key)` | any | A setting's value (`nil`: no such setting). | 0.2.22 |
+| `omsi.plugin.settings(settings, [title])` | table | Declares the plugin's settings: a list of `{key, type, label, default}` with `type` `"bool"`, `"number"` (`min`, `max`, `step`), `"text"` or `"choice"` (`choices`, a list of texts). The values the player chose before come back (as a table key -> value); the game makes a settings panel of them (`plugin.show_settings`), saves them in the data folder and sends `setting(key, value)` when one changes. | 0.2.22 |
+| `omsi.plugin.show_settings([on])` | boolean | Shows the plugin's settings panel (or hides it with `false`); it can be dragged and closed while the panels have the mouse (`ui.focus`). `false` when the plugin declared no settings. *Permission: `ui`.* | 0.2.22 |
+
+#### Storage and files
+
+| Function | Returns | What it does | Since |
+| --- | --- | --- | --- |
+| `omsi.files.append(path, data)` | true, or false and the reason | Adds to the end of a file of the data folder (a log, a CSV of trips). *Permission: `storage`.* | 0.2.22 |
+| `omsi.files.delete(path)` | boolean | Removes a file or an empty folder of the data folder. *Permission: `storage`.* | 0.2.22 |
+| `omsi.files.dir()` | string | Where the data folder is on this computer (to tell the player; the plugin reaches it with relative paths only). *Permission: `storage`.* | 0.2.22 |
+| `omsi.files.exists(path)` | boolean | Whether the data folder has this file or folder. *Permission: `storage`.* | 0.2.22 |
+| `omsi.files.list([dir])` | list of tables, or nil and the reason | The entries of the data folder (or a folder in it): `{name, dir, size}`. *Permission: `storage`.* | 0.2.22 |
+| `omsi.files.mkdir(path)` | boolean | Makes a folder (and those above it) in the data folder. *Permission: `storage`.* | 0.2.22 |
+| `omsi.files.read(path)` | text, or nil and the reason | A file of the plugin's data folder (`path` relative to it; `..` and absolute paths are refused). *Permission: `storage`.* | 0.2.22 |
+| `omsi.files.write(path, data)` | true, or false and the reason | Writes a file of the data folder (its folders are made); at most 16 MB at once and 256 MB in all. *Permission: `storage`.* | 0.2.22 |
+| `omsi.storage.all()` | table | Everything stored, as one table. *Permission: `storage`.* | 0.2.22 |
+| `omsi.storage.clear()` | nil | Removes every key. *Permission: `storage`.* | 0.2.22 |
+| `omsi.storage.delete(key)` | boolean | Removes a key; `true` when it was there. *Permission: `storage`.* | 0.2.22 |
+| `omsi.storage.get(key)` | any | A value the plugin stored, or `nil`. The storage is the plugin's own and survives the session (kept as `storage.json` in its data folder). *Permission: `storage`.* | 0.2.22 |
+| `omsi.storage.keys()` | list of strings | The keys stored, in the order they were first set. *Permission: `storage`.* | 0.2.22 |
+| `omsi.storage.save()` | nil | Writes the storage now (it is written by itself when the game ends). *Permission: `storage`.* | 0.2.22 |
+| `omsi.storage.set(key, value)` | nil | Stores a value under a key: a number, text, boolean or a table of them (`nil` removes it). It is written when the game ends, the plugin is loaded again, or `storage.save()` is called. *Permission: `storage`.* | 0.2.22 |
+
+#### Programs on this computer
+
+| Function | Returns | What it does | Since |
+| --- | --- | --- | --- |
+| `omsi.send(port, data)` | true, or false and the reason | Sends `data` as one UDP datagram to `127.0.0.1:port`: to another program on this computer, never over the network. Not sent when the port is below 1024 or one of the game's multiplayer ports (27015-27024), the message is longer than 8 KB, or the plugin sent 100 in the last second. *Permission: `network_local`.* | 0.2.21 |
+
+#### The game
+
+| Function | Returns | What it does | Since |
+| --- | --- | --- | --- |
+| `omsi.command(name)` | boolean | Does what a line of the game menu does: `refuel`, `wash`, `repair`, `shot`, `save`, `load`, `weather`, `later`, `earlier`, `info`, `timetable`, `reset`, `couple`, `uncouple`; `true` when the game knows it (it runs after the frame). *Permission: `world_write`.* | 0.1.10 |
+| `omsi.debug([...])` | nil | A line of the log's debug level (shown with `RUST_LOG=debug`). | 0.2.22 |
+| `omsi.error([...])` | nil | The same as an error line (the plugin goes on). | 0.2.22 |
+| `omsi.info()` | table | What the game is doing: `map`, `clock` (seconds since midnight), `day`, `year`, `view`, `paused`, `on_foot`, `multiplayer`, `traffic`, `speed`, `delay`, `map_path`, `version`; with a bus also `tile_x`, `tile_y`, `tile_pos_x`, `tile_pos_y`, `heading`, `vehicle_manufacturer`, `vehicle_model`, `destination`, `passengers`; `crashes`, `heavy_crashes`, `pedestrians_hit`; `situation`; on a duty also `line`, `tour`, `trip`, `trips`, `trip_name`, `terminus`, `stops`, `trip_done`, `next_stop`, `next_stop_number`, `next_stop_arrival`, `next_stop_departure`, `next_stop_id`, `at_stop`, `previous_stop`, `previous_stop_id`, `next_stop_distance`, `previous_stop_distance` (see the plugin docs for each). | 0.1.10 |
+| `omsi.info_value(key)` | any | One value of `info()` without building the whole table: cheaper for a plugin that reads one or two every frame. | 0.2.22 |
+| `omsi.log([...])` | nil | A line in `game.log`, tagged `[lua <name>]` (`print` does the same). | 0.1.5 |
+| `omsi.warn([...])` | nil | The same as a warning. | 0.1.5 |
+
+#### Helpers
+
+| Function | Returns | What it does | Since |
+| --- | --- | --- | --- |
+| `omsi.fmt.clock(seconds, [with_seconds])` | string | Seconds since midnight as `"HH:MM"` (`"HH:MM:SS"` with `true`); past midnight wraps. | 0.2.22 |
+| `omsi.fmt.delay(seconds)` | string | A delay as a timetable display shows it: `"+2:30"` late, `"-0:45"` early, `"0:00"`. | 0.2.22 |
+| `omsi.fmt.distance(metres)` | string | A distance as `"350 m"` or `"2.4 km"`. | 0.2.22 |
+| `omsi.fmt.duration(seconds)` | string | A length of time as people read it: `"45 s"`, `"3 min 05 s"`, `"1 h 20 min"` (negative with a minus). | 0.2.22 |
+| `omsi.fmt.money(amount, [symbol])` | string | An amount with two decimals and a currency symbol after it (`"12.50 €"`; the game knows no currency of its own). | 0.2.22 |
+| `omsi.fmt.number(x, [decimals], [separator])` | string | A number with `decimals` (0) and a thousands `separator` (`","`, `" "`; none by default). | 0.2.22 |
+| `omsi.fmt.pad(text, width, [right])` | string | A text made `width` characters long with spaces (on the left with `right` = true, to line numbers up), or cut to it. | 0.2.22 |
+| `omsi.fmt.speed(kmh, [unit])` | string | A speed as `"42 km/h"`, or in `"mph"` or `"m/s"`. | 0.2.22 |
+| `omsi.fmt.split(text, [separator])` | list of strings | A text cut at every `separator` (`","` by default; plainly, no patterns). | 0.2.22 |
+| `omsi.fmt.trim(text)` | string | A text without the spaces at its ends. | 0.2.22 |
+| `omsi.json.decode(text)` | value, or nil and the reason | Reads JSON text: objects and arrays become tables, `null` nil. | 0.2.22 |
+| `omsi.json.encode(value, [pretty])` | string | A value as JSON text (a list as an array, a table with keys as an object; `pretty`: indented). | 0.2.22 |
+| `omsi.util.date([seconds])` | table | A real time (`util.now()` by default) as `{year, month, day, hour, minute, second, weekday}` in UTC (`weekday` 1 Monday). | 0.2.22 |
+| `omsi.util.ms()` | number | Milliseconds of real time since the game started: for timing a plugin's own work. | 0.2.22 |
+| `omsi.util.now()` | number | The real time: seconds since 1970 (UTC), with fractions. | 0.2.22 |
+| `omsi.util.random([min], [max])` | number | A random number: 0 to 1 without arguments, else a whole number from `min` to `max` (as `math.random`, but not repeating the same row in every plugin). | 0.2.22 |
+| `omsi.vec.angle_diff(a, b)` | number | The turn from heading `a` to heading `b`, -180 to 180 degrees (right positive). | 0.2.22 |
+| `omsi.vec.bearing(x1, y1, x2, y2)` | number | The heading from one map point to another. | 0.2.22 |
+| `omsi.vec.clamp(x, min, max)` | number | `x` held between `min` and `max`. | 0.2.22 |
+| `omsi.vec.distance(x1, y1, x2, y2)` | number | Metres between two map points (on the ground: x and y). | 0.2.22 |
+| `omsi.vec.distance3(x1, y1, z1, x2, y2, z2)` | number | Metres between two points in space. | 0.2.22 |
+| `omsi.vec.dot(x1, y1, x2, y2)` | number | The dot product of two 2D vectors. | 0.2.22 |
+| `omsi.vec.heading(dx, dy)` | number | The heading of a direction on the map, degrees clockwise from north (0 to 360), as the game's headings. | 0.2.22 |
+| `omsi.vec.length(x, y, [z])` | number | The length of a vector (2D, or 3D with `z`). | 0.2.22 |
+| `omsi.vec.lerp(a, b, t)` | number | From `a` to `b` by `t` (0 to 1, not held to it). | 0.2.22 |
+| `omsi.vec.normalize(x, y, [z])` | x, y, z | The vector made 1 long (0 stays 0). | 0.2.22 |
+| `omsi.vec.rotate(x, y, degrees)` | x, y | A vector turned clockwise by `degrees` (as headings turn). | 0.2.22 |
+| `omsi.vec.to_local(x, y, ox, oy, heading)` | right, ahead | A map point seen from a place facing `heading`: metres to the right and ahead of it. | 0.2.22 |
+
+#### Events
+
+| Event | Arguments | When | Since |
+| --- | --- | --- | --- |
+| `start` | - | Right after the plugin was loaded (also after a reload). | 0.1.5 |
+| `vehicle` | `name` | The player got into a vehicle, changed it, or left it (`nil`). | 0.1.5 |
+| `frame` | `dt` | Every frame of the game, after the bus's own scripts; not while paused. `dt` is the frame's seconds of game time. | 0.1.5 |
+| `stop` | - | The game ends, or the plugin is about to be loaded again. | 0.1.5 |
+| `key` | `key`, `down` | A key went down (`true`) or came up: winit's name of it (`"KeyH"`, `"F5"`, `"Numpad8"`). | 0.1.10 |
+| `next_stop` | `new`, `old` | The duty's next stop changed, also to one of the same name (`omsi.info().next_stop_number` tells them apart). | 0.1.10 |
+| `view` | `new`, `old` | The view changed (`"driver"`, `"pax"`, `"outside"`, `"free"`, `"foot"`). | 0.1.10 |
+| `duty` | `line`, `tour` | A line and tour were taken (or given up: `nil`). | 0.1.10 |
+| `crash` | `energy_kj`, `speed_kmh` | The player's bus crashed: every crash, also one the same as the last (the screen's "Crash: 136 kJ"); above 50 kJ it is a heavy one. | 0.2.21 |
+| `pedestrian` | `count` | The bus knocked people down. | 0.2.21 |
+| `stops_skipped` | `count`, `due_at`, `now_at` | The duty jumped ahead: the bus passed stops of its trip without stopping (or was moved) and is now at a later one; the stops are numbered in the trip from 1. | 0.2.21 |
+| `service` | `kind`, `by`, `amount` | The player's bus was serviced or moved. `kind`: `"refuel"` (amount: litres put in), `"wash"` (amount: the dirt left), `"repair"` (amount: the game minutes it took), `"reset"` or `"teleport"`; `by`: `"player"`, `"plugin"`, `"host"` or `"game"`. | 0.2.21 |
+| `trip_done` | `trip`, `how`, `driving`, `comfort`, `tickets` | A trip of the duty ended, once: its number in the duty, `"arrived"`, `"skipped"` or `"given_up"`, then its ratings in per cent (driving, comfort, ticket selling). | 0.2.21 |
+| `jolt` | `along`, `across`, `speed_kmh`, `passengers` | The bus braked, sped up or cornered hard enough to cost driving rating (m/s², signed); at most one a second. | 0.2.21 |
+| `ticket_sold` | `name`, `price` | A ticket was sold at the cash desk: its name and price as the bus's ticket list has them. | 0.2.21 |
+| `ui_click` | `panel`, `element` | A button (or another clickable part) of one of the plugin's panels was clicked; `element` is `nil` for the panel itself. Enter in a text field is a click on it. | 0.2.21 |
+| `ui_focus` | `focused` | The panels got the mouse or gave it back (also by Esc, or a menu of the game opening). | 0.2.21 |
+| `ui_change` | `panel`, `element`, `value` | A checkbox (`true`/`false`), slider (its number), text field (its text, at every key) or tabs element (the tab's number from 1) of the plugin's panels was changed by the player. | 0.2.22 |
+| `message` | `from`, `topic`, `data` | Another plugin sent this one a message (`plugin.send`, `plugin.broadcast`): its name, the topic and the data (numbers, texts, tables). | 0.2.22 |
+| `setting` | `key`, `value` | The player changed one of the plugin's settings in its settings panel (`plugin.settings`). | 0.2.22 |
+| `door` | `door`, `open` | A door leaf of the player's bus opened (`true`) or closed: its number from 1, front to back. | 0.2.22 |
+| `doors` | `open` | The bus's doors opened (`true`: one or more open) or were all closed. | 0.2.22 |
+| `engine_start` | - | The player's bus's engine started running. | 0.2.22 |
+| `engine_stop` | - | Its engine stopped. | 0.2.22 |
+| `gear` | `new`, `old` | The gear engaged changed (-1 reverse, 0 neutral), where the bus has a gearbox it shows. | 0.2.22 |
+| `indicator` | `new`, `old` | The indicators changed: `"off"`, `"left"`, `"right"` or `"hazard"`. | 0.2.22 |
+| `headlights` | `new`, `old` | The headlights changed: 0 off, 1 side lights, 2 dipped, 3 high beam. | 0.2.22 |
+| `horn` | `down` | The horn started (`true`) or stopped. | 0.2.22 |
+| `handbrake` | `on` | The parking brake was put on (`true`) or released. | 0.2.22 |
+| `stop_request` | `on` | A passenger asked to stop (`true`), or the request went out. | 0.2.22 |
+| `passengers` | `count`, `old` | The number of passengers aboard the player's bus changed. | 0.2.22 |
+| `passenger_board` | `count`, `stop_id` | People got into the player's bus: how many, and the stop they waited at (its map object id, `nil` when none). | 0.2.22 |
+| `passenger_alight` | `count` | People got out of the player's bus. | 0.2.22 |
+| `stop_arrive` | `name`, `id`, `number`, `delay` | The bus came to the duty's next stop (within 25 m of it): its name, map object id, number in the trip (from 1) and the delay in seconds (late positive). | 0.2.22 |
+| `stop_depart` | `name`, `id`, `number`, `delay` | The bus left the stop it stood at (more than 35 m from it, or the duty moved on): the same values, the delay as it left. | 0.2.22 |
+| `trip_start` | `trip`, `name`, `terminus` | The duty moved on to another trip: its number in the duty (from 1), the timetable's name of the trip and its terminus. | 0.2.22 |
+| `duty_start` | `line`, `tour` | A duty was taken. | 0.2.22 |
+| `duty_end` | `line`, `tour` | The duty was given up (or another taken: `duty_end` of the old one comes first). | 0.2.22 |
+| `destination` | `new`, `old` | The destination the bus shows changed. | 0.2.22 |
+| `coupled` | `parts`, `old` | Something was coupled to or uncoupled from the bus: the parts behind it now. | 0.2.22 |
+| `minute` | `hour`, `minute` | The game's clock reached a new minute (also when it was set). | 0.2.22 |
+| `hour` | `hour` | The game's clock reached a new hour. | 0.2.22 |
+| `day` | `year`, `month`, `day` | The game's date changed. | 0.2.22 |
+| `tile` | `x`, `y`, `old_x`, `old_y` | The player's bus drove onto another tile of the map (numbered as global.cfg's `[map]` list). | 0.2.22 |
+| `weather` | `name` | The weather changed: another weather file, rain or snow beginning or ending, the snow cover, the clouds. | 0.2.22 |
+| `light_ahead` | `aspect`, `distance` | The traffic light ahead of the bus (within 80 m) changed or a new one came: its aspect (`"red"`, `"red_yellow"`, `"green"`, `"green_yellow"`, `"yellow"`, `"dark"`, `nil` when none is ahead any more) and its distance in metres. | 0.2.22 |
+| `red_light` | `speed_kmh` | The bus drove past a traffic light showing red (or red and yellow) at more than 5 km/h. | 0.2.22 |
+| `speed_limit` | `kmh`, `old` | The speed limit of the lane the bus drives on changed. | 0.2.22 |
+| `ai_collision` | `id`, `energy_kj` | The player's bus hit an AI vehicle (its id, as `traffic.list` gives it) with this energy. | 0.2.22 |
+| `pause` | - | The game was paused (the plugins stand still until `resume`; nothing else comes in between). | 0.2.22 |
+| `resume` | - | The game goes on after a pause. | 0.2.22 |
+| `menu_open` | - | The game menu opened. | 0.2.22 |
+| `menu_close` | - | The game menu closed. | 0.2.22 |
+| `screenshot` | `file` | A screenshot was taken: its file. | 0.2.22 |
+| `controller_button` | `device`, `button`, `down` | A button of a steering wheel, joystick or gamepad went down (`true`) or up: the device's name and the button's number. | 0.2.22 |
+| `lan_join` | `id`, `name` | A player joined the LAN session (or came back). | 0.2.22 |
+| `lan_leave` | `id`, `name` | A player left the LAN session. | 0.2.22 |
+| `lan_message` | `from`, `data` | The same plugin on another player's game sent this one a message (`lan.send`): the player's id and the text. | 0.2.22 |
+| `lan_chat` | `name`, `text` | A line was said in the LAN session's chat (by another player or this one). | 0.2.22 |
+
+<!-- api:end -->
+
 ## The telemetry file (for programs beside the game)
 
 A program that only wants to follow the player's bus - a fleet map, an in-vehicle

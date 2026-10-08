@@ -25,8 +25,12 @@
 //! answers over its standard input and output (started directly on Windows and through
 //! Wine elsewhere). The frame is one round trip.
 
+pub mod api;
+pub mod io;
 pub mod lua;
 pub mod ui;
+
+pub use io::*;
 
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
@@ -621,105 +625,6 @@ impl Plugin {
     }
 }
 
-/// The game's side of a frame.
-pub trait PluginIo {
-    fn system(&mut self, name: &str) -> Option<f32>;
-    fn set_system(&mut self, name: &str, v: f32);
-    fn has_vehicle(&self) -> bool;
-    fn var(&mut self, name: &str) -> Option<f32>;
-    fn set_var(&mut self, name: &str, v: f32);
-    fn string(&mut self, name: &str) -> Option<String>;
-    fn set_string(&mut self, name: &str, s: &str);
-    /// A trigger's key went down (`true`) or came up.
-    fn fire(&mut self, trigger: &str, down: bool);
-    /// Seconds of game time since the last frame (Lua plugins' timers).
-    fn dt(&self) -> f32 {
-        0.0
-    }
-    /// The player's vehicle's name (Lua plugins).
-    fn vehicle_name(&self) -> Option<String> {
-        None
-    }
-    /// The player's vehicle's manufacturer and model apart, as its `[friendlyname]` has them
-    /// (Lua plugins; the name is the two joined).
-    fn vehicle_manufacturer_model(&self) -> Option<(String, String)> {
-        None
-    }
-    /// The player's vehicle: x, y, z and heading in degrees (Lua plugins).
-    fn position(&self) -> Option<[f64; 4]> {
-        None
-    }
-    /// A line of text on the screen for `seconds` (Lua plugins).
-    fn message(&mut self, _text: &str, _seconds: f32) {}
-    /// What the game is doing, as (key, value) pairs for `omsi.info()` (Lua plugins): the
-    /// map, the clock, the duty, the view... Values are numbers or text.
-    fn info(&self) -> Vec<(&'static str, InfoValue)> {
-        Vec::new()
-    }
-    /// A game action by its game-menu id (`refuel`, `shot`, ...), run after the frame
-    /// (Lua plugins). False when the game does not know it.
-    fn command(&mut self, _what: &str) -> bool {
-        false
-    }
-    /// The names of the player's bus's script variables and string variables (Lua plugins).
-    fn var_names(&self) -> (Vec<String>, Vec<String>) {
-        (Vec::new(), Vec::new())
-    }
-    /// Keys pressed (true) and let go since the last frame, by winit's key name (Lua plugins).
-    fn keys(&self) -> Vec<(String, bool)> {
-        Vec::new()
-    }
-    /// The other vehicles within `radius` m of the player's (Lua plugins' `omsi.others`):
-    /// the AI traffic and the other LAN players' buses.
-    fn others(&self, _radius: f64) -> Vec<Other> {
-        Vec::new()
-    }
-    /// A variable of one of [`PluginIo::others`] by its id.
-    fn other_var(&mut self, _id: u64, _name: &str) -> Option<f32> {
-        None
-    }
-    /// Writes a variable of one of [`PluginIo::others`] (an AI vehicle's; another player's
-    /// bus takes its values from the network again).
-    fn set_other_var(&mut self, _id: u64, _name: &str, _v: f32) -> bool {
-        false
-    }
-    /// What happened in the game since the last plugin frame, each sent to Lua plugins as an
-    /// event (`crash`, `pedestrian`, `stops_skipped`, `service`, `trip_done`, `jolt`,
-    /// `ticket_sold`): things `omsi.info()` cannot show, as they are over before a plugin
-    /// could look. Every plugin of the frame gets them all.
-    fn events(&self) -> Vec<GameEvent> {
-        Vec::new()
-    }
-}
-
-/// One of [`PluginIo::events`]: a Lua event of that name, called with these values.
-#[derive(Debug, Clone, PartialEq)]
-pub struct GameEvent {
-    pub name: &'static str,
-    pub args: Vec<InfoValue>,
-}
-
-/// One of [`PluginIo::others`].
-#[derive(Debug, Clone, PartialEq)]
-pub struct Other {
-    /// Stable while the vehicle is there: AI cars by their id, LAN players by theirs.
-    pub id: u64,
-    /// "ai" or "player".
-    pub kind: &'static str,
-    /// Manufacturer and type, as `omsi.vehicle()` gives the player's.
-    pub name: String,
-    /// x, y, z and heading in degrees, as `omsi.position()`.
-    pub pos: [f64; 4],
-}
-
-/// A value of [`PluginIo::info`].
-#[derive(Debug, Clone, PartialEq)]
-pub enum InfoValue {
-    Num(f64),
-    Text(String),
-    Bool(bool),
-}
-
 /// Every plugin of the plugins folders.
 #[derive(Default)]
 pub struct Plugins {
@@ -728,6 +633,8 @@ pub struct Plugins {
     pub lua: Vec<lua::LuaPlugin>,
     /// What the Lua plugins show on the screen (`omsi.ui`), for the game to draw.
     pub ui: ui::SharedUi,
+    /// What the plugins share: the panels, their messages, who is loaded.
+    pub hub: api::runtime::SharedHub,
 }
 
 impl Plugins {
@@ -752,7 +659,8 @@ impl Plugins {
             }
         }
         let mut lua = Vec::new();
-        let ui = ui::SharedUi::default();
+        let hub = api::runtime::SharedHub::default();
+        let ui = hub.ui.clone();
         let mut seen = std::collections::HashSet::new();
         for dir in dirs {
             for path in lua::find_lua(dir) {
@@ -760,7 +668,7 @@ impl Plugins {
                 if !seen.insert(key) {
                     continue;
                 }
-                match lua::LuaPlugin::load_with_ui(&path, &mut lua::NoVehicle, ui.clone()) {
+                match lua::LuaPlugin::start_spec(lua::LuaSpec::disk(&path), &path, &mut lua::NoVehicle, hub.clone()) {
                     Ok(p) => {
                         log::info!("Lua plugin {} loaded ({})", p.name, path.display());
                         lua.push(p);
@@ -769,7 +677,7 @@ impl Plugins {
                 }
             }
         }
-        Plugins { loaded, lua, ui }
+        Plugins { loaded, lua, ui, hub }
     }
 
     pub fn is_empty(&self) -> bool {
@@ -783,6 +691,24 @@ impl Plugins {
         for p in &mut self.lua {
             p.frame(io);
         }
+    }
+
+    /// Send an event to every Lua plugin now, outside its frame (the game pausing: `pause`,
+    /// `menu_open`, which the plugins hear although they stand still).
+    pub fn emit(&mut self, io: &mut dyn PluginIo, event: &'static str, args: Vec<api::Value>) {
+        for p in &mut self.lua {
+            p.emit(io, event, args.clone());
+        }
+    }
+
+    /// An event for one plugin only (by its name), in its next frame: a LAN message for it.
+    pub fn post(&self, plugin: &str, event: &'static str, args: Vec<api::Value>) {
+        self.hub.direct.borrow_mut().push((plugin.to_string(), event, args));
+    }
+
+    /// Whether a Lua plugin of this name is loaded.
+    pub fn has(&self, plugin: &str) -> bool {
+        self.lua.iter().any(|p| p.name.eq_ignore_ascii_case(plugin))
     }
 
     pub fn finalize(&mut self) {

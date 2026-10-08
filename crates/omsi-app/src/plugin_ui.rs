@@ -269,6 +269,7 @@ impl Layout<'_> {
             Kind::Button { text, icon } => {
                 (self.button_content(text, icon) + 2.0 * BUTTON_PAD).ceil()
             }
+            _ => 0.0,
         }
     }
 
@@ -343,6 +344,7 @@ impl Layout<'_> {
                     *size
                 }
             }
+            _ => 0.0,
         }
     }
 
@@ -519,6 +521,7 @@ impl Layout<'_> {
                 let y = self.baseline(b.y, b.h, BUTTON_PX, Weight::Medium);
                 self.text(t, BUTTON_PX, Weight::Medium, Vec2::new(x + icon_w, y), ink);
             }
+            _ => {}
         }
     }
 }
@@ -638,6 +641,7 @@ pub(crate) fn toast_panel(t: &Toast) -> Panel {
         accent: Some(accent),
         visible: true,
         clickable: false,
+        draggable: false,
         children,
     }
 }

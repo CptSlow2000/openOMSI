@@ -183,7 +183,7 @@ impl Io<'_> {
         let value = match self.game_value(name)? {
             InfoValue::Num(n) => *n as f32,
             InfoValue::Bool(b) => u8::from(*b) as f32,
-            InfoValue::Text(_) => return None,
+            InfoValue::Text(_) | InfoValue::Nil => return None,
         };
         value.is_finite().then_some(value)
     }

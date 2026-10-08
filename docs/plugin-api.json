@@ -1,0 +1,2307 @@
+{
+  "abi": 1,
+  "version": "0.2.22",
+  "functions": [
+    {
+      "name": "after",
+      "group": "events",
+      "since": "0.1.5",
+      "doc": "Runs `fn` once, `seconds` of game time later.",
+      "params": [
+        {
+          "name": "seconds",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "fn",
+          "type": "function",
+          "optional": false
+        }
+      ],
+      "returns": "integer id",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "cancel",
+      "group": "events",
+      "since": "0.1.5",
+      "doc": "Stops a timer, a watch or a hotkey; `true` when there was one.",
+      "params": [
+        {
+          "name": "id",
+          "type": "integer",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "clock",
+      "group": "time",
+      "since": "0.1.10",
+      "doc": "The game's time of day as `\"HH:MM:SS\"`.",
+      "params": [],
+      "returns": "string",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "command",
+      "group": "game",
+      "since": "0.1.10",
+      "doc": "Does what a line of the game menu does: `refuel`, `wash`, `repair`, `shot`, `save`, `load`, `weather`, `later`, `earlier`, `info`, `timetable`, `reset`, `couple`, `uncouple`; `true` when the game knows it (it runs after the frame).",
+      "params": [
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "world_write"
+    },
+    {
+      "name": "debug",
+      "group": "game",
+      "since": "0.2.22",
+      "doc": "A line of the log's debug level (shown with `RUST_LOG=debug`).",
+      "params": [
+        {
+          "name": "...",
+          "type": "any",
+          "optional": true
+        }
+      ],
+      "returns": "nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "distance",
+      "group": "vehicle",
+      "since": "0.1.10",
+      "doc": "Metres from the bus to a map point, or `nil` on foot.",
+      "params": [
+        {
+          "name": "x",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "emit",
+      "group": "events",
+      "since": "0.1.5",
+      "doc": "Sends an event to this plugin's own handlers at once (handy between the modules of a bigger plugin); an error of a handler is this call's.",
+      "params": [
+        {
+          "name": "event",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "...",
+          "type": "any",
+          "optional": true
+        }
+      ],
+      "returns": "nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "error",
+      "group": "game",
+      "since": "0.2.22",
+      "doc": "The same as an error line (the plugin goes on).",
+      "params": [
+        {
+          "name": "...",
+          "type": "any",
+          "optional": true
+        }
+      ],
+      "returns": "nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "every",
+      "group": "events",
+      "since": "0.1.5",
+      "doc": "Runs `fn` every `seconds` of game time.",
+      "params": [
+        {
+          "name": "seconds",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "fn",
+          "type": "function",
+          "optional": false
+        }
+      ],
+      "returns": "integer id",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "files.append",
+      "group": "storage",
+      "since": "0.2.22",
+      "doc": "Adds to the end of a file of the data folder (a log, a CSV of trips).",
+      "params": [
+        {
+          "name": "path",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "true, or false and the reason",
+      "multi": true,
+      "permission": "storage"
+    },
+    {
+      "name": "files.delete",
+      "group": "storage",
+      "since": "0.2.22",
+      "doc": "Removes a file or an empty folder of the data folder.",
+      "params": [
+        {
+          "name": "path",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "storage"
+    },
+    {
+      "name": "files.dir",
+      "group": "storage",
+      "since": "0.2.22",
+      "doc": "Where the data folder is on this computer (to tell the player; the plugin reaches it with relative paths only).",
+      "params": [],
+      "returns": "string",
+      "multi": false,
+      "permission": "storage"
+    },
+    {
+      "name": "files.exists",
+      "group": "storage",
+      "since": "0.2.22",
+      "doc": "Whether the data folder has this file or folder.",
+      "params": [
+        {
+          "name": "path",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "storage"
+    },
+    {
+      "name": "files.list",
+      "group": "storage",
+      "since": "0.2.22",
+      "doc": "The entries of the data folder (or a folder in it): `{name, dir, size}`.",
+      "params": [
+        {
+          "name": "dir",
+          "type": "string",
+          "optional": true
+        }
+      ],
+      "returns": "list of tables, or nil and the reason",
+      "multi": true,
+      "permission": "storage"
+    },
+    {
+      "name": "files.mkdir",
+      "group": "storage",
+      "since": "0.2.22",
+      "doc": "Makes a folder (and those above it) in the data folder.",
+      "params": [
+        {
+          "name": "path",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "storage"
+    },
+    {
+      "name": "files.read",
+      "group": "storage",
+      "since": "0.2.22",
+      "doc": "A file of the plugin's data folder (`path` relative to it; `..` and absolute paths are refused).",
+      "params": [
+        {
+          "name": "path",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "text, or nil and the reason",
+      "multi": true,
+      "permission": "storage"
+    },
+    {
+      "name": "files.write",
+      "group": "storage",
+      "since": "0.2.22",
+      "doc": "Writes a file of the data folder (its folders are made); at most 16 MB at once and 256 MB in all.",
+      "params": [
+        {
+          "name": "path",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "true, or false and the reason",
+      "multi": true,
+      "permission": "storage"
+    },
+    {
+      "name": "fmt.clock",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "Seconds since midnight as `\"HH:MM\"` (`\"HH:MM:SS\"` with `true`); past midnight wraps.",
+      "params": [
+        {
+          "name": "seconds",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "with_seconds",
+          "type": "bool",
+          "optional": true
+        }
+      ],
+      "returns": "string",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "fmt.delay",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "A delay as a timetable display shows it: `\"+2:30\"` late, `\"-0:45\"` early, `\"0:00\"`.",
+      "params": [
+        {
+          "name": "seconds",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "string",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "fmt.distance",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "A distance as `\"350 m\"` or `\"2.4 km\"`.",
+      "params": [
+        {
+          "name": "metres",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "string",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "fmt.duration",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "A length of time as people read it: `\"45 s\"`, `\"3 min 05 s\"`, `\"1 h 20 min\"` (negative with a minus).",
+      "params": [
+        {
+          "name": "seconds",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "string",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "fmt.money",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "An amount with two decimals and a currency symbol after it (`\"12.50 €\"`; the game knows no currency of its own).",
+      "params": [
+        {
+          "name": "amount",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "symbol",
+          "type": "string",
+          "optional": true
+        }
+      ],
+      "returns": "string",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "fmt.number",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "A number with `decimals` (0) and a thousands `separator` (`\",\"`, `\" \"`; none by default).",
+      "params": [
+        {
+          "name": "x",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "decimals",
+          "type": "integer",
+          "optional": true
+        },
+        {
+          "name": "separator",
+          "type": "string",
+          "optional": true
+        }
+      ],
+      "returns": "string",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "fmt.pad",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "A text made `width` characters long with spaces (on the left with `right` = true, to line numbers up), or cut to it.",
+      "params": [
+        {
+          "name": "text",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "width",
+          "type": "integer",
+          "optional": false
+        },
+        {
+          "name": "right",
+          "type": "bool",
+          "optional": true
+        }
+      ],
+      "returns": "string",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "fmt.speed",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "A speed as `\"42 km/h\"`, or in `\"mph\"` or `\"m/s\"`.",
+      "params": [
+        {
+          "name": "kmh",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "unit",
+          "type": "string",
+          "optional": true
+        }
+      ],
+      "returns": "string",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "fmt.split",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "A text cut at every `separator` (`\",\"` by default; plainly, no patterns).",
+      "params": [
+        {
+          "name": "text",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "separator",
+          "type": "string",
+          "optional": true
+        }
+      ],
+      "returns": "list of strings",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "fmt.trim",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "A text without the spaces at its ends.",
+      "params": [
+        {
+          "name": "text",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "string",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "has_vehicle",
+      "group": "vehicle",
+      "since": "0.1.5",
+      "doc": "`true` while the player drives a vehicle.",
+      "params": [],
+      "returns": "boolean",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "info",
+      "group": "game",
+      "since": "0.1.10",
+      "doc": "What the game is doing: `map`, `clock` (seconds since midnight), `day`, `year`, `view`, `paused`, `on_foot`, `multiplayer`, `traffic`, `speed`, `delay`, `map_path`, `version`; with a bus also `tile_x`, `tile_y`, `tile_pos_x`, `tile_pos_y`, `heading`, `vehicle_manufacturer`, `vehicle_model`, `destination`, `passengers`; `crashes`, `heavy_crashes`, `pedestrians_hit`; `situation`; on a duty also `line`, `tour`, `trip`, `trips`, `trip_name`, `terminus`, `stops`, `trip_done`, `next_stop`, `next_stop_number`, `next_stop_arrival`, `next_stop_departure`, `next_stop_id`, `at_stop`, `previous_stop`, `previous_stop_id`, `next_stop_distance`, `previous_stop_distance` (see the plugin docs for each).",
+      "params": [],
+      "returns": "table",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "info_value",
+      "group": "game",
+      "since": "0.2.22",
+      "doc": "One value of `info()` without building the whole table: cheaper for a plugin that reads one or two every frame.",
+      "params": [
+        {
+          "name": "key",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "any",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "json.decode",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "Reads JSON text: objects and arrays become tables, `null` nil.",
+      "params": [
+        {
+          "name": "text",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "value, or nil and the reason",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "json.encode",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "A value as JSON text (a list as an array, a table with keys as an object; `pretty`: indented).",
+      "params": [
+        {
+          "name": "value",
+          "type": "any",
+          "optional": false
+        },
+        {
+          "name": "pretty",
+          "type": "bool",
+          "optional": true
+        }
+      ],
+      "returns": "string",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "log",
+      "group": "game",
+      "since": "0.1.5",
+      "doc": "A line in `game.log`, tagged `[lua <name>]` (`print` does the same).",
+      "params": [
+        {
+          "name": "...",
+          "type": "any",
+          "optional": true
+        }
+      ],
+      "returns": "nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "message",
+      "group": "ui",
+      "since": "0.1.5",
+      "doc": "A line of text on the screen (5 seconds when not given).",
+      "params": [
+        {
+          "name": "text",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "seconds",
+          "type": "number",
+          "optional": true
+        }
+      ],
+      "returns": "nil",
+      "multi": false,
+      "permission": "ui"
+    },
+    {
+      "name": "off",
+      "group": "events",
+      "since": "0.1.5",
+      "doc": "Removes a handler added with `on`.",
+      "params": [
+        {
+          "name": "event",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "fn",
+          "type": "function",
+          "optional": false
+        }
+      ],
+      "returns": "nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "on",
+      "group": "events",
+      "since": "0.1.5",
+      "doc": "Adds a handler of an event (see the events); several may hear one event, in the order they were added.",
+      "params": [
+        {
+          "name": "event",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "fn",
+          "type": "function",
+          "optional": false
+        }
+      ],
+      "returns": "the function",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "other_var",
+      "group": "traffic",
+      "since": "0.2.21",
+      "doc": "A script variable of one of `others`, or `nil`.",
+      "params": [
+        {
+          "name": "id",
+          "type": "integer",
+          "optional": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "others",
+      "group": "traffic",
+      "since": "0.2.21",
+      "doc": "The other vehicles within `radius` m of the bus (default 300): each `{id, kind, name, x, y, z, heading}`, `kind` being `\"ai\"` (the traffic) or `\"player\"` (another player's bus in a LAN game); empty on foot.",
+      "params": [
+        {
+          "name": "radius",
+          "type": "number",
+          "optional": true
+        }
+      ],
+      "returns": "list of tables",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "plugin.broadcast",
+      "group": "plugin",
+      "since": "0.2.22",
+      "doc": "Sends a message to every other plugin loaded.",
+      "params": [
+        {
+          "name": "topic",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "data",
+          "type": "any",
+          "optional": true
+        }
+      ],
+      "returns": "nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "plugin.disable",
+      "group": "plugin",
+      "since": "0.2.22",
+      "doc": "Switches the plugin off until its file changes or the game starts again (its `stop` comes).",
+      "params": [
+        {
+          "name": "reason",
+          "type": "string",
+          "optional": true
+        }
+      ],
+      "returns": "nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "plugin.errors",
+      "group": "plugin",
+      "since": "0.2.22",
+      "doc": "How many errors the plugin had (at 10 it is switched off).",
+      "params": [],
+      "returns": "integer",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "plugin.files",
+      "group": "plugin",
+      "since": "0.2.22",
+      "doc": "The files of the plugin's own folder (or a folder in it): `{name, dir, size}`.",
+      "params": [
+        {
+          "name": "dir",
+          "type": "string",
+          "optional": true
+        }
+      ],
+      "returns": "list of tables",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "plugin.list",
+      "group": "plugin",
+      "since": "0.2.22",
+      "doc": "The names of the plugins loaded, this one too.",
+      "params": [],
+      "returns": "list of strings",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "plugin.name",
+      "group": "plugin",
+      "since": "0.2.22",
+      "doc": "The plugin's name: its file's, or its folder's for a `main.lua`.",
+      "params": [],
+      "returns": "string",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "plugin.permissions",
+      "group": "plugin",
+      "since": "0.2.22",
+      "doc": "The permissions the plugin has (a plain `.lua` file has them all).",
+      "params": [],
+      "returns": "list of strings",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "plugin.read",
+      "group": "plugin",
+      "since": "0.2.22",
+      "doc": "A file of the plugin's own folder (a table of stops, a translation): read only, relative to the folder.",
+      "params": [
+        {
+          "name": "path",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "text, or nil and the reason",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "plugin.send",
+      "group": "plugin",
+      "since": "0.2.22",
+      "doc": "Sends a message to another plugin (by its name): it hears `message(from, topic, data)` in its next frame. The data is numbers, texts, booleans or tables of them.",
+      "params": [
+        {
+          "name": "to",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "topic",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "data",
+          "type": "any",
+          "optional": true
+        }
+      ],
+      "returns": "nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "plugin.set_setting",
+      "group": "plugin",
+      "since": "0.2.22",
+      "doc": "Changes a setting (held to its range; saved); `true` when it took the value.",
+      "params": [
+        {
+          "name": "key",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "value",
+          "type": "any",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "plugin.setting",
+      "group": "plugin",
+      "since": "0.2.22",
+      "doc": "A setting's value (`nil`: no such setting).",
+      "params": [
+        {
+          "name": "key",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "any",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "plugin.settings",
+      "group": "plugin",
+      "since": "0.2.22",
+      "doc": "Declares the plugin's settings: a list of `{key, type, label, default}` with `type` `\"bool\"`, `\"number\"` (`min`, `max`, `step`), `\"text\"` or `\"choice\"` (`choices`, a list of texts). The values the player chose before come back (as a table key -> value); the game makes a settings panel of them (`plugin.show_settings`), saves them in the data folder and sends `setting(key, value)` when one changes.",
+      "params": [
+        {
+          "name": "settings",
+          "type": "table",
+          "optional": false
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "optional": true
+        }
+      ],
+      "returns": "table",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "plugin.show_settings",
+      "group": "plugin",
+      "since": "0.2.22",
+      "doc": "Shows the plugin's settings panel (or hides it with `false`); it can be dragged and closed while the panels have the mouse (`ui.focus`). `false` when the plugin declared no settings.",
+      "params": [
+        {
+          "name": "on",
+          "type": "bool",
+          "optional": true
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "ui"
+    },
+    {
+      "name": "position",
+      "group": "vehicle",
+      "since": "0.1.10",
+      "doc": "Where the bus is: map metres (x east, y north, z up) and its heading in degrees clockwise from north; nothing on foot.",
+      "params": [],
+      "returns": "x, y, z, heading",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "press",
+      "group": "vehicle",
+      "since": "0.1.5",
+      "doc": "Holds a key of the bus down: fires the trigger `name` (let it go with `release`).",
+      "params": [
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "nil",
+      "multi": false,
+      "permission": "vehicle_write"
+    },
+    {
+      "name": "release",
+      "group": "vehicle",
+      "since": "0.1.5",
+      "doc": "Lets a key go: fires `<name>_off`.",
+      "params": [
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "nil",
+      "multi": false,
+      "permission": "vehicle_write"
+    },
+    {
+      "name": "send",
+      "group": "network",
+      "since": "0.2.21",
+      "doc": "Sends `data` as one UDP datagram to `127.0.0.1:port`: to another program on this computer, never over the network. Not sent when the port is below 1024 or one of the game's multiplayer ports (27015-27024), the message is longer than 8 KB, or the plugin sent 100 in the last second.",
+      "params": [
+        {
+          "name": "port",
+          "type": "integer",
+          "optional": false
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "true, or false and the reason",
+      "multi": true,
+      "permission": "network_local"
+    },
+    {
+      "name": "set_other_var",
+      "group": "traffic",
+      "since": "0.2.21",
+      "doc": "Sets a script variable of one of `others`; `true` when that vehicle has it. An AI vehicle keeps it until its scripts write it again; another player's bus takes its values from the network again.",
+      "params": [
+        {
+          "name": "id",
+          "type": "integer",
+          "optional": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "traffic_write"
+    },
+    {
+      "name": "set_str",
+      "group": "vehicle",
+      "since": "0.1.5",
+      "doc": "Sets a string variable; `true` when the bus has it.",
+      "params": [
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "text",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "vehicle_write"
+    },
+    {
+      "name": "set_var",
+      "group": "vehicle",
+      "since": "0.1.5",
+      "doc": "Sets a script variable; `true` when the bus has that variable.",
+      "params": [
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "vehicle_write"
+    },
+    {
+      "name": "speed",
+      "group": "vehicle",
+      "since": "0.1.10",
+      "doc": "The bus's speed in km/h, forwards or backwards (0 on foot).",
+      "params": [],
+      "returns": "number",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "storage.all",
+      "group": "storage",
+      "since": "0.2.22",
+      "doc": "Everything stored, as one table.",
+      "params": [],
+      "returns": "table",
+      "multi": false,
+      "permission": "storage"
+    },
+    {
+      "name": "storage.clear",
+      "group": "storage",
+      "since": "0.2.22",
+      "doc": "Removes every key.",
+      "params": [],
+      "returns": "nil",
+      "multi": false,
+      "permission": "storage"
+    },
+    {
+      "name": "storage.delete",
+      "group": "storage",
+      "since": "0.2.22",
+      "doc": "Removes a key; `true` when it was there.",
+      "params": [
+        {
+          "name": "key",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "storage"
+    },
+    {
+      "name": "storage.get",
+      "group": "storage",
+      "since": "0.2.22",
+      "doc": "A value the plugin stored, or `nil`. The storage is the plugin's own and survives the session (kept as `storage.json` in its data folder).",
+      "params": [
+        {
+          "name": "key",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "any",
+      "multi": false,
+      "permission": "storage"
+    },
+    {
+      "name": "storage.keys",
+      "group": "storage",
+      "since": "0.2.22",
+      "doc": "The keys stored, in the order they were first set.",
+      "params": [],
+      "returns": "list of strings",
+      "multi": false,
+      "permission": "storage"
+    },
+    {
+      "name": "storage.save",
+      "group": "storage",
+      "since": "0.2.22",
+      "doc": "Writes the storage now (it is written by itself when the game ends).",
+      "params": [],
+      "returns": "nil",
+      "multi": false,
+      "permission": "storage"
+    },
+    {
+      "name": "storage.set",
+      "group": "storage",
+      "since": "0.2.22",
+      "doc": "Stores a value under a key: a number, text, boolean or a table of them (`nil` removes it). It is written when the game ends, the plugin is loaded again, or `storage.save()` is called.",
+      "params": [
+        {
+          "name": "key",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "value",
+          "type": "any",
+          "optional": false
+        }
+      ],
+      "returns": "nil",
+      "multi": false,
+      "permission": "storage"
+    },
+    {
+      "name": "str",
+      "group": "vehicle",
+      "since": "0.1.5",
+      "doc": "A string variable of the bus's scripts (`IBIS_terminus_name`).",
+      "params": [
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "string or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "sys",
+      "group": "vehicle",
+      "since": "0.1.5",
+      "doc": "A system variable of the scripts: `Time`, `Day`, `Weather_Temperature`, `SunAlt`, ... (read only).",
+      "params": [
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "time",
+      "group": "events",
+      "since": "0.1.5",
+      "doc": "Seconds of game time since the plugin started (stands still while paused).",
+      "params": [],
+      "returns": "number",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "trigger",
+      "group": "vehicle",
+      "since": "0.1.5",
+      "doc": "A key press of the bus: fires the trigger, then `<name>_off`.",
+      "params": [
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "nil",
+      "multi": false,
+      "permission": "vehicle_write"
+    },
+    {
+      "name": "ui.clear",
+      "group": "ui",
+      "since": "0.2.21",
+      "doc": "Removes every panel of the plugin.",
+      "params": [],
+      "returns": "nil",
+      "multi": false,
+      "permission": "ui"
+    },
+    {
+      "name": "ui.focus",
+      "group": "ui",
+      "since": "0.2.21",
+      "doc": "`true`: the panels get the mouse (the cursor shows, a click goes to the panel under it and none to the bus); `false`, Esc or a menu of the game gives it back. Returns the new state.",
+      "params": [
+        {
+          "name": "on",
+          "type": "bool",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "ui"
+    },
+    {
+      "name": "ui.focused",
+      "group": "ui",
+      "since": "0.2.21",
+      "doc": "Whether the panels have the mouse.",
+      "params": [],
+      "returns": "boolean",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "ui.remove",
+      "group": "ui",
+      "since": "0.2.21",
+      "doc": "Removes a panel; `true` when there was one.",
+      "params": [
+        {
+          "name": "id",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "boolean",
+      "multi": false,
+      "permission": "ui"
+    },
+    {
+      "name": "ui.screen",
+      "group": "ui",
+      "since": "0.2.21",
+      "doc": "The screen in the panels' pixels, and how many of the screen's own pixels one of them is.",
+      "params": [],
+      "returns": "width, height, scale",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "ui.set",
+      "group": "ui",
+      "since": "0.2.21",
+      "doc": "Creates the panel `id` or replaces it; a table that is not right gives `false` and where (`\"children[2].size: a number is expected\"`). The same table again changes nothing.",
+      "params": [
+        {
+          "name": "id",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "panel",
+          "type": "table",
+          "optional": false
+        }
+      ],
+      "returns": "true, or false and the reason",
+      "multi": true,
+      "permission": "ui"
+    },
+    {
+      "name": "ui.toast",
+      "group": "ui",
+      "since": "0.2.21",
+      "doc": "A notification card at the top right, newest at the top; it goes after `opts.seconds` (1 to 60, default 5). `opts`: `title`, `icon`, `color`. A plugin shows 8 at most: a ninth makes its oldest go.",
+      "params": [
+        {
+          "name": "text",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "opts",
+          "type": "table",
+          "optional": true
+        }
+      ],
+      "returns": "true, or false and the reason",
+      "multi": true,
+      "permission": "ui"
+    },
+    {
+      "name": "util.date",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "A real time (`util.now()` by default) as `{year, month, day, hour, minute, second, weekday}` in UTC (`weekday` 1 Monday).",
+      "params": [
+        {
+          "name": "seconds",
+          "type": "number",
+          "optional": true
+        }
+      ],
+      "returns": "table",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "util.ms",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "Milliseconds of real time since the game started: for timing a plugin's own work.",
+      "params": [],
+      "returns": "number",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "util.now",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "The real time: seconds since 1970 (UTC), with fractions.",
+      "params": [],
+      "returns": "number",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "util.random",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "A random number: 0 to 1 without arguments, else a whole number from `min` to `max` (as `math.random`, but not repeating the same row in every plugin).",
+      "params": [
+        {
+          "name": "min",
+          "type": "number",
+          "optional": true
+        },
+        {
+          "name": "max",
+          "type": "number",
+          "optional": true
+        }
+      ],
+      "returns": "number",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "var",
+      "group": "vehicle",
+      "since": "0.1.5",
+      "doc": "A script variable of the bus (`Velocity`, `elec_busbar_main`, the names the `.osc` files and `.opl` lists use); `nil` without a bus or for a name it does not have.",
+      "params": [
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false
+        }
+      ],
+      "returns": "number or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "vars",
+      "group": "vehicle",
+      "since": "0.1.10",
+      "doc": "The names of every variable of the bus's scripts, or of every string variable with `\"str\"`.",
+      "params": [
+        {
+          "name": "kind",
+          "type": "string",
+          "optional": true
+        }
+      ],
+      "returns": "list of strings",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "vec.angle_diff",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "The turn from heading `a` to heading `b`, -180 to 180 degrees (right positive).",
+      "params": [
+        {
+          "name": "a",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "b",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "number",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "vec.bearing",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "The heading from one map point to another.",
+      "params": [
+        {
+          "name": "x1",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "y1",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "x2",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "y2",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "number",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "vec.clamp",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "`x` held between `min` and `max`.",
+      "params": [
+        {
+          "name": "x",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "min",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "max",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "number",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "vec.distance",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "Metres between two map points (on the ground: x and y).",
+      "params": [
+        {
+          "name": "x1",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "y1",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "x2",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "y2",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "number",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "vec.distance3",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "Metres between two points in space.",
+      "params": [
+        {
+          "name": "x1",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "y1",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "z1",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "x2",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "y2",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "z2",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "number",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "vec.dot",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "The dot product of two 2D vectors.",
+      "params": [
+        {
+          "name": "x1",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "y1",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "x2",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "y2",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "number",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "vec.heading",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "The heading of a direction on the map, degrees clockwise from north (0 to 360), as the game's headings.",
+      "params": [
+        {
+          "name": "dx",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "dy",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "number",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "vec.length",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "The length of a vector (2D, or 3D with `z`).",
+      "params": [
+        {
+          "name": "x",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "z",
+          "type": "number",
+          "optional": true
+        }
+      ],
+      "returns": "number",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "vec.lerp",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "From `a` to `b` by `t` (0 to 1, not held to it).",
+      "params": [
+        {
+          "name": "a",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "b",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "t",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "number",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "vec.normalize",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "The vector made 1 long (0 stays 0).",
+      "params": [
+        {
+          "name": "x",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "z",
+          "type": "number",
+          "optional": true
+        }
+      ],
+      "returns": "x, y, z",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "vec.rotate",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "A vector turned clockwise by `degrees` (as headings turn).",
+      "params": [
+        {
+          "name": "x",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "degrees",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "x, y",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "vec.to_local",
+      "group": "util",
+      "since": "0.2.22",
+      "doc": "A map point seen from a place facing `heading`: metres to the right and ahead of it.",
+      "params": [
+        {
+          "name": "x",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "y",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "ox",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "oy",
+          "type": "number",
+          "optional": false
+        },
+        {
+          "name": "heading",
+          "type": "number",
+          "optional": false
+        }
+      ],
+      "returns": "right, ahead",
+      "multi": true,
+      "permission": null
+    },
+    {
+      "name": "vehicle",
+      "group": "vehicle",
+      "since": "0.1.5",
+      "doc": "The vehicle's name (manufacturer and type), or `nil` on foot.",
+      "params": [],
+      "returns": "string or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "vehicle_manufacturer",
+      "group": "vehicle",
+      "since": "0.2.21",
+      "doc": "The manufacturer part of the vehicle's name, as its `[friendlyname]` has it (`\"Solaris III Gen\"`).",
+      "params": [],
+      "returns": "string or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "vehicle_model",
+      "group": "vehicle",
+      "since": "0.2.21",
+      "doc": "The model part of the vehicle's name (`\"Urbino 10 / 2D\"`).",
+      "params": [],
+      "returns": "string or nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "warn",
+      "group": "game",
+      "since": "0.1.5",
+      "doc": "The same as a warning.",
+      "params": [
+        {
+          "name": "...",
+          "type": "any",
+          "optional": true
+        }
+      ],
+      "returns": "nil",
+      "multi": false,
+      "permission": null
+    },
+    {
+      "name": "watch",
+      "group": "events",
+      "since": "0.1.5",
+      "doc": "Runs `fn(new, old)` whenever a value changes: `watch(name, fn)` a variable of the bus, `watch(kind, name, fn)` of kind `\"var\"`, `\"str\"`, `\"sys\"` or `\"info\"` (a key of `info()`).",
+      "params": [
+        {
+          "name": "kind",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "optional": false
+        },
+        {
+          "name": "fn",
+          "type": "function",
+          "optional": true
+        }
+      ],
+      "returns": "integer id",
+      "multi": false,
+      "permission": null
+    }
+  ],
+  "events": [
+    {
+      "name": "start",
+      "args": [],
+      "doc": "Right after the plugin was loaded (also after a reload).",
+      "since": "0.1.5"
+    },
+    {
+      "name": "vehicle",
+      "args": [
+        "name"
+      ],
+      "doc": "The player got into a vehicle, changed it, or left it (`nil`).",
+      "since": "0.1.5"
+    },
+    {
+      "name": "frame",
+      "args": [
+        "dt"
+      ],
+      "doc": "Every frame of the game, after the bus's own scripts; not while paused. `dt` is the frame's seconds of game time.",
+      "since": "0.1.5"
+    },
+    {
+      "name": "stop",
+      "args": [],
+      "doc": "The game ends, or the plugin is about to be loaded again.",
+      "since": "0.1.5"
+    },
+    {
+      "name": "key",
+      "args": [
+        "key",
+        "down"
+      ],
+      "doc": "A key went down (`true`) or came up: winit's name of it (`\"KeyH\"`, `\"F5\"`, `\"Numpad8\"`).",
+      "since": "0.1.10"
+    },
+    {
+      "name": "next_stop",
+      "args": [
+        "new",
+        "old"
+      ],
+      "doc": "The duty's next stop changed, also to one of the same name (`omsi.info().next_stop_number` tells them apart).",
+      "since": "0.1.10"
+    },
+    {
+      "name": "view",
+      "args": [
+        "new",
+        "old"
+      ],
+      "doc": "The view changed (`\"driver\"`, `\"pax\"`, `\"outside\"`, `\"free\"`, `\"foot\"`).",
+      "since": "0.1.10"
+    },
+    {
+      "name": "duty",
+      "args": [
+        "line",
+        "tour"
+      ],
+      "doc": "A line and tour were taken (or given up: `nil`).",
+      "since": "0.1.10"
+    },
+    {
+      "name": "crash",
+      "args": [
+        "energy_kj",
+        "speed_kmh"
+      ],
+      "doc": "The player's bus crashed: every crash, also one the same as the last (the screen's \"Crash: 136 kJ\"); above 50 kJ it is a heavy one.",
+      "since": "0.2.21"
+    },
+    {
+      "name": "pedestrian",
+      "args": [
+        "count"
+      ],
+      "doc": "The bus knocked people down.",
+      "since": "0.2.21"
+    },
+    {
+      "name": "stops_skipped",
+      "args": [
+        "count",
+        "due_at",
+        "now_at"
+      ],
+      "doc": "The duty jumped ahead: the bus passed stops of its trip without stopping (or was moved) and is now at a later one; the stops are numbered in the trip from 1.",
+      "since": "0.2.21"
+    },
+    {
+      "name": "service",
+      "args": [
+        "kind",
+        "by",
+        "amount"
+      ],
+      "doc": "The player's bus was serviced or moved. `kind`: `\"refuel\"` (amount: litres put in), `\"wash\"` (amount: the dirt left), `\"repair\"` (amount: the game minutes it took), `\"reset\"` or `\"teleport\"`; `by`: `\"player\"`, `\"plugin\"`, `\"host\"` or `\"game\"`.",
+      "since": "0.2.21"
+    },
+    {
+      "name": "trip_done",
+      "args": [
+        "trip",
+        "how",
+        "driving",
+        "comfort",
+        "tickets"
+      ],
+      "doc": "A trip of the duty ended, once: its number in the duty, `\"arrived\"`, `\"skipped\"` or `\"given_up\"`, then its ratings in per cent (driving, comfort, ticket selling).",
+      "since": "0.2.21"
+    },
+    {
+      "name": "jolt",
+      "args": [
+        "along",
+        "across",
+        "speed_kmh",
+        "passengers"
+      ],
+      "doc": "The bus braked, sped up or cornered hard enough to cost driving rating (m/s², signed); at most one a second.",
+      "since": "0.2.21"
+    },
+    {
+      "name": "ticket_sold",
+      "args": [
+        "name",
+        "price"
+      ],
+      "doc": "A ticket was sold at the cash desk: its name and price as the bus's ticket list has them.",
+      "since": "0.2.21"
+    },
+    {
+      "name": "ui_click",
+      "args": [
+        "panel",
+        "element"
+      ],
+      "doc": "A button (or another clickable part) of one of the plugin's panels was clicked; `element` is `nil` for the panel itself. Enter in a text field is a click on it.",
+      "since": "0.2.21"
+    },
+    {
+      "name": "ui_focus",
+      "args": [
+        "focused"
+      ],
+      "doc": "The panels got the mouse or gave it back (also by Esc, or a menu of the game opening).",
+      "since": "0.2.21"
+    },
+    {
+      "name": "ui_change",
+      "args": [
+        "panel",
+        "element",
+        "value"
+      ],
+      "doc": "A checkbox (`true`/`false`), slider (its number), text field (its text, at every key) or tabs element (the tab's number from 1) of the plugin's panels was changed by the player.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "message",
+      "args": [
+        "from",
+        "topic",
+        "data"
+      ],
+      "doc": "Another plugin sent this one a message (`plugin.send`, `plugin.broadcast`): its name, the topic and the data (numbers, texts, tables).",
+      "since": "0.2.22"
+    },
+    {
+      "name": "setting",
+      "args": [
+        "key",
+        "value"
+      ],
+      "doc": "The player changed one of the plugin's settings in its settings panel (`plugin.settings`).",
+      "since": "0.2.22"
+    },
+    {
+      "name": "door",
+      "args": [
+        "door",
+        "open"
+      ],
+      "doc": "A door leaf of the player's bus opened (`true`) or closed: its number from 1, front to back.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "doors",
+      "args": [
+        "open"
+      ],
+      "doc": "The bus's doors opened (`true`: one or more open) or were all closed.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "engine_start",
+      "args": [],
+      "doc": "The player's bus's engine started running.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "engine_stop",
+      "args": [],
+      "doc": "Its engine stopped.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "gear",
+      "args": [
+        "new",
+        "old"
+      ],
+      "doc": "The gear engaged changed (-1 reverse, 0 neutral), where the bus has a gearbox it shows.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "indicator",
+      "args": [
+        "new",
+        "old"
+      ],
+      "doc": "The indicators changed: `\"off\"`, `\"left\"`, `\"right\"` or `\"hazard\"`.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "headlights",
+      "args": [
+        "new",
+        "old"
+      ],
+      "doc": "The headlights changed: 0 off, 1 side lights, 2 dipped, 3 high beam.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "horn",
+      "args": [
+        "down"
+      ],
+      "doc": "The horn started (`true`) or stopped.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "handbrake",
+      "args": [
+        "on"
+      ],
+      "doc": "The parking brake was put on (`true`) or released.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "stop_request",
+      "args": [
+        "on"
+      ],
+      "doc": "A passenger asked to stop (`true`), or the request went out.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "passengers",
+      "args": [
+        "count",
+        "old"
+      ],
+      "doc": "The number of passengers aboard the player's bus changed.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "passenger_board",
+      "args": [
+        "count",
+        "stop_id"
+      ],
+      "doc": "People got into the player's bus: how many, and the stop they waited at (its map object id, `nil` when none).",
+      "since": "0.2.22"
+    },
+    {
+      "name": "passenger_alight",
+      "args": [
+        "count"
+      ],
+      "doc": "People got out of the player's bus.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "stop_arrive",
+      "args": [
+        "name",
+        "id",
+        "number",
+        "delay"
+      ],
+      "doc": "The bus came to the duty's next stop (within 25 m of it): its name, map object id, number in the trip (from 1) and the delay in seconds (late positive).",
+      "since": "0.2.22"
+    },
+    {
+      "name": "stop_depart",
+      "args": [
+        "name",
+        "id",
+        "number",
+        "delay"
+      ],
+      "doc": "The bus left the stop it stood at (more than 35 m from it, or the duty moved on): the same values, the delay as it left.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "trip_start",
+      "args": [
+        "trip",
+        "name",
+        "terminus"
+      ],
+      "doc": "The duty moved on to another trip: its number in the duty (from 1), the timetable's name of the trip and its terminus.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "duty_start",
+      "args": [
+        "line",
+        "tour"
+      ],
+      "doc": "A duty was taken.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "duty_end",
+      "args": [
+        "line",
+        "tour"
+      ],
+      "doc": "The duty was given up (or another taken: `duty_end` of the old one comes first).",
+      "since": "0.2.22"
+    },
+    {
+      "name": "destination",
+      "args": [
+        "new",
+        "old"
+      ],
+      "doc": "The destination the bus shows changed.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "coupled",
+      "args": [
+        "parts",
+        "old"
+      ],
+      "doc": "Something was coupled to or uncoupled from the bus: the parts behind it now.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "minute",
+      "args": [
+        "hour",
+        "minute"
+      ],
+      "doc": "The game's clock reached a new minute (also when it was set).",
+      "since": "0.2.22"
+    },
+    {
+      "name": "hour",
+      "args": [
+        "hour"
+      ],
+      "doc": "The game's clock reached a new hour.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "day",
+      "args": [
+        "year",
+        "month",
+        "day"
+      ],
+      "doc": "The game's date changed.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "tile",
+      "args": [
+        "x",
+        "y",
+        "old_x",
+        "old_y"
+      ],
+      "doc": "The player's bus drove onto another tile of the map (numbered as global.cfg's `[map]` list).",
+      "since": "0.2.22"
+    },
+    {
+      "name": "weather",
+      "args": [
+        "name"
+      ],
+      "doc": "The weather changed: another weather file, rain or snow beginning or ending, the snow cover, the clouds.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "light_ahead",
+      "args": [
+        "aspect",
+        "distance"
+      ],
+      "doc": "The traffic light ahead of the bus (within 80 m) changed or a new one came: its aspect (`\"red\"`, `\"red_yellow\"`, `\"green\"`, `\"green_yellow\"`, `\"yellow\"`, `\"dark\"`, `nil` when none is ahead any more) and its distance in metres.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "red_light",
+      "args": [
+        "speed_kmh"
+      ],
+      "doc": "The bus drove past a traffic light showing red (or red and yellow) at more than 5 km/h.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "speed_limit",
+      "args": [
+        "kmh",
+        "old"
+      ],
+      "doc": "The speed limit of the lane the bus drives on changed.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "ai_collision",
+      "args": [
+        "id",
+        "energy_kj"
+      ],
+      "doc": "The player's bus hit an AI vehicle (its id, as `traffic.list` gives it) with this energy.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "pause",
+      "args": [],
+      "doc": "The game was paused (the plugins stand still until `resume`; nothing else comes in between).",
+      "since": "0.2.22"
+    },
+    {
+      "name": "resume",
+      "args": [],
+      "doc": "The game goes on after a pause.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "menu_open",
+      "args": [],
+      "doc": "The game menu opened.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "menu_close",
+      "args": [],
+      "doc": "The game menu closed.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "screenshot",
+      "args": [
+        "file"
+      ],
+      "doc": "A screenshot was taken: its file.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "controller_button",
+      "args": [
+        "device",
+        "button",
+        "down"
+      ],
+      "doc": "A button of a steering wheel, joystick or gamepad went down (`true`) or up: the device's name and the button's number.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "lan_join",
+      "args": [
+        "id",
+        "name"
+      ],
+      "doc": "A player joined the LAN session (or came back).",
+      "since": "0.2.22"
+    },
+    {
+      "name": "lan_leave",
+      "args": [
+        "id",
+        "name"
+      ],
+      "doc": "A player left the LAN session.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "lan_message",
+      "args": [
+        "from",
+        "data"
+      ],
+      "doc": "The same plugin on another player's game sent this one a message (`lan.send`): the player's id and the text.",
+      "since": "0.2.22"
+    },
+    {
+      "name": "lan_chat",
+      "args": [
+        "name",
+        "text"
+      ],
+      "doc": "A line was said in the LAN session's chat (by another player or this one).",
+      "since": "0.2.22"
+    }
+  ]
+}
