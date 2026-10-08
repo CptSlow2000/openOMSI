@@ -695,6 +695,7 @@ fn assemble_app(args: Args, settings: settings::Settings) -> App {
         integrations: Integrations {
             plugin_keys: Vec::new(),
             plugin_events: Vec::new(),
+            plugin_command: false,
             plugin_panels: Default::default(),
             discord: None,
             discord_t: 0.0,

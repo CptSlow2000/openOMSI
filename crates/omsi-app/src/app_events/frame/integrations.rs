@@ -62,6 +62,7 @@ impl App {
                 self.service_msg = Some(m);
             }
             // what the plugins asked the game to do: lines of the game menu
+            self.integrations.plugin_command = true;
             for c in commands {
                 if let Some(k) = self.game_menu_items().iter().position(|m| m.0 == c) {
                     let was = self.menus.game_menu;
@@ -77,6 +78,7 @@ impl App {
                     self.page_action(&c);
                 }
             }
+            self.integrations.plugin_command = false;
         } else {
             self.integrations.plugin_keys.clear();
             // (while the game is paused they wait for the next frame)

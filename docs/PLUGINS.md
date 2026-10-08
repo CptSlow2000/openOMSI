@@ -61,6 +61,7 @@ by defining a global function `on_<event>`:
 | `crash` | energy (kJ), speed (km/h) | the player's bus crashed: every crash, also one the same as the last (the screen's "Crash: 136 kJ"); above 50 kJ it is a heavy one |
 | `pedestrian` | how many | the bus knocked people down |
 | `stops_skipped` | how many, due at, now at | the duty jumped ahead: the bus passed stops of its trip without stopping (or was moved) and is now at a later one; the stops are numbered in the trip from 1, as `next_stop_number` |
+| `service` | kind, by, amount | the player's bus was serviced or moved. `kind`: `"refuel"` (amount: litres put in), `"wash"` (amount: the dirt left, 0 to 1) - both once the pump or the wash is done or the bus drove off -, `"repair"` (amount: the game minutes it took, the team's way there too; 0 at once), `"reset"` (put back on its wheels) or `"teleport"` (moved: a start point, a place on the map, beside another player); `by`: `"player"` (the game menu), `"plugin"` (`omsi.command`), `"host"` (the LAN host or an admin) or `"game"` (fallen through the ground and put back) |
 | `ui_click` | panel id, element id (`nil`: the panel itself) | a button (or another clickable part) of one of the plugin's [panels](#on-screen-panels) was clicked |
 | `ui_focus` | `true`/`false` | the panels got the mouse or gave it back (also by Esc, or a menu of the game opening) |
 

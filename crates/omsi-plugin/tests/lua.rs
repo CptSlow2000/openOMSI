@@ -176,6 +176,26 @@ fn game_events_reach_every_plugin_once() {
 }
 
 #[test]
+fn service_events_carry_kind_who_and_the_amount_when_there_is_one() {
+    let d = dir("service");
+    std::fs::write(
+        d.join("a.lua"),
+        r#"function on_service(kind, by, amount) omsi.message(string.format("%s %s %s", kind, by, tostring(amount))) end"#,
+    )
+    .unwrap();
+    let mut plugins = Plugins::load(std::slice::from_ref(&d), &HostConfig::default());
+    let mut bus = Bus { vehicle: true, ..Default::default() };
+    let service = |kind: &str, by: &str, amount: Option<f64>| {
+        let mut args = vec![InfoValue::Text(kind.into()), InfoValue::Text(by.into())];
+        args.extend(amount.map(InfoValue::Num));
+        GameEvent { name: "service", args }
+    };
+    bus.events = vec![service("refuel", "player", Some(120.5)), service("repair", "host", Some(0.0)), service("reset", "plugin", None), service("teleport", "game", None)];
+    plugins.frame(&mut bus);
+    assert_eq!(bus.messages, ["refuel player 120.5", "repair host 0.0", "reset plugin nil", "teleport game nil"]);
+}
+
+#[test]
 fn saved_data_of_a_one_file_plugin_is_no_plugin() {
     let d = dir("save");
     std::fs::write(d.join("counter.lua"), "omsi.data.n = (omsi.data.n or 0) + 1").unwrap();

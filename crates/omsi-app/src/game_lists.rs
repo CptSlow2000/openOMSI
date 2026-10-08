@@ -941,6 +941,7 @@ pub(crate) fn run_move(app: &mut App, kind: &ListKind, action: &str, mv: Move) -
                 Some((pos, heading)) => {
                     crate::admin::teleport(app, pos, heading);
                     app.service_msg = Some(("The bus stands at the start point".into(), 3.0));
+                    app.service_event("teleport", app.menu_by(), None);
                 }
                 None => app.service_msg = Some(("That start point is not in the map".into(), 3.0)),
             }
