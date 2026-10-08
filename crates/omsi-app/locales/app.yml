@@ -59,25 +59,25 @@ _version: 2
   ca: "Data actual"
 
 "Smooth mouse steering":
-  fr: "Direction douce avec la souris"
+  fr: "Direction à la souris adoucie"
   ca: "Direcció suau amb el ratolí"
   zh-tw: "平滑滑鼠轉向"
   pt: "Direção suave com o mouse"
   pt-pt: "Direção suave com o rato"
 "The wheel eases after the cursor; off: it follows at once, as in OMSI":
-  fr: "Le volant suit le curseur en douceur ; désactivé : il suit immédiatement, comme sur OMSI"
+  fr: "Le volant suit le curseur en douceur ; désactivé : il le suit immédiatement, comme sur OMSI"
   ca: "El volant segueix el cursor suaument; desactivat: el segueix immediatament, com a OMSI"
   zh-tw: "方向盤會在游標之後平滑移動；關閉：方向盤會立即跟隨游標，如同 OMSI"
   pt: "O volante segue o cursor suavemente; desativado: segue imediatamente, como no OMSI"
   pt-pt: "O volante segue o cursor suavemente; desativado: segue-o imediatamente, como no OMSI"
 "Clear AI traffic":
-  fr: "Nettoyer le trafic IA"
+  fr: "Dégager la circulation IA"
   ca: "Esborra el trànsit d'IA"
   zh-tw: "清除 AI 交通"
   pt: "Limpar tráfego de IA"
   pt-pt: "Limpar tráfego de IA"
 "Remove the current AI cars from the road; random traffic will return automatically.":
-  fr: "Supprimer les véhicules IA actuels de la route, ainsi le trafic aléatoire reviendra automatiquement."
+  fr: "Retire de la route les voitures IA actuelles ; la circulation aléatoire reviendra automatiquement."
   ca: "Retira els cotxes d'IA de la carretera; el trànsit aleatori tornarà automàticament."
   zh-tw: "從道路上移除目前的 AI 車輛；隨機交通會自動恢復。"
   pt: "Remover os carros de IA atuais da via; o tráfego aleatório voltará automaticamente."
@@ -89,7 +89,7 @@ _version: 2
   pt: "Avisar sobre uma nova versão durante a sessão"
   pt-pt: "Avisar-me sobre uma nova versão durante a sessão"
 "Count me in the website's \"playing now\" (anonymous)":
-  fr: "Me compter dans le compteur \"joueurs en ligne\" du site (anonyme)"
+  fr: "Me compter dans les « en jeu maintenant » du site (anonyme)"
   ca: "Compta'm a «jugant ara» del web (anònim)"
   zh-tw: "將我計入網站的「目前遊玩人數」（匿名）"
   pt: "Incluir-me no \"jogando agora\" do site (anônimo)"
@@ -107,19 +107,19 @@ _version: 2
   pt: "O botão de estação n de um rádio reproduz a n-ésima estação; um toca-fitas reproduz a primeira. Shift+R percorre as estações. Um endereço pode ser uma transmissão MP3, AAC ou Ogg ou uma lista .m3u/.pls."
   pt-pt: "O botão de estação n de um rádio reproduz a n.ª estação; um leitor de cassetes reproduz a primeira. Shift+R percorre as estações. Um endereço pode ser um fluxo MP3, AAC ou Ogg ou uma lista de reprodução .m3u/.pls."
 "Smooth mouse steering (off: the wheel follows the cursor at once, as in OMSI)":
-  fr: "Direction douce avec la souris (désactivé : le volant suit le curseur immédiatement, comme sur OMSI)"
+  fr: "Direction à la souris adoucie (désactivé : le volant suit le curseur immédiatement, comme sur OMSI)"
   ca: "Direcció suau amb el ratolí (desactivat: el volant segueix el cursor immediatament, com a OMSI)"
   zh-tw: "平滑滑鼠轉向（關閉：方向盤立即跟隨游標，如同 OMSI）"
   pt: "Direção suave com o mouse (desativado: o volante segue o cursor imediatamente, como no OMSI)"
   pt-pt: "Direção suave com o rato (desativado: o volante segue o cursor imediatamente, como no OMSI)"
 "Road texture vibration":
-  fr: "Vibration de la texture de la route"
+  fr: "Vibrations de la chaussée"
   ca: "Vibració del paviment"
   zh-tw: "路面紋理震動"
   pt: "Vibração da textura da estrada"
   pt-pt: "Vibração da textura da estrada"
 "Engine vibration":
-  fr: "Vibration du moteur"
+  fr: "Vibrations du moteur"
   ca: "Vibració del motor"
   zh-tw: "引擎震動"
   pt: "Vibração do motor"
@@ -149,7 +149,7 @@ _version: 2
   pt: "O analógico direito gira a visão"
   pt-pt: "O manípulo direito roda a vista"
 "Smooth the mouse look":
-  fr: "Adoucir le regard de la souris"
+  fr: "Adoucir la vue à la souris"
   ca: "Suavitza la vista amb el ratolí"
   zh-tw: "平滑滑鼠視角"
   pt: "Suavizar a visão com o mouse"
@@ -173,13 +173,13 @@ _version: 2
   pt: "Ritmo do balanço"
   pt-pt: "Ritmo do balanço"
 "Precision mouse zoom (FOV curve instead of the linear way)":
-  fr: "Zoom précis avec la souris (courbe de FOV au lieu que ce soit de manière linéaire)"
+  fr: "Zoom précis à la souris (courbe du champ de vision au lieu du mode linéaire)"
   ca: "Zoom precís amb el ratolí (corba del camp de visió en lloc de resposta lineal)"
   zh-tw: "精確滑鼠縮放（使用 FOV 曲線，而非線性方式）"
   pt: "Zoom preciso com o mouse (curva de FOV em vez do modo linear)"
   pt-pt: "Zoom preciso com o rato (curva de FOV em vez do modo linear)"
 "Precision mouse zoom":
-  fr: "Zoom précis avec la souris"
+  fr: "Zoom précis à la souris"
   ca: "Zoom precís amb el ratolí"
   zh-tw: "精確滑鼠縮放"
   pt: "Zoom preciso com o mouse"
@@ -24528,14 +24528,14 @@ _version: 2
 "Brightness of the custom weather lighting.":
   ca: "Lluminositat de la il·luminació del temps personalitzat."
   zh-tw: "自訂天氣照明的亮度。"
-  fr: "Luminosité de l'éclairage météorologique personnalisé."
+  fr: "Luminosité de l'éclairage de la météo personnalisée."
 
   pt: "Brilho da iluminação do clima personalizado."
   pt-pt: "Brilho da iluminação da meteorologia personalizada."
 "Broken":
   ca: "Núvols abundants"
   zh-tw: "破碎雲層"
-  fr: "Nuages épars"
+  fr: "Très nuageux"
   pt: "Quebrado"
   pt-pt: "Avariado"
 "Change the current depot file (used for the timetable)":
@@ -24565,7 +24565,7 @@ _version: 2
 "Combined width of both adjacent frames":
   ca: "Amplada conjunta dels dos marcs adjacents"
   zh-tw: "兩個相鄰幀的組合寬度"
-  fr: "Largeur combinée des deux cadres adjacents"
+  fr: "Largeur cumulée des deux bordures voisines"
   pt: "Largura combinada das duas molduras adjacentes"
   pt-pt: "Largura combinada das duas molduras adjacentes"
 "Cumulus 1":
@@ -24624,13 +24624,13 @@ _version: 2
 "Depot file (HOF)":
   ca: "Fitxer de cotxeres (HOF)"
   zh-tw: "HOF 文件"
-  fr: "Fichier girouettes (HOF)"
+  fr: "Fichier de dépôt (HOF)"
   pt: "Arquivo da garagem (HOF)"
   pt-pt: "Ficheiro da garagem (HOF)"
 "Destination display":
   ca: "Rètol de destinació"
   zh-tw: "目的地顯示"
-  fr: "Système d'information voyageurs"
+  fr: "Afficheur de destination"
   pt: "Letreiro de destino"
   pt-pt: "Indicador de destino"
 "Edit selected weather as custom":
@@ -24713,7 +24713,7 @@ _version: 2
 "Snow lying on the world and ground.":
   ca: "Neu acumulada al món i al terra."
   zh-tw: "世界與地面的積雪。"
-  fr: "Neige recouvrant le monde et le sol."
+  fr: "Neige au sol et sur le décor."
   pt: "Neve acumulada no cenário e no solo."
   pt-pt: "Neve acumulada no cenário e no solo."
 "Snow on road":
@@ -24782,14 +24782,14 @@ _version: 2
 "As in OMSI; off: the right button only looks round":
   ca: "Com a OMSI; desactivat: el botó dret només gira la vista"
   zh-tw: "與 OMSI 相同；關閉時右鍵僅用於環視"
-  fr: "Comme sur OMSI ; désactivé : le bouton droit ne fait que tourner la vue"
+  fr: "Comme sur OMSI ; désactivé : le bouton droit sert seulement à regarder autour"
 
   pt: "Como no OMSI; desativado: o botão direito apenas gira a visão"
   pt-pt: "Como no OMSI; desativado: o botão direito apenas olha em redor"
 "Automated manual gearbox":
   ca: "Canvi manual automatitzat"
   zh-tw: "自動手排變速箱"
-  fr: "Boîte de vitesses manuelle automatisée"
+  fr: "Boîte manuelle robotisée"
 
   pt: "Câmbio manual automatizado"
   pt-pt: "Caixa de velocidades manual automatizada"
@@ -24850,32 +24850,32 @@ _version: 2
 "Display and driver":
   ca: "Pantalla i controlador"
   zh-tw: "顯示與駕駛"
-  fr: "Affichage et pilotes"
+  fr: "Bus et conducteur"
   pt: "Exibição e motorista"
   pt-pt: "Ecrã e condutor"
 "Display and memory":
   ca: "Pantalla i memòria"
   zh-tw: "顯示與記憶體"
-  fr: "Affichage"
+  fr: "Écran et mémoire"
 
   pt: "Exibição e memória"
   pt-pt: "Ecrã e memória"
 "Edit current":
   ca: "Edita l'actual"
   zh-tw: "編輯目前天氣"
-  fr: "Modifier l'actuel"
+  fr: "Modifier l'actuelle"
   pt: "Editar atual"
   pt-pt: "Editar atual"
 "Enter any 4-letter ICAO station.":
   ca: "Introdueix qualsevol estació ICAO de 4 lletres."
   zh-tw: "輸入任 4 個字母的 ICAO 電台。"
-  fr: "Entrez n'importe quelle station ICAO à 4 lettres."
+  fr: "Saisissez n'importe quel code OACI à 4 lettres."
   pt: "Digite qualquer estação ICAO de 4 letras."
   pt-pt: "Introduza qualquer estação ICAO de 4 letras."
 "Evening":
   ca: "Vespre"
   zh-tw: "傍晚"
-  fr: "Soirée"
+  fr: "Soir"
   pt: "Entardecer"
   pt-pt: "Entardecer"
 "Everything but the language, the key bindings and the game folder goes back to how it came":
@@ -24922,7 +24922,7 @@ _version: 2
 "Eye distance":
   ca: "Distància de l'ull"
   zh-tw: "眼距"
-  fr: "Distance de vision"
+  fr: "Distance de l'œil"
 
   pt: "Distância dos olhos"
   pt-pt: "Distância dos olhos"
@@ -24936,25 +24936,25 @@ _version: 2
 "Eye to the centre screen":
   ca: "Distància de l'ull a la pantalla central"
   zh-tw: "眼睛注視中央螢幕"
-  fr: "Distance de vision à l'écran central"
+  fr: "De l'œil à l'écran central"
   pt: "Olhos até a tela central"
   pt-pt: "Olhos até ao ecrã central"
 "Fetch the selected station again without waiting for the next automatic update.":
   ca: "Torna a consultar l'estació seleccionada sense esperar la propera actualització automàtica."
   zh-tw: "再次取得所選電台，無需等待下一次自動更新。"
-  fr: "Rechercher à nouveau la station sélectionnée sans attendre la prochaine mise à jour automatique."
+  fr: "Interroger à nouveau la station choisie sans attendre la prochaine mise à jour automatique."
   pt: "Consultar novamente a estação selecionada sem esperar pela próxima atualização automática."
   pt-pt: "Consultar novamente a estação selecionada sem esperar pela próxima atualização automática."
 "Few clouds":
   ca: "Pocs núvols"
   zh-tw: "少雲"
-  fr: "Peu de nuages"
+  fr: "Quelques nuages"
   pt: "Poucas nuvens"
   pt-pt: "Poucas nuvens"
 "Frame width at each join":
   ca: "Amplada del marc a cada unió"
   zh-tw: "每個連接處的框架寬度"
-  fr: "Largeur du cadre à chaque jointure"
+  fr: "Largeur de bordure à chaque jonction"
   pt: "Largura da moldura em cada junção"
   pt-pt: "Largura da moldura em cada junção"
 "Frames a second at most":
@@ -24966,7 +24966,7 @@ _version: 2
 "Freeze the weather currently in force and edit it as a custom weather.":
   ca: "Fixa el temps actual i edita'l com a temps personalitzat."
   zh-tw: "凍結當前有效的天氣並將其編輯為自訂天氣。"
-  fr: "Geler la météo actuellement en vigueur et la modifier en tant que météo personnalisée."
+  fr: "Figer la météo actuelle et la modifier comme météo personnalisée."
   pt: "Congelar o clima atual e editá-lo como clima personalizado."
   pt-pt: "Congelar a meteorologia atual e editá-la como meteorologia personalizada."
 "Gear 1 (H-pattern)":
@@ -25064,7 +25064,7 @@ _version: 2
 "METAR report":
   ca: "Informe METAR"
   zh-tw: "METAR 報告"
-  fr: "Rapport METAR"
+  fr: "Bulletin METAR"
   pt: "Relatório METAR"
   pt-pt: "Relatório METAR"
 "Morning":
@@ -25189,13 +25189,13 @@ _version: 2
 "Scattered":
   ca: "Núvols dispersos"
   zh-tw: "散佈雲層"
-  fr: "Épars"
+  fr: "Nuages épars"
   pt: "Nuvens dispersas"
   pt-pt: "Nuvens dispersas"
 "Service":
   ca: "Servei"
   zh-tw: "服務"
-  fr: "Service"
+  fr: "Entretien"
   pt: "Serviço"
   pt-pt: "Serviço"
 "Sets most of the graphics options at once":
@@ -25207,7 +25207,7 @@ _version: 2
 "Shift a manual gearbox's gears for you by the engine speed":
   ca: "Canvia automàticament les marxes d'un canvi manual segons el règim del motor"
   zh-tw: "根據引擎轉速為您換檔手排變速箱"
-  fr: "Change les vitesses d'une boîte manuelle pour vous en fonction de la vitesse du moteur"
+  fr: "Passe les rapports d'une boîte manuelle à votre place selon le régime moteur"
   pt: "Troca as marchas de um câmbio manual por você conforme a rotação do motor"
   pt-pt: "Muda as velocidades de uma caixa manual por si conforme a rotação do motor"
 "Shows the launcher or your map, bus, line and multiplayer status in Discord.":
@@ -25327,7 +25327,7 @@ _version: 2
 "triple screen: the window spans three monitors, fullscreen is left alone":
   ca: "triple pantalla: la finestra ocupa tres monitors; no es modifica la pantalla completa"
   zh-tw: "三重螢幕：視窗跨越三個顯示器，全螢幕單獨保留"
-  fr: "écran triple : la fenêtre occupe trois moniteurs ; le plein écran n'est pas modifié"
+  fr: "triple écran : la fenêtre couvre trois écrans, le plein écran n'est pas modifié"
   pt: "tela tripla: a janela ocupa três monitores; a tela cheia não é alterada"
   pt-pt: "ecrã triplo: a janela ocupa três monitores; o ecrã completo não é alterado"
 "Vertical eye offset":
@@ -25339,13 +25339,13 @@ _version: 2
 "Vertical field of view; in triple screen Default uses physical measurements, an override moves the virtual eye":
   ca: "Camp de visió vertical; en triple pantalla, Per defecte fa servir mesures físiques i un valor manual desplaça l'ull virtual"
   zh-tw: "垂直視野；在三重螢幕中預設使用物理測量，覆蓋移動虛擬眼睛"
-  fr: "Champ de vision vertical ; en triple écran, Par défaut utilise des mesures physiques et une substitution déplace l'œil virtuel"
+  fr: "Champ de vision vertical ; en triple écran, « Par défaut » utilise les mesures physiques, une valeur forcée déplace l'œil virtuel"
   pt: "Campo de visão vertical; na tela tripla, Padrão usa medidas físicas e uma substituição move o olho virtual"
   pt-pt: "Campo de visão vertical; no ecrã triplo, Predefinição usa medidas físicas e uma substituição move o olho virtual"
 "Visible panel width":
   ca: "Amplada visible del panell"
   zh-tw: "可見面板寬度"
-  fr: "Largeur visible du panneau"
+  fr: "Largeur visible de la dalle"
   pt: "Largura visível do painel"
   pt-pt: "Largura visível do painel"
 "Visible width of one panel":
@@ -25364,13 +25364,13 @@ _version: 2
 "Which keys drive the vehicle":
   ca: "Quines tecles condueixen el vehicle"
   zh-tw: "駕駛車輛的按鍵"
-  fr: "Quelles touches contrôlent le véhicule"
+  fr: "Touches de conduite du véhicule"
   pt: "Quais teclas controlam o veículo"
   pt-pt: "Quais teclas controlam o veículo"
 "Width of one screen without its frame":
   ca: "Amplada d'una pantalla sense el marc"
   zh-tw: "不含邊框的一屏寬度"
-  fr: "Largeur d'un écran sans son cadre"
+  fr: "Largeur d'un écran sans sa bordure"
   pt: "Largura de uma tela sem a moldura"
   pt-pt: "Largura de um ecrã sem a moldura"
 "What each axis and button of a wheel, pedals or joystick does - OMSI 2's gamectrler.cfg, kept in the content folder.":
@@ -25684,7 +25684,7 @@ _version: 2
 "Treat the road surface as snow-covered.":
   ca: "Tracta el paviment com si estigués cobert de neu."
   zh-tw: "將路面視為積雪。"
-  fr: "Traiter la surface de la route comme recouverte de neige."
+  fr: "Considérer la chaussée comme enneigée."
   pt: "Tratar a superfície da pista como coberta de neve."
   pt-pt: "Tratar a superfície da estrada como coberta de neve."
 "Visibility, wind, temperature, rain, snow and road state":
@@ -25707,10 +25707,11 @@ _version: 2
 
   pt: "VR"
   pt-pt: "VR"
+  fr: "VR"
 "A right click ends the mouse steering":
   ca: "Un clic dret desactiva la direcció amb ratolí"
   zh-tw: "按一下滑鼠右鍵即可停止滑鼠轉向"
-  fr: "Un clic droit met fin à la direction de la souris"
+  fr: "Un clic droit arrête la direction à la souris"
   pt: "Um clique com o botão direito encerra a direção pelo mouse"
   pt-pt: "Um clique com o botão direito termina a direção pelo rato"
 "Natural weather":
@@ -25961,21 +25962,25 @@ _version: 2
 "Join via":
   pt: "Conectar via"
   pt-pt: "Ligar através de"
+  fr: "Via"
 "8x MSAA":
   pt: "MSAA 8x"
   pt-pt: "MSAA 8x"
 "Windy trees":
   pt: "Árvores ao vento"
   pt-pt: "Árvores ao vento"
+  fr: "Arbres dans le vent"
 "Automated manual gearbox (shifts a manual gearbox for you by the engine speed)":
   pt: "Câmbio manual automatizado (troca as marchas conforme a rotação do motor)"
   pt-pt: "Caixa manual automatizada (muda de velocidade conforme a rotação do motor)"
 "Stick steers like a wheel (a wheel seen as a gamepad)":
   pt: "Analógico dirige como volante (volante detectado como controle)"
   pt-pt: "Manípulo dirige como volante (volante detetado como comando)"
+  fr: "Le stick dirige comme un volant (un volant vu comme une manette)"
 "Arrow keys switch the cameras with a wheel too (no glance)":
   pt: "Setas também trocam as câmeras ao usar volante (sem olhar para os lados)"
   pt-pt: "As setas também mudam de câmara ao usar um volante (sem olhar para os lados)"
+  fr: "Les flèches changent de caméra aussi avec un volant (sans coup d'œil)"
 "Head tracking (native TrackIR / OpenTrack)":
   pt: "Rastreamento da cabeça (TrackIR nativo / OpenTrack)"
   pt-pt: "Seguimento da cabeça (TrackIR nativo / OpenTrack)"
@@ -26003,21 +26008,27 @@ _version: 2
 "Add a station":
   pt: "Adicionar uma parada"
   pt-pt: "Adicionar uma paragem"
+  fr: "Ajouter une station"
 "Back to keys":
   pt: "Voltar às teclas"
   pt-pt: "Voltar às teclas"
+  fr: "Retour aux touches"
 "Add event…":
   pt: "Adicionar evento…"
   pt-pt: "Adicionar evento…"
+  fr: "Événement…"
 "Event added. Press the key you want to use (Escape cancels).":
   pt: "Evento adicionado. Pressione a tecla desejada (Esc cancela)."
   pt-pt: "Evento adicionado. Prima a tecla pretendida (Esc cancela)."
+  fr: "Événement ajouté. Appuyez sur la touche à utiliser (Échap annule)."
 "Click again to remove":
   pt: "Clique novamente para remover"
   pt-pt: "Clique novamente para remover"
+  fr: "Cliquez à nouveau pour retirer"
 "Remove this device":
   pt: "Remover este dispositivo"
   pt-pt: "Remover este dispositivo"
+  fr: "Retirer cet appareil"
 "A vehicle is still loading":
   pt: "Um veículo ainda está carregando"
   pt-pt: "Ainda está a carregar um veículo"
@@ -26138,3 +26149,312 @@ _version: 2
 
 "Sturm":
   zh-tw: "暴風雨"
+
+"In a LAN session only the host can clear AI traffic":
+  fr: "En réseau, seul l'hôte peut dégager la circulation IA"
+
+"The dispatch took the duty back: free drive":
+  fr: "La régulation a repris le service : conduite libre"
+
+"End of the duty: the tour's last trip is done":
+  fr: "Fin du service : la dernière course est terminée"
+
+"Look left / right":
+  fr: "Regarder à gauche / à droite"
+
+"Look up / down":
+  fr: "Regarder en haut / en bas"
+
+"No buttons assigned":
+  fr: "Aucun bouton attribué"
+
+"Press a physical button or choose its number above":
+  fr: "Appuyez sur un bouton physique ou choisissez son numéro ci-dessus"
+
+"Reload saved controllers":
+  fr: "Recharger les manettes enregistrées"
+
+"Apply saved mappings to the connected devices":
+  fr: "Appliquer les attributions enregistrées aux appareils connectés"
+
+"Connected devices":
+  fr: "Appareils connectés"
+
+"Configure this wheel, pedals or gamepad":
+  fr: "Configurer ce volant, ces pédales ou cette manette"
+
+"No controller connected":
+  fr: "Aucune manette connectée"
+
+"Saved devices can still be edited below":
+  fr: "Les appareils enregistrés restent modifiables ci-dessous"
+
+"Saved devices (disconnected)":
+  fr: "Appareils enregistrés (déconnectés)"
+
+"Edit the saved configuration":
+  fr: "Modifier la configuration enregistrée"
+
+"Ignore movement around the centre or at pedal rest":
+  fr: "Ignorer les mouvements autour du centre ou pédale relâchée"
+
+"Arrows switch the cameras":
+  fr: "Les flèches changent de caméra"
+
+"With a wheel, Left/Right change the interior camera as without one, instead of turning the head":
+  fr: "Avec un volant, Gauche/Droite changent la caméra intérieure au lieu de tourner la tête"
+
+"Stick steers like a wheel":
+  fr: "Le stick dirige comme un volant"
+
+"The wheel where the stick points, as far at any speed: for a wheel the system calls an Xbox controller":
+  fr: "Le volant suit le stick, même braquage à toute vitesse : pour un volant vu comme une manette Xbox"
+
+"Stick steering smoothing":
+  fr: "Lissage du stick"
+
+"Evens out a gamepad stick's small shakes (off: the stick as it reads)":
+  fr: "Atténue les petits tremblements du stick d'une manette (désactivé : le stick tel qu'il est lu)"
+
+"Your wheel's rotation from lock to lock":
+  fr: "La rotation de votre volant d'une butée à l'autre"
+
+"Rotation for the bus's full lock":
+  fr: "Rotation pour le braquage maximal du bus"
+
+"Pedal response":
+  fr: "Réponse des pédales"
+
+"Enable steering forces and gamepad rumble":
+  fr: "Activer les forces dans le volant et les vibrations de la manette"
+
+"Device strengths":
+  fr: "Intensité par appareil"
+
+"Select a device and open its Force feedback tab to adjust force, vibration and direction":
+  fr: "Choisissez un appareil et ouvrez son onglet Retour de force pour régler la force, la vibration et le sens"
+
+"Successful changes are saved and applied immediately":
+  fr: "Les modifications réussies sont enregistrées et appliquées immédiatement"
+
+"Enable axes and buttons":
+  fr: "Activer les axes et les boutons"
+
+"Map steering, throttle, brake and clutch":
+  fr: "Attribuer la direction, l'accélérateur, le frein et l'embrayage"
+
+"Assign controls and configure latching switches":
+  fr: "Attribuer les commandes et configurer les interrupteurs maintenus"
+
+"Adjust this device's force, vibration and direction":
+  fr: "Régler la force, la vibration et le sens de cet appareil"
+
+"Motor direction for this device":
+  fr: "Sens du moteur pour cet appareil"
+
+"Live reading":
+  fr: "Valeur en direct"
+
+"Move the wheel, pedal or stick to identify this axis":
+  fr: "Bougez le volant, la pédale ou le stick pour identifier cet axe"
+
+"Choose what this axis controls":
+  fr: "Choisir ce que commande cet axe"
+
+"Reverse this axis":
+  fr: "Inverser cet axe"
+
+"Response curve":
+  fr: "Courbe de réponse"
+
+"Choose the characteristic of this axis":
+  fr: "Choisir la caractéristique de cet axe"
+
+"Choose an OMSI event or game action":
+  fr: "Choisir un événement OMSI ou une action du jeu"
+
+"Latching switch":
+  fr: "Interrupteur maintenu"
+
+"Switch back when a physical switch is released":
+  fr: "Rebasculer l'action quand l'interrupteur physique est relâché"
+
+"Clear assignment":
+  fr: "Effacer l'attribution"
+
+"Leave this button without an action":
+  fr: "Laisser ce bouton sans action"
+
+"Controller configuration saved and applied":
+  fr: "Configuration des manettes enregistrée et appliquée"
+
+"Saved controller mappings reloaded":
+  fr: "Attributions des manettes enregistrées rechargées"
+
+"Axes and pedals":
+  fr: "Axes et pédales"
+
+"Force feedback":
+  fr: "Retour de force"
+
+"Choose the function, direction and response curve of this axis":
+  fr: "Choisir la fonction, le sens et la courbe de réponse de cet axe"
+
+"Press a button to assign it…":
+  fr: "Appuyez sur un bouton pour l'attribuer…"
+
+"Capture a button on this device":
+  fr: "Capturer un bouton de cet appareil"
+
+"Choose a button by number…":
+  fr: "Choisir un bouton par son numéro…"
+
+"Includes unassigned buttons and hat directions":
+  fr: "Inclut les boutons non attribués et les directions du chapeau chinois (POV)"
+
+"Assigned buttons":
+  fr: "Boutons attribués"
+
+"Latching switch · choose its action or behaviour":
+  fr: "Interrupteur maintenu · choisissez son action ou son comportement"
+
+"Choose its action or switch behaviour":
+  fr: "Choisir son action ou son comportement d'interrupteur"
+
+"The trees' leaves bend and sway in the wind and its gusts; with no wind they stand still":
+  fr: "Les feuilles ploient au vent et aux rafales ; sans vent, elles restent immobiles"
+
+"How much the view sways on its own when nothing is done to it - a head at rest is never quite still, most of it seen while the bus waits at a stop":
+  fr: "À quel point la vue se balance d'elle-même quand on n'y touche pas - une tête au repos n'est jamais tout à fait immobile ; cela se voit surtout quand le bus attend à un arrêt"
+
+"How fast that sway moves (100% is the pace it is designed at)":
+  fr: "Vitesse de ce balancement (100 % : le rythme prévu)"
+
+"How long the view takes to come round to where the mouse or the stick turned it (off: at once, as OMSI)":
+  fr: "Le temps que met la vue à rejoindre là où la souris ou le stick l'a tournée (désactivé : immédiatement, comme OMSI)"
+
+"The mouse zoom follows the FOV curve instead of OMSI's linear way":
+  fr: "Le zoom à la souris suit la courbe du champ de vision au lieu du mode linéaire d'OMSI"
+
+"Set the driver's neutral head tilt up or down, independent of the display setup":
+  fr: "Régler l'inclinaison neutre de la tête du conducteur vers le haut ou le bas, indépendamment de l'affichage"
+
+"Press a key for this action (Delete clears it, Esc cancels)":
+  fr: "Appuyez sur une touche pour cette action (Suppr l'efface, Échap annule)"
+
+"Key change cancelled":
+  fr: "Changement de touche annulé"
+
+"That key entry no longer exists":
+  fr: "Cette entrée de touche n'existe plus"
+
+"Add a vehicle event…":
+  fr: "Ajouter un événement du véhicule…"
+
+"Choose a control supplied by the bus or its mods":
+  fr: "Choisir une commande fournie par le bus ou ses mods"
+
+"Enter to change; Delete clears; Esc cancels":
+  fr: "Entrée pour changer ; Suppr efface ; Échap annule"
+
+"Driving and bus":
+  fr: "Conduite et bus"
+
+"Game and camera":
+  fr: "Jeu et caméra"
+
+"Change driving, vehicle, game and camera key bindings":
+  fr: "Changer les touches de conduite, du véhicule, du jeu et de la caméra"
+
+"Configure wheels, pedals, gamepads and force feedback":
+  fr: "Configurer volants, pédales, manettes et retour de force"
+
+"No vehicle events were found":
+  fr: "Aucun événement de véhicule trouvé"
+
+"Enter sets it, Esc cancels":
+  fr: "Entrée valide, Échap annule"
+
+"Type a route number":
+  fr: "Saisissez un numéro de ligne"
+
+"Choose a button":
+  fr: "Choisir un bouton"
+
+"Assign a physical button":
+  fr: "Attribuer un bouton physique"
+
+"Add event":
+  fr: "Ajouter un événement"
+
+"Every mirror is back as the bus has it":
+  fr: "Tous les rétroviseurs sont revenus au réglage d'origine du bus"
+
+"There is no vehicle to reload: you are on foot":
+  fr: "Aucun véhicule à recharger : vous êtes à pied"
+
+"That key has no DirectInput scan code":
+  fr: "Cette touche n'a pas de scan code DirectInput"
+
+"The trip is over: no stop to skip":
+  fr: "Le trajet est terminé : aucun arrêt à sauter"
+
+"The server offers none of the vehicles installed here":
+  fr: "Le serveur ne propose aucun des véhicules installés ici"
+
+"No server code: not in a LAN session or on a server":
+  fr: "Pas de code serveur : ni en session réseau, ni sur un serveur"
+
+"Filter events…":
+  fr: "Filtrer les événements…"
+
+"Copy the whole OMSI 2 folder (with maps and Vehicles in it) onto the phone - by cable, from a PC or a USB stick - for example as openOMSI/OMSI 2 in the internal storage, then choose it here with Browse. Mods go into openOMSI/Mods or are installed from the Mods page.":
+  fr: "Copiez tout le dossier OMSI 2 (avec maps et Vehicles dedans) sur le téléphone - par câble, depuis un PC ou une clé USB - par exemple sous openOMSI/OMSI 2 dans le stockage interne, puis choisissez-le ici avec Parcourir. Les mods vont dans openOMSI/Mods ou s'installent depuis la page Mods."
+
+"Remove this station":
+  fr: "Retirer cette station"
+
+"Type the new line's name (it becomes the file name, so no / \\ : * ? \" < > |)":
+  fr: "Saisissez le nom de la nouvelle ligne (il devient le nom du fichier, donc pas de / \\ : * ? \" < > |)"
+
+"Mirror panels on (Ctrl+M: off, Ctrl+Shift+M: edit)":
+  fr: "Panneaux de rétroviseurs activés (Ctrl+M : désactiver, Ctrl+Shift+M : modifier)"
+
+"Mirror panels off (Ctrl+M)":
+  fr: "Panneaux de rétroviseurs désactivés (Ctrl+M)"
+
+"Mirror editor off":
+  fr: "Éditeur de rétroviseurs fermé"
+
+"This bus has no mirrors to show":
+  fr: "Ce bus n'a aucun rétroviseur à afficher"
+
+"Mirror editor on: its keys are listed top left":
+  fr: "Éditeur de rétroviseurs ouvert : ses touches sont listées en haut à gauche"
+
+"Mirror editor (Ctrl+Shift+M or Esc: done)":
+  fr: "Éditeur de rétroviseurs (Ctrl+Shift+M ou Échap : terminer)"
+
+"Not available on this system yet":
+  fr: "Pas encore disponible sur ce système"
+
+"The translation model could not be downloaded":
+  fr: "Le modèle de traduction n'a pas pu être téléchargé"
+
+"No room on the disk for the translation model":
+  fr: "Pas assez de place sur le disque pour le modèle de traduction"
+
+"On foot: W A S D walk, Shift runs, C kneels, F4 free camera / F1 back, G sits down (by the driver's place: back at the wheel), Ctrl+Shift+G steps out of the bus":
+  fr: "À pied : W A S D pour marcher, Shift pour courir, C pour s'accroupir, F4 caméra libre / F1 retour, G pour s'asseoir (près du poste de conduite : retour au volant), Ctrl+Shift+G pour sortir du bus"
+
+"Switching the vehicle off ...":
+  fr: "Arrêt du véhicule ..."
+
+"No radio stations (see ~/.openomsi/radio.cfg)":
+  fr: "Aucune station de radio (voir ~/.openomsi/radio.cfg)"
+
+"The bus radio is off (switch it on in the cockpit)":
+  fr: "La radio du bus est éteinte (allumez-la dans le poste de conduite)"
+
+"No clouds":
+  fr: "Aucun nuage"
