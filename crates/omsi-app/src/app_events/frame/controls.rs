@@ -19,6 +19,8 @@ impl App {
         ctl.set_focus(self.input.window_focused);
         ctl.deadzone = self.settings.ctrl_deadzone;
         ctl.right_stick_look = self.settings.right_stick_look;
+        ctl.pad_deadzone = self.settings.pad_deadzone;
+        ctl.pad_presets = self.settings.pad_buttons;
         ctl.pedal_throttle = self.settings.pedal_throttle;
         ctl.pedal_brake = self.settings.pedal_brake;
         ctl.ff_invert = self.settings.ff_invert;
@@ -103,9 +105,9 @@ impl App {
             let k = LOOK_STICK_DEG_S * dt * self.settings.look_sens;
             self.look_by(analog.look[0] * k, analog.look[1] * k);
         }
-        // a gamepad's stick: a target the wheel turns towards at a hand's pace (the
-        // whole lock in 1.2 s), not the wheel's place itself (#200). The target is
-        // smoothed first (`pad_steer_smooth`)
+        // a gamepad's stick: a target the wheel turns towards at a hand's pace (from the
+        // middle to the full lock in `pad_steer_speed` seconds), not the wheel's place
+        // itself (#200). The target is smoothed first (`pad_steer_smooth`)
         let stick = analog.stick.then_some(analog.steering).flatten().zip(self.player.as_ref());
         if let (Some((x, _)), true) = (stick, self.settings.pad_steer_linear) {
             // (a wheel the system takes for a gamepad: its axis as it reads, as a
@@ -118,7 +120,9 @@ impl App {
             self.input.pad_kmh = crate::controllers::smooth_toward(self.input.pad_kmh, kmh, dt, 0.4);
             let target = crate::controllers::gamepad_steering(x, self.input.pad_kmh);
             self.input.pad_steer_target = crate::controllers::smooth_toward(self.input.pad_steer_target, target, dt, self.settings.pad_steer_smooth / 1000.0);
-            let step = dt / 1.2;
+            // (the hand's pace is the same at any speed: the stick's reach already shrinks
+            // with the speed, `gamepad_steering`)
+            let step = dt / self.settings.pad_steer_speed.max(0.3);
             analog.steering = Some(now + (self.input.pad_steer_target - now).clamp(-step, step));
         } else if let Some(p) = self.player.as_ref() {
             // (the stick picks up from where the wheel is, at the bus's speed)
@@ -229,8 +233,10 @@ impl App {
             let menu_open = self.menus.game_menu.is_some() || self.menus.chooser.is_some();
             let mut game: Vec<String> = Vec::new();
             actions.retain(|(name, down)| {
-                if menu_open && *down { return false; }
                 let n = name.to_ascii_lowercase();
+                // (with a menu open the buttons do nothing - but the one that opened it
+                // closes it again)
+                if menu_open && *down && n != "open_menu" { return false; }
                 if let Some(k) = ["view_look_left", "view_look_right", "view_look_up", "view_look_down"].iter().position(|x| *x == n) {
                     self.input.pad_look[k] = *down;
                     return false;
