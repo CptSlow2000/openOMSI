@@ -2203,13 +2203,50 @@ pub fn tutorials() -> Vec<(usize, String, String)> {
                 _ => {}
             }
         }
-        let text = text.replace("&quot;", "\"").replace("&amp;", "&").replace("&nbsp;", " ");
+        let text = decode_html_entities(&text);
         let mut lines = text.lines().map(|l| l.split_whitespace().collect::<Vec<_>>().join(" ")).filter(|l| !l.is_empty());
         let title = lines.next().unwrap_or_default();
         let rest: Vec<String> = lines.collect();
         out.push((n, title, rest.join("\n")));
     }
     out
+}
+
+/// Decode the HTML entities used in OMSI's tutorial pages before drawing plain text.
+pub fn decode_html_entities(input: &str) -> String {
+    let mut output = String::with_capacity(input.len());
+    let mut remaining = input;
+    while let Some(start) = remaining.find('&') {
+        output.push_str(&remaining[..start]);
+        remaining = &remaining[start..];
+        let Some(end) = remaining.find(';').filter(|&end| end <= 12) else {
+            output.push('&');
+            remaining = &remaining[1..];
+            continue;
+        };
+        let entity = &remaining[1..end];
+        let decoded = match entity {
+            "amp" => Some('&'), "quot" => Some('"'), "apos" | "#39" => Some('\''),
+            "lt" => Some('<'), "gt" => Some('>'), "nbsp" => Some(' '),
+            "auml" => Some('ä'), "ouml" => Some('ö'), "uuml" => Some('ü'),
+            "Auml" => Some('Ä'), "Ouml" => Some('Ö'), "Uuml" => Some('Ü'),
+            "szlig" => Some('ß'), "ndash" => Some('–'), "mdash" => Some('—'),
+            "bull" => Some('•'), "deg" => Some('°'),
+            _ => entity.strip_prefix("#x").or_else(|| entity.strip_prefix("#X"))
+                .and_then(|n| u32::from_str_radix(n, 16).ok())
+                .or_else(|| entity.strip_prefix('#').and_then(|n| n.parse().ok()))
+                .and_then(char::from_u32),
+        };
+        // (the English pages have zero-width spaces, `&#8203;`: the font has no glyph for them)
+        match decoded {
+            Some('\u{200b}') => {}
+            Some(c) => output.push(c),
+            None => output.push_str(&remaining[..=end]),
+        }
+        remaining = &remaining[end + 1..];
+    }
+    output.push_str(remaining);
+    output
 }
 
 /// OMSI's option presets (`option_presets/*.oop`): their names and what they say, in the
