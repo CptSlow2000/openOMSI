@@ -143,7 +143,7 @@ fn surface_ids_of_omsi() {
 /// level of every part in typical situations (the calibration table).
 #[test]
 fn ambient_levels() {
-    if std::env::var_os("OMSI_AMBIENT_LEVELS").is_none() {
+    if !omsi_cfg::flags::OMSI_AMBIENT_LEVELS.is_set() {
         return;
     }
     let dbfs = |x: f32| 20.0 * x.max(1.0e-9).log10();

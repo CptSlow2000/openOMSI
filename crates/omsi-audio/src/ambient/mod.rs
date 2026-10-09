@@ -299,7 +299,7 @@ impl Ambient {
         self.rain.control(&p, rate);
         self.thunder.control(&p, dt, rate);
         self.crickets.control(&p, dt);
-        self.birds.control(life::bird_activity(&p) * dsp::db(-14.0), n, rate);
+        self.birds.control(life::bird_activity(&p) * dsp::db(6.0), n, rate);
         self.city.control(&p, dt, rate);
         for (t, w) in self.tyres.iter_mut().zip(p.wheels.iter()) {
             t.control(w, p.temperature, n, dt, rate);

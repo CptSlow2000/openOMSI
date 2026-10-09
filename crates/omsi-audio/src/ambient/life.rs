@@ -117,7 +117,7 @@ impl Crickets {
         // how many sing: the louder the chorus, the more join in
         let singing = ((lv * self.all.len() as f32).ceil() as usize).clamp(1, self.all.len());
         for (k, c) in self.all.iter_mut().take(singing).enumerate() {
-            let g = c.gain * lv * db(-23.0);
+            let g = c.gain * lv * db(-17.0);
             let w = c.freq * tau / rate;
             for i in 0..n {
                 c.wait -= dt;
@@ -296,7 +296,7 @@ impl City {
     }
 
     pub fn render(&mut self, env: [&mut [f32]; 2], n: usize) {
-        let g = self.level.v * db(-27.0);
+        let g = self.level.v * db(-17.0);
         if g < 1.0e-6 {
             return;
         }

@@ -180,7 +180,7 @@ impl Leaves {
             self.band[c].bandpass(2600.0 + 2600.0 * dry + 150.0 * c as f32, 0.8, rate);
             self.low[c].set(500.0, rate);
         }
-        self.amp = db(-28.0) * (0.6 + 0.8 * dry);
+        self.amp = db(-23.0) * (0.6 + 0.8 * dry);
         self.strike = (u_canopy.max(0.0) / 10.0).sqrt();
     }
 
@@ -357,8 +357,8 @@ impl Rain {
                     gr += a;
                 }
             }
-            el[i] += self.click[0].run(gl) * db(-16.0);
-            er[i] += self.click[1].run(gr) * db(-16.0);
+            el[i] += self.click[0].run(gl) * db(-8.0);
+            er[i] += self.click[1].run(gr) * db(-8.0);
             let (mut bl, mut br) = (0.0, 0.0);
             for b in self.bubbles.iter_mut() {
                 if b.amp < 1.0e-5 {
@@ -374,8 +374,8 @@ impl Rain {
                 bl += s * (1.0 - b.pan);
                 br += s * b.pan;
             }
-            el[i] += bl * db(-14.0);
-            er[i] += br * db(-14.0);
+            el[i] += bl * db(-6.0);
+            er[i] += br * db(-6.0);
             // drops on the glass by the ear: the pane rings
             let mut g = 0.0;
             if self.rng.uniform() < p_glass {

@@ -460,8 +460,8 @@ fn muted() -> bool {
 /// Read and decode a clip (any thread).
 pub fn read_clip(path: &Path) -> Option<Arc<Clip>> {
     let bytes = omsi_cfg::vfs::read(path).ok()?;
-    let ogg = bytes.starts_with(b"OggS");
-    match if ogg { crate::wav::parse_ogg(&bytes) } else { crate::wav::parse_wav(&bytes) } {
+    let compressed = bytes.starts_with(b"OggS") || bytes.starts_with(b"fLaC");
+    match if compressed { crate::wav::parse_compressed(&bytes) } else { crate::wav::parse_wav(&bytes) } {
         Ok(w) => Some(Arc::new(Clip {
             sample_rate: w.sample_rate,
             channels: w.channels,
@@ -556,6 +556,19 @@ impl AudioEngine {
     /// The bird recordings the ambience scatters by day.
     pub fn set_ambient_birds(&self, clips: Vec<Arc<Clip>>) {
         *self.shared.ambient_birds.lock() = Some(clips);
+    }
+
+    /// The bird recordings, made by `load` on a thread of their own (decoding them takes a
+    /// moment the frame should not wait for).
+    pub fn set_ambient_birds_later(&self, load: impl FnOnce() -> Vec<Arc<Clip>> + Send + 'static) {
+        let shared = self.shared.clone();
+        let spawned = std::thread::Builder::new().name("ambience loader".into()).spawn(move || {
+            let clips = load();
+            *shared.ambient_birds.lock() = Some(clips);
+        });
+        if let Err(e) = spawned {
+            log::warn!("ambience: no thread for the recordings: {e}");
+        }
     }
 
     /// The ambience's parts' levels (RMS over the last second, see `ambient::PARTS`).

@@ -9,6 +9,8 @@ pub(crate) struct SoundState {
     pub(crate) audio: Option<omsi_audio::AudioEngine>,
     /// Sounds of the world around the camera (rain, footsteps).
     pub(crate) ambience: Option<ambience::Ambience>,
+    /// openOMSI's ambience over OMSI's sounds (settings `ambient`, `vol_ambient`).
+    pub(crate) ambient_sound: Option<crate::ambient_sound::AmbientSound>,
     /// Positional voice through GreenTeaSpeak in a session (`voice`).
     pub(crate) voice: Option<crate::voice::Voice>,
 }

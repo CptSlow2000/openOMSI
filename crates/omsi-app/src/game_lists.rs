@@ -1105,7 +1105,7 @@ fn steps_of(verb: &str) -> Option<Vec<f32>> {
         "ui_scale" => (10..=40).map(|v| v as f32 * 0.05).collect(),
         "chat_size" => (5..=30).map(|v| v as f32 * 0.1).collect(),
         "ui_opacity" => (4..=20).map(|v| v as f32 * 0.05).collect(),
-        "vol_ai" | "vol_scenery" => (0..=20).map(|v| v as f32 * 0.05).collect(),
+        "vol_ai" | "vol_scenery" | "vol_ambient" => (0..=20).map(|v| v as f32 * 0.05).collect(),
         "wheel_range" => (6..=60).map(|v| v as f32 * 30.0).collect(),
         "wheel_lock" => std::iter::once(0.0).chain((2..=60).map(|v| v as f32 * 30.0)).collect(),
         "fov" => std::iter::once(0.0).chain((20..=120).map(|v| v as f32)).collect(),
@@ -1260,6 +1260,7 @@ fn option_now(app: &App, verb: &str, arg: &str) -> Option<f32> {
         "ui_opacity" => s.ui_opacity,
         "vol_ai" => s.vol_ai,
         "vol_scenery" => s.vol_scenery,
+        "vol_ambient" => s.vol_ambient,
         "wheel_range" => s.wheel_range,
         "wheel_lock" => s.wheel_lock,
         "triple_width_mm" => s.triple.width_mm,
@@ -1404,6 +1405,10 @@ fn option_set(app: &mut App, verb: &str, arg: &str, v: f32) -> Option<(&'static 
         "vol_scenery" => {
             app.settings.vol_scenery = (v * 100.0).round() / 100.0;
             Some(("vol_scenery", app.settings.vol_scenery.to_string()))
+        }
+        "vol_ambient" => {
+            app.settings.vol_ambient = (v * 100.0).round() / 100.0;
+            Some(("vol_ambient", app.settings.vol_ambient.to_string()))
         }
         "wheel_range" => {
             app.settings.wheel_range = v.round();
@@ -1601,6 +1606,7 @@ fn toggle_now(app: &App, id: &str) -> Option<bool> {
         "reflections" => s.reflections,
         "clouds" => s.clouds,
         "windy_trees" => s.windy_trees,
+        "ambient" => s.ambient,
         "fullscreen" => s.fullscreen,
         "vsync" => s.vsync,
         "texture_compression" => s.texture_compression,
@@ -1834,6 +1840,7 @@ fn toggle_set(app: &mut App, id: &str, on: bool) -> Option<(&'static str, String
             app.settings.windy_trees = on;
             Some(("windy_trees", bit))
         }
+        "ambient" => { app.settings.ambient = on; Some(("ambient", bit)) }
         "fullscreen" => {
             app.settings.fullscreen = on;
             if app.gfx.spanned {
@@ -2473,6 +2480,8 @@ fn options_pages(app: &App) -> Vec<Page> {
         slider_row(app, "volume", "Volume", "Set how loud the game should be", &pct),
         slider_row(app, "vol_ai", "Traffic", "How loud the other vehicles are", &pct),
         slider_row(app, "vol_scenery", "Surroundings", "How loud the sounds of the scenery are", &pct),
+        switch_row(app, "ambient", "Ambience", "Wind, leaves, rain drops, birds, crickets, the town and the tyres on each road surface"),
+        slider_row(app, "vol_ambient", "Ambience volume", "How loud the ambience is", &pct),
         switch_row(app, "doppler", "Doppler effect", "Approaching sounds higher, receding ones lower"),
         pick("pax_voices", "Passenger voices", "What passengers say"),
     ]

@@ -21,6 +21,11 @@ use super::{Surface, WheelInput, SURFACES};
 /// Speed at which the levels below hold (m/s, 50 km/h).
 const V_REF: f32 = 14.0;
 
+/// The level of a tyre heard at its reference distance (the wheel input's gain 1), against
+/// the stock buses' sounds: a city bus's tyres at 40 km/h some 8 dB under its engine
+/// heard from the pavement, on cobbles about as loud as the engine.
+const LEVEL: f32 = 4.0;
+
 /// What each surface knocks with: (spacing of the knocks along the road in m, relative
 /// spread of the spacing, strength of a knock).
 fn knocks(s: Surface) -> Option<(f32, f32, f32)> {
@@ -299,8 +304,8 @@ impl Tyre {
             } else {
                 y
             };
-            out[0][i] += y * gl * two;
-            out[1][i] += y * gr * two;
+            out[0][i] += y * gl * two * LEVEL;
+            out[1][i] += y * gr * two * LEVEL;
         }
     }
 }
