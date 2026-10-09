@@ -151,6 +151,77 @@ fn the_exit_counts_a_crawling_queue_where_it_will_stop() {
     assert!(queued_exit_vehicle(&way, (20, 5.0), 7.0, [(20, 4.0, 8.0)]).is_none());
 }
 
+/// A main road west to east (lane 0 in, the junction's path 1, lane 2 out) and a side road
+/// from the south (lane 3) whose path through the junction (4) crosses it, `[rule]`
+/// priorities as the stock maps set them.
+fn side_road() -> Network {
+    let key = |path: u16| Some(LaneKey { tile: (0, 0), id: 2, path });
+    let main_in = street(DVec3::new(-200.0, 0.0, 0.0), 90.0, 190.0);
+    let mut main_j = street(DVec3::new(-10.0, 0.0, 0.0), 90.0, 20.0);
+    let main_out = street(DVec3::new(10.0, 0.0, 0.0), 90.0, 300.0);
+    let side_in = street(DVec3::new(0.0, -110.0, 0.0), 0.0, 100.0);
+    let mut side_j = street(DVec3::new(0.0, -10.0, 0.0), 0.0, 20.0);
+    let side_out = street(DVec3::new(0.0, 10.0, 0.0), 0.0, 300.0);
+    main_j.source = 2;
+    main_j.key = key(0);
+    main_j.priority = 192.0;
+    side_j.source = 2;
+    side_j.key = key(1);
+    side_j.priority = 64.0;
+    let mut net = Network { lanes: vec![main_in, main_j, main_out, side_in, side_j, side_out], ..Default::default() };
+    net.link(1.5);
+    net
+}
+
+/// When the side road's car (waiting at its line) gets across a main road whose queue
+/// crawls past at `v` m/s, a new car put on whenever the last has moved `spacing` m on
+/// (None: not within `secs`).
+fn side_road_crossing(v: f32, spacing: f32, secs: f32) -> Option<f32> {
+    let f = Fixture::new();
+    let mut t = traffic(&f, side_road());
+    let me = add_car(&mut t, &f, 3, 80.0, 0x99, Some(0.0));
+    let mut seed = 0x1234;
+    // the queue along the whole main road already
+    for (lane, len) in [(0usize, 190.0f32), (1, 20.0), (2, 300.0)] {
+        let mut s = 3.0;
+        while s < len - 3.0 {
+            seed += 0x101;
+            add_car(&mut t, &f, lane, s, seed, Some(v));
+            s += spacing;
+        }
+    }
+    let mut time = 0.0f32;
+    while time < secs {
+        if !t.cars.iter().any(|c| c.state.lane == 0 && c.state.s < spacing) {
+            seed += 0x101;
+            add_car(&mut t, &f, 0, 2.0, seed, Some(v));
+        }
+        for c in t.cars.iter_mut().filter(|c| c.id != me) {
+            c.state.max_speed_kmh = v * 3.6;
+        }
+        t.tick(0.05, None);
+        time += 0.05;
+        if t.cars.iter().find(|c| c.id == me).is_none_or(|c| c.state.lane == 5 || (c.state.lane == 4 && c.state.s > 15.0)) {
+            return Some(time);
+        }
+    }
+    None
+}
+
+#[test]
+fn a_side_road_car_gets_into_a_main_road_that_never_leaves_a_gap() {
+    // a queue rolling past at 3 or 5 m/s, a car every 9 m: never a gap any driver takes.
+    // After its long wait the side road's car keeps a claim on its way, the cars not yet
+    // at the junction let it across (it used to stand there for good: its claim was taken
+    // for a stalled car's and held nobody back)
+    for v in [3.0, 5.0] {
+        let at = side_road_crossing(v, 9.0, 150.0);
+        assert!(at.is_some_and(|t| t < LONG_WAIT_CLAIM + 40.0), "queue at {v} m/s: across after {at:?} s");
+    }
+    // a queue that crawls (1-1.5 m/s) leaves room enough between its cars
+    assert!(side_road_crossing(1.5, 7.5, 150.0).is_some_and(|t| t < 40.0));
+}
+
 #[test]
 fn a_queue_moves_off_without_closing_up_or_braking_hard() {
     // ten cars standing nose to tail move off together (the Intelligent Driver Model):
