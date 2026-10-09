@@ -29,7 +29,7 @@ fn d(x: DutyMsg) -> super::super::Msg {
     m(Msg::Duty(x))
 }
 
-pub(super) struct DutyStep {
+pub(in crate::launcher::gui) struct DutyStep {
     line_filter: String,
     tour_filter: String,
     show_ended: bool,
@@ -45,7 +45,6 @@ pub(super) struct DutyStep {
     duty: NodeId,
     lines: NodeId,
     lines_key: String,
-    tour_head: NodeId,
     ended: NodeId,
     book_button: NodeId,
     pick_line: NodeId,
@@ -134,7 +133,6 @@ impl DutyStep {
             duty,
             lines,
             lines_key: String::new(),
-            tour_head,
             ended,
             book_button,
             pick_line,

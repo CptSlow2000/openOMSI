@@ -42,16 +42,14 @@ impl StagePointer {
 pub struct Stage {
     pub image: Image,
     pub pointer: Rc<RefCell<StagePointer>>,
-    /// The cursor's look over it.
-    pub grab: bool,
 }
 
 impl Stage {
-    pub fn new(placeholder: &str, grab: bool) -> (Stage, Rc<RefCell<StagePointer>>) {
+    pub fn new(placeholder: &str) -> (Stage, Rc<RefCell<StagePointer>>) {
         let mut image = Image::new(None, Vec2::ZERO);
         image.placeholder = placeholder.to_owned();
         let p = Rc::new(RefCell::new(StagePointer::default()));
-        (Stage { image, pointer: p.clone(), grab }, p)
+        (Stage { image, pointer: p.clone() }, p)
     }
 }
 

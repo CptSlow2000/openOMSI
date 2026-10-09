@@ -1,10 +1,11 @@
 //! The launcher's interface on `egui_retained` (the org's egui fork): a tree of nodes built
 //! once per page and kept in step with the launcher's state each frame, drawn with egui-wgpu
 //! onto the window. Clicks and edits come back as [`Msg`]s, which `Launcher::gui_message`
-//! carries out on the state - the data side (`state.rs`, `omsi-launcher-core`) is the same
-//! the previous interface used.
+//! carries out on the state: the data side is `state.rs`, the pages' own state and saving
+//! (`pages.rs`, `drive.rs`, `timetable.rs`, ...) and `omsi-launcher-core`.
 //!
-//! The look is the Development Tools' (see `theme`): header, sidebar, cards, status bar.
+//! The look is the Development Tools' (see `theme`): header, sidebar, cards, status bar; on a
+//! phone or in a narrow window a tab bar instead of the sidebar (see `phone`).
 
 mod browser;
 mod dialogs;
@@ -28,12 +29,6 @@ use egui_retained::input::WinitInput;
 use egui_retained::render::Renderer;
 use egui_retained::widgets::{Button, Text};
 use egui_retained::{Frame, Layer, NodeId, Ui, Vec2, taffy};
-
-/// Whether the launcher draws with this interface (`OMSI_LAUNCHER_UI=new` while the pages
-/// are moved over).
-pub(super) fn enabled() -> bool {
-    omsi_cfg::flags::OMSI_LAUNCHER_UI.var().is_some_and(|v| v.eq_ignore_ascii_case("new"))
-}
 
 /// What the interface asks the launcher to do.
 #[derive(Clone, Debug)]
@@ -90,7 +85,6 @@ struct Shell {
     nav: Vec<(Page, NodeId)>,
     host: NodeId,
     pages: Vec<(Page, NodeId)>,
-    placeholder: NodeId,
     status_dot: NodeId,
     status: NodeId,
     theme_button: NodeId,
@@ -185,19 +179,13 @@ impl Gui {
             s.flex_basis = taffy::Dimension::length(0.0);
             s.min_size = taffy::Size { width: taffy::Dimension::length(0.0), height: taffy::Dimension::length(0.0) };
         });
-        let placeholder = ui.column(host);
-        ui.add_class(placeholder, "content");
-        let t = ui.text(placeholder, "This page is being moved to the new interface");
-        ui.add_class(t, "title");
-        let s = ui.paragraph(placeholder, "Start the launcher without OMSI_LAUNCHER_UI=new to use it meanwhile.");
-        ui.add_class(s, "dim");
         // the status bar
         ui.add(app, egui_retained::widgets::Separator);
         let bar = ui.row(app);
         ui.add_class(bar, "status");
         let status_dot = ui.add(bar, kit::Dot::new(theme::OK));
         let status = ui.text(bar, "");
-        Shell { app, side, nav, host, pages: Vec::new(), placeholder, status_dot, status, theme_button, driver, driver_level, badges }
+        Shell { app, side, nav, host, pages: Vec::new(), status_dot, status, theme_button, driver, driver_level, badges }
     }
 
     /// The page's tree, built the first time it is shown.
@@ -268,7 +256,6 @@ impl Gui {
                 self.timetable = Some(p);
                 n
             }
-            _ => return None,
         };
         self.shell.as_mut()?.pages.push((page, node));
         Some(node)
@@ -310,7 +297,6 @@ impl Gui {
         for (_, n) in &shell.pages {
             ui.set_visible(*n, Some(*n) == shown);
         }
-        ui.set_visible(shell.placeholder, shown.is_none() && phone_shown.is_none());
         ui.set_text(shell.theme_button, &omsi_ui::tr(if self.dark { "Light theme" } else { "Dark theme" }));
         // the badges: games running, installs under way
         let running = l.state.instances.iter().filter(|i| i.running).count();
@@ -385,7 +371,6 @@ impl Gui {
                     p.sync(&mut self.ui, l);
                 }
             }
-            _ => {}
         }
     }
 
@@ -529,7 +514,7 @@ impl Launcher {
         let dirty = g.ui.needs_repaint() || !input.events.is_empty() || g.due.is_some_and(|t| std::time::Instant::now() >= t) || self.shot.is_some() || self.first_frame;
         let screen = input.screen;
         let frame = g.ui.run(input);
-        if std::env::var_os("OMSI_GUI_DEBUG").is_some() {
+        if omsi_cfg::flags::OMSI_GUI_DEBUG.is_set() {
             log::info!("gui frame: {} primitives, screen {:?} pt, ppp {:.2}, {} texture sets", frame.primitives.len(), screen, frame.pixels_per_point, frame.textures.set.len());
         }
         window.set_cursor(frame.platform.cursor.to_winit());
@@ -606,7 +591,7 @@ impl Launcher {
             }
             None => g.textures_only(self, &frame),
         }
-        if std::env::var_os("OMSI_GUI_DEBUG").is_some() && (changed || g.ui.needs_repaint() || frame.repaint_after == Some(0.0)) {
+        if omsi_cfg::flags::OMSI_GUI_DEBUG.is_set() && (changed || g.ui.needs_repaint() || frame.repaint_after == Some(0.0)) {
             log::info!("gui redraw: changed {changed}, {}, after {:?}", g.ui.repaint_reasons(), frame.repaint_after);
         }
         if changed || g.ui.needs_repaint() || frame.repaint_after == Some(0.0) {

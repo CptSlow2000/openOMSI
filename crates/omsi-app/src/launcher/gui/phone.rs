@@ -76,7 +76,6 @@ fn sheet_title(s: Sheet) -> &'static str {
         Sheet::Time => "Time and weather",
         Sheet::Start => "Start options",
         Sheet::Roadbook => "Roadbook and IBIS",
-        Sheet::Servers => "Saved servers",
     }
 }
 
@@ -190,8 +189,9 @@ impl Phone {
             s.min_size = taffy::Size { width: len(0.0), height: len(140.0) };
             s.position = taffy::Position::Relative;
         });
-        let (st, stage_ptr) = Stage::new(&tr("Loading…"), true);
+        let (st, stage_ptr) = Stage::new(&tr("Loading…"));
         let stage = ui.add(pic, st);
+        ui.visual(stage, Visual::new().cursor(egui_retained::Cursor::Grab));
         ui.style(stage, |s| {
             s.flex_grow = 1.0;
             s.min_size.height = len(0.0);

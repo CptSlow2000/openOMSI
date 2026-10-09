@@ -106,6 +106,7 @@ effect. On Android, `openOMSI/env.txt` holds `NAME=value` lines that are set bef
 | `OMSI_GROUND_GAP` | text | - | use | app | Offscreen CSV (or -): how far every drawn tyre stands over or sinks into the ground. |
 | `OMSI_GROUND_GAP_RADIUS` | num | 150 | use | app | With OMSI_GROUND_GAP: the radius in metres. |
 | `OMSI_GROUND_LANES` | bool | off | use | app | Along every street lane, every metre, how far the ground lies over or under the lane. |
+| `OMSI_GUI_DEBUG` | bool | off | use | app | Launcher: log each frame of the interface, what it holds and why it was drawn again. |
 | `OMSI_LAN_TRACE` | text | - | use | app | LAN CSV file: where the host's people are drawn. |
 | `OMSI_LIST_ALIGNED` | bool | off | use | app | Log the splines aligned to the terrain. |
 | `OMSI_PROFILE` | bool | off | use | app, render, sim | Time per stage of the frame, logged. |
@@ -335,7 +336,6 @@ effect. On Android, `openOMSI/env.txt` holds `NAME=value` lines that are set bef
 | `OMSI_INSTANCE` | text | - | use | app, launcher-core | The id of a game instance started by the launcher (set for the child process). |
 | `OMSI_LAN_IP` | text | - | use | net | a.b.c.d[,e.f.g.h]: LAN addresses to offer first (when the detection gets them wrong). |
 | `OMSI_LAUNCHER` | text | - | use | app | Program to open as the launcher instead of the built-in one. |
-| `OMSI_LAUNCHER_UI` | text | - | use |  | Launcher: `new` draws the interface with egui_retained (being ported page by page). |
 | `OMSI_OFFICIAL_KEY` | text | - | use | app | File of the official server's signing key. |
 | `OMSI_PLUGIN_HOST32` | text | beside the game | use | plugin | Path of omsi-plugin-host32.exe. |
 | `OMSI_PRESENCE_URL` | text | built-in | use | app | Base URL of the presence ("playing now") service. |

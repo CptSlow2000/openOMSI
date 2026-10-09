@@ -5,6 +5,7 @@
 
 mod bus;
 mod duty;
+mod labels;
 mod time;
 
 use super::kit::{self, lp, tr};
@@ -27,7 +28,6 @@ const STEPS: [&str; 3] = ["Bus", "Day & weather", "Map & duty"];
 pub(in crate::launcher) enum Msg {
     Step(usize),
     Next,
-    Launch,
     Continue,
     ContinuePick(usize),
     GoSessions,
@@ -50,6 +50,7 @@ pub(in crate::launcher) struct DrivePage {
     preview: NodeId,
     preview_ptr: Rc<RefCell<StagePointer>>,
     map: NodeId,
+    map_labels: NodeId,
     map_ptr: Rc<RefCell<StagePointer>>,
     book: NodeId,
     foot_icon: NodeId,
@@ -108,12 +109,14 @@ impl DrivePage {
         kit::grow(ui, stage_row);
         kit::gap(ui, stage_row, 12.0);
         ui.style(stage_row, |s| s.align_items = Some(taffy::AlignItems::Stretch));
-        let (st, preview_ptr) = Stage::new(&tr("Loading…"), true);
+        let (st, preview_ptr) = Stage::new(&tr("Loading…"));
         let preview = ui.add(stage_row, st);
         kit::grow(ui, preview);
         ui.visual(preview, egui_retained::Visual::new().cursor(egui_retained::Cursor::Grab));
-        let (st, map_ptr) = Stage::new(&tr("Loading…"), false);
+        let (st, map_ptr) = Stage::new(&tr("Loading…"));
         let map = ui.add(stage_row, st);
+        let map_labels = ui.add(map, labels::MapLabels::default());
+        ui.style(map_labels, labels::layout);
         kit::grow(ui, map);
         let book = duty.build_book(ui, stage_row);
         let foot = ui.row(right);
@@ -143,7 +146,7 @@ impl DrivePage {
             cx.emit(Top::Drive(Msg::Next));
             true
         });
-        DrivePage { root, steps, panels, bus, time, duty, preview, preview_ptr, map, map_ptr, book, foot_icon, foot_title, foot_sub, foot_note, cont_pick, cont, go }
+        DrivePage { root, steps, panels, bus, time, duty, preview, preview_ptr, map, map_labels, map_ptr, book, foot_icon, foot_title, foot_sub, foot_note, cont_pick, cont, go }
     }
 
     pub fn preview_node(&self) -> Option<NodeId> {
@@ -167,6 +170,16 @@ impl DrivePage {
         }
         ui.set_visible(self.preview, tab < 2);
         ui.set_visible(self.map, tab == 2);
+        if tab == 2 {
+            let now = labels::MapLabels::of(l);
+            ui.update::<labels::MapLabels>(self.map_labels, |x| {
+                let changed = *x != now;
+                if changed {
+                    *x = now;
+                }
+                changed
+            });
+        }
         let book = tab == 2 && self.duty.book_open(l);
         ui.set_visible(self.book, book);
         // the foot
@@ -231,9 +244,6 @@ impl DrivePage {
     pub(super) fn duty_mut(&mut self) -> &mut duty::DutyStep {
         &mut self.duty
     }
-    pub(super) fn time_mut(&mut self) -> &mut time::TimeStep {
-        &mut self.time
-    }
 }
 
 pub(in crate::launcher) fn handle(l: &mut Launcher, msg: Msg) {
@@ -246,7 +256,6 @@ pub(in crate::launcher) fn handle(l: &mut Launcher, msg: Msg) {
                 logic::start(l);
             }
         }
-        Msg::Launch => logic::start(l),
         Msg::Continue => l.state.launch_last_situation(),
         Msg::ContinuePick(i) => l.state.save_pick = i,
         Msg::GoSessions => l.go(Page::Sessions),

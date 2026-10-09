@@ -57,7 +57,7 @@ fn t(x: TimeMsg) -> super::super::Msg {
 const SEASONS: [&str; 5] = ["auto", "spring", "summer", "autumn", "winter"];
 const PHASES: [&str; 3] = ["early", "mid", "late"];
 
-pub(super) struct TimeStep {
+pub(in crate::launcher::gui) struct TimeStep {
     server: NodeId,
     server_title: NodeId,
     server_time: NodeId,

@@ -50,8 +50,6 @@ pub(in crate::launcher) struct TimetablePage {
     tours_title: NodeId,
     tours: NodeId,
     tours_key: u64,
-    offset: NodeId,
-    until: NodeId,
     trips_title: NodeId,
     trips: NodeId,
     trips_key: u64,
@@ -189,7 +187,7 @@ impl TimetablePage {
         ui.spacer(f);
         let save = ui.add(f, Button::new(tr("Saved")).icon("save"));
         ui.on_click(save, m(Msg::Save));
-        TimetablePage { root, empty, cols, map_select, lines, lines_key: 1, new_line, reset, tours_title, tours, tours_key: 1, offset, until, trips_title, trips, trips_key: 1, departures: Vec::new(), save, gen: 0 }
+        TimetablePage { root, empty, cols, map_select, lines, lines_key: 1, new_line, reset, tours_title, tours, tours_key: 1, trips_title, trips, trips_key: 1, departures: Vec::new(), save, gen: 0 }
     }
 
     pub fn sync(&mut self, ui: &mut Ui, l: &Launcher) {

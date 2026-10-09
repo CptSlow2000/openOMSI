@@ -30,7 +30,7 @@ fn b(x: BusMsg) -> super::super::Msg {
     m(Msg::Bus(x))
 }
 
-pub(super) struct BusStep {
+pub(in crate::launcher::gui) struct BusStep {
     filter: String,
     only_favourites: bool,
     expanded: Option<String>,

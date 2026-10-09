@@ -20,24 +20,17 @@ mod season;
 mod state;
 #[cfg_attr(not(target_os = "android"), allow(unused_imports))]
 pub(crate) use state::crash_of;
-mod theme;
 mod timetable;
 mod ui;
 mod update;
 
-use glam::Vec2;
 use omsi_launcher_lib as core;
 use omsi_render::{Renderer, SurfaceState};
-use omsi_ui::paint::Align;
-use omsi_ui::{Draw, Rect, Weight};
 use std::sync::Arc;
 use std::time::Instant;
-use theme::*;
-use ui::{Key, Ui};
 use winit::application::ApplicationHandler;
-use winit::event::{DeviceEvent, ElementState, MouseButton, MouseScrollDelta, WindowEvent};
+use winit::event::{DeviceEvent, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoop};
-use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::{Window, WindowId};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -89,9 +82,6 @@ impl Clipboard {
     }
 }
 
-/// Width of the left rail (points).
-pub const RAIL_W: f32 = 236.0;
-
 /// How often the launcher made its device again after losing it (see `recover_device`).
 static LAUNCHER_RECOVERIES: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
 
@@ -100,25 +90,15 @@ pub struct Launcher {
     window: Option<Arc<Window>>,
     surface: Option<SurfaceState<'static>>,
     renderer: Option<Renderer>,
-    gpu: Option<omsi_ui::Gpu>,
-    ui: Ui,
     state: state::State,
     showroom: showroom::Showroom,
     page: Page,
-    page_anim: f32,
     pub drive: drive::DriveView,
     /// The launcher made for a phone (see `phone`).
     pub phone: phone::PhoneView,
     pub pages: pages::PagesView,
     pub mp: multiplayer::MultiplayerView,
-    /// Server icons in the interface pipeline (by server address), and those decoded but
-    /// not yet uploaded.
-    pub icons: std::collections::HashMap<String, usize>,
-    pub icons_pending: Vec<(String, image::RgbaImage)>,
     last: Instant,
-    modifiers: ui::Modifiers,
-    /// Right or left drag over the showroom.
-    dragging: Option<Vec2>,
     clipboard: Option<Clipboard>,
     exit_after: Option<f32>,
     shot: Option<(f32, std::path::PathBuf)>,
@@ -128,17 +108,8 @@ pub struct Launcher {
     /// `OMSI_LAUNCHER_INPUT="t=2 click 400,300; t=3 type Bauern; t=4 key Enter; t=5 shot a.png;
     /// t=6 wheel -3; t=7 move 900,400"`: the window worked by a script (logical pixels).
     script: Vec<(f32, String)>,
-    release_next: bool,
-    /// Where the bus preview is this frame, its texture in the interface pipeline, and the
-    /// showroom picture it was bound to.
-    preview_rect: Option<Rect>,
-    preview_tex: Option<usize>,
-    preview_gen: u64,
     /// The chosen map's picture (see `mapview`): where it is this frame and its texture.
     pub mapview: mapview::MapView,
-    map_rect: Option<Rect>,
-    map_tex: Option<usize>,
-    map_gen: u64,
     /// The window has the keyboard / is hidden: without focus it is drawn ten times a
     /// second, hidden not at all (a game started from it is being played).
     focused: bool,
@@ -150,12 +121,10 @@ pub struct Launcher {
     /// The last mouse or key event (an idle launcher draws less often: it kept the GPU busy
     /// at the screen's rate doing nothing).
     last_input: Instant,
-    /// A phone's fingers, its storage browser, how far the page is scrolled (and can be),
-    /// and whether the on-screen keyboard is up (see `mobile`).
+    /// A phone's fingers (their pinch zooms the bus), its storage browser, and whether the
+    /// on-screen keyboard is up (see `mobile`).
     fingers: mobile::Fingers,
     pub browser: Option<mobile::Browser>,
-    page_scroll: f32,
-    page_max: f32,
     ime: bool,
     /// Updates from the GitHub releases (see `crate::updater`, `update.rs`).
     pub update: crate::updater::Updater,
@@ -166,7 +135,7 @@ pub struct Launcher {
     /// Background drop of the graphics device given up while a game runs (see `frame`).
     /// Joined before a new device is opened so the two do not meet on the card.
     gpu_rest_drop: Option<std::thread::JoinHandle<()>>,
-    /// The interface on egui_retained (`OMSI_LAUNCHER_UI=new`, see `gui`).
+    /// The interface (on egui_retained, see `gui`); taken out while a frame is made.
     gui: Option<gui::Gui>,
     /// The last key pressed (its code and the Shift/Ctrl/Alt chord) and the modifiers held,
     /// for a key binding the new interface waits for.
@@ -192,21 +161,14 @@ impl Launcher {
         window: None,
         surface: None,
         renderer: None,
-        gpu: None,
-        ui: Ui::new(),
         state: state::State::new(),
         showroom: showroom::Showroom::new(),
         page: Page::Drive,
-        page_anim: 1.0,
         drive: drive::DriveView::default(),
         phone: phone::PhoneView::default(),
         pages: pages::PagesView::default(),
         mp: multiplayer::MultiplayerView::default(),
-        icons: Default::default(),
-        icons_pending: Vec::new(),
         last: Instant::now(),
-        modifiers: ui::Modifiers::default(),
-        dragging: None,
         clipboard: Clipboard::new().ok(),
         // OMSI_LAUNCHER_EXIT=secs, OMSI_LAUNCHER_SHOT=secs:file.png, OMSI_LAUNCHER_PAGE=mods:
         // looking at the window without a person at it
@@ -225,22 +187,13 @@ impl Launcher {
                     .collect()
             })
             .unwrap_or_default(),
-        release_next: false,
-        preview_rect: None,
-        preview_tex: None,
-        preview_gen: 0,
         mapview: mapview::MapView::new(),
-        map_rect: None,
-        map_tex: None,
-        map_gen: 0,
         focused: true,
         occluded: false,
         awake_in_game: false,
         last_input: Instant::now(),
         fingers: Default::default(),
         browser: None,
-        page_scroll: 0.0,
-        page_max: 0.0,
         ime: false,
         update: Default::default(),
         #[cfg(not(target_os = "android"))]
@@ -248,7 +201,7 @@ impl Launcher {
         #[cfg(not(target_os = "android"))]
         discord_next_try: Instant::now(),
         gpu_rest_drop: None,
-        gui: gui::enabled().then(gui::Gui::new),
+        gui: Some(gui::Gui::new()),
         gui_key: None,
         gui_mods: Default::default(),
     };
@@ -302,21 +255,14 @@ impl Launcher {
     app
     }
 
-    /// Everything made on the graphics device goes with it: the interface's textures and every
-    /// number kept for one of them - the bus preview, the map picture (and the map's own
-    /// drawing), the servers' icons. A number kept over a device made anew pointed past the
+    /// Everything made on the graphics device goes with it: the interface's renderer and its
+    /// textures, the bus preview, the map picture (and the map's own drawing). A number kept over a device made anew pointed past the
     /// new device's textures, and the map was drawn with the font atlas instead: the Drive
     /// page's map full of the interface's words after a game (the launcher gives its device
     /// up while one runs) or a lost device.
     fn drop_gpu(&mut self) {
-        self.gpu = None;
-        self.preview_tex = None;
         self.showroom = showroom::Showroom::new();
-        self.preview_gen = 0;
-        self.map_tex = None;
-        self.map_gen = 0;
         self.mapview.drop_gpu();
-        self.icons.clear();
         if let Some(g) = self.gui.as_mut() {
             g.drop_gpu();
         }
@@ -364,8 +310,6 @@ impl Launcher {
                     std::process::exit(1);
                 }
             };
-            self.gpu = Some(omsi_ui::Gpu::new(&renderer.device, renderer.format(), 4, self.ui.atlas.size));
-            self.ui.atlas = omsi_ui::Atlas::new(self.ui.atlas.size);
             self.renderer = Some(renderer);
         }
         let Some(renderer) = self.renderer.as_ref() else { return };
@@ -443,7 +387,6 @@ impl ApplicationHandler for Launcher {
             }
         };
         log::info!("launcher window {}x{} (scale {:.2}), adapter {}", size.width, size.height, window.scale_factor(), renderer.adapter_name);
-        self.gpu = Some(omsi_ui::Gpu::new(&renderer.device, renderer.format(), 4, self.ui.atlas.size));
         self.window = Some(window);
         self.surface = Some(surface);
         self.renderer = Some(renderer);
@@ -503,7 +446,6 @@ impl ApplicationHandler for Launcher {
                 self.pages.pads.cancel_feedback_test();
                 event_loop.exit();
             }
-            WindowEvent::Touch(t) => self.touch(t, scale),
             WindowEvent::Focused(f) => self.set_focus(f),
             WindowEvent::Occluded(o) => {
                 self.occluded = o;
@@ -521,110 +463,6 @@ impl ApplicationHandler for Launcher {
             WindowEvent::Resized(s) => {
                 if let (Some(sf), Some(r)) = (self.surface.as_mut(), self.renderer.as_ref()) {
                     sf.resize(r, s.width, s.height);
-                }
-            }
-            WindowEvent::ModifiersChanged(m) => {
-                self.modifiers.told(m.state());
-                self.modifiers.apply(&mut self.ui.input);
-            }
-            WindowEvent::CursorMoved { position, .. } => {
-                let p = Vec2::new(position.x as f32, position.y as f32) / scale;
-                if let Some(last) = self.dragging {
-                    let d = p - last;
-                    self.showroom.orbit(d.x, d.y);
-                    self.dragging = Some(p);
-                }
-                self.ui.input.mouse = p;
-            }
-            WindowEvent::MouseInput { state, button, .. } => {
-                let down = state == ElementState::Pressed;
-                match button {
-                    MouseButton::Left => {
-                        if down {
-                            self.ui.input.pressed = true;
-                            // a drag on the preview turns the bus (the panels lie over it:
-                            // what the mouse is over is theirs, not the bus's)
-                            if !self.ui.over_ui && self.preview_rect.map(|r| r.contains(self.ui.input.mouse)).unwrap_or(false) {
-                                self.dragging = Some(self.ui.input.mouse);
-                            }
-                        } else {
-                            self.ui.input.released = true;
-                            self.dragging = None;
-                        }
-                        self.ui.input.down = down;
-                    }
-                    MouseButton::Right => {
-                        self.ui.input.right_down = down;
-                        if down {
-                            self.ui.input.right_pressed = true;
-                            if self.preview_rect.map(|r| r.contains(self.ui.input.mouse)).unwrap_or(false) {
-                                self.dragging = Some(self.ui.input.mouse);
-                            }
-                        } else {
-                            self.dragging = None;
-                        }
-                    }
-                    _ => {}
-                }
-            }
-            WindowEvent::MouseWheel { delta, .. } => {
-                let d = match delta {
-                    MouseScrollDelta::LineDelta(x, y) => Vec2::new(x, y),
-                    MouseScrollDelta::PixelDelta(p) => Vec2::new(p.x as f32, p.y as f32) / 40.0,
-                };
-                self.ui.input.wheel += d;
-            }
-            WindowEvent::KeyboardInput { event, .. } => {
-                // (Shift, Ctrl, Alt from their keys where the window never says: Android)
-                if let PhysicalKey::Code(code) = event.physical_key {
-                    if self.modifiers.key(code, event.state == ElementState::Pressed) {
-                        self.modifiers.apply(&mut self.ui.input);
-                    }
-                }
-                if event.state != ElementState::Pressed {
-                    return;
-                }
-                let cmd = self.modifiers.command();
-                // a phone's back key: out of the storage browser, else like Escape
-                if event.physical_key == PhysicalKey::Code(KeyCode::BrowserBack) {
-                    if self.browser.is_some() {
-                        self.browser = None;
-                    } else {
-                        self.ui.input.keys.push(Key::Escape);
-                    }
-                    return;
-                }
-                if let PhysicalKey::Code(code) = event.physical_key {
-                    self.ui.input.capture_key(code);
-                    let k = match code {
-                        KeyCode::ArrowLeft => Some(Key::Left),
-                        KeyCode::ArrowRight => Some(Key::Right),
-                        KeyCode::ArrowUp => Some(Key::Up),
-                        KeyCode::ArrowDown => Some(Key::Down),
-                        KeyCode::Home => Some(Key::Home),
-                        KeyCode::End => Some(Key::End),
-                        KeyCode::Backspace => Some(Key::Backspace),
-                        KeyCode::Delete => Some(Key::Delete),
-                        KeyCode::Enter | KeyCode::NumpadEnter => Some(Key::Enter),
-                        KeyCode::Escape => Some(Key::Escape),
-                        KeyCode::Tab => Some(Key::Tab),
-                        KeyCode::KeyA if cmd => Some(Key::SelectAll),
-                        KeyCode::KeyC if cmd => Some(Key::Copy),
-                        KeyCode::KeyV if cmd => Some(Key::Paste),
-                        KeyCode::KeyX if cmd => Some(Key::Cut),
-                        _ => None,
-                    };
-                    if let Some(k) = k {
-                        if k == Key::Paste {
-                            self.ui.clipboard_in = self.clipboard.as_mut().and_then(|c| c.get_text().ok());
-                        }
-                        self.ui.input.keys.push(k);
-                    }
-                }
-                if !cmd {
-                    if let Some(t) = event.text.as_ref() {
-                        self.ui.input.text.push_str(t);
-                    }
                 }
             }
             WindowEvent::DroppedFile(path) => {
@@ -658,7 +496,7 @@ impl ApplicationHandler for Launcher {
             0.5
         } else if !self.focused && !omsi_cfg::flags::OMSI_BACKGROUND.is_set() {
             0.1
-        } else if self.last_input.elapsed().as_secs_f32() > 3.0 && self.dragging.is_none() && self.script.is_empty() {
+        } else if self.last_input.elapsed().as_secs_f32() > 3.0 && self.script.is_empty() {
             // idle: 20 frames a second keep the preview and the progress bars moving
             0.05
         } else {
@@ -792,8 +630,6 @@ impl Launcher {
         self.focused = f;
         if !f {
             self.pages.pads.cancel_feedback_test();
-            self.modifiers.release_keys();
-            self.modifiers.apply(&mut self.ui.input);
         }
         // (only once the game is on its way: the launcher has the focus while Start is
         // pressed, and gives the device up then as before)
@@ -841,7 +677,7 @@ impl Launcher {
                 self.last = now;
                 self.run_script();
                 self.state.update(dt);
-                self.ui.discard_input();
+                self.discard_input();
                 #[cfg(not(target_os = "android"))]
                 self.update_discord();
                 // `update` may have seen the game end: open the device this frame instead of
@@ -854,7 +690,7 @@ impl Launcher {
                 log::info!("launcher: its window is looked at while a game runs, the graphics device is opened again");
                 // (what was clicked while it stood still is not done: the click that brought
                 // it forward pressed whatever lay under it)
-                self.ui.discard_input();
+                self.discard_input();
             } else {
                 self.awake_in_game = false;
                 log::info!("launcher: no game runs any more, the graphics device is opened again");
@@ -905,7 +741,6 @@ impl Launcher {
         let scale = self.ui_scale();
         let phys = window.inner_size();
         let (pw, ph) = (phys.width.max(1), phys.height.max(1));
-        let size = Vec2::new(pw as f32, ph as f32) / scale;
 
         self.run_script();
         self.state.update(dt);
@@ -923,118 +758,7 @@ impl Launcher {
         if let Some(r) = self.renderer.as_ref() {
             self.showroom.update(r, dt);
         }
-        if self.gui.is_some() {
-            self.gui_frame(event_loop, dt, (pw, ph), scale, &window);
-            return;
-        }
-
-        // --- the interface
-        self.preview_rect = None;
-        self.map_rect = None;
-        self.ui.begin(size, scale, dt);
-        self.draw_ui();
-        if mobile::mobile() {
-            // what no list took of a finger's drag scrolls the page
-            if !self.ui.wheel_taken() && self.browser.is_none() {
-                self.page_scroll = (self.page_scroll - self.ui.input.wheel.y * 42.0).clamp(0.0, self.page_max);
-            }
-            // the on-screen keyboard while a text field has the focus
-            let want = self.ui.focus.is_some();
-            if want != self.ime {
-                self.ime = want;
-                window.set_ime_allowed(want);
-            }
-        }
-        window.set_cursor(if self.dragging.is_some() { winit::window::CursorIcon::Grabbing } else { self.ui.cursor });
-        if let Some(t) = self.ui.clipboard_out.take() {
-            if let Some(c) = self.clipboard.as_mut() {
-                let _ = c.set_text(t);
-            }
-        }
-        let (layers, verts, ranges) = self.ui.finish();
-        self.touch_frame();
-
-        // --- to the GPU: the preview when it changed, then the interface onto the window
-        let Some(renderer) = self.renderer.as_mut() else { return };
-        if let Some(r) = self.preview_rect {
-            let (w, h) = ((r.w * scale) as u32, (r.h * scale) as u32);
-            if let (Some(view), Some(gpu)) = (self.showroom.preview(renderer, w, h), self.gpu.as_mut()) {
-                if self.preview_gen != self.showroom.generation {
-                    self.preview_gen = self.showroom.generation;
-                    match self.preview_tex {
-                        Some(id) => gpu.set_view(&renderer.device, id, &view, (w, h)),
-                        None => self.preview_tex = Some(gpu.add_view(&renderer.device, &view, (w, h))),
-                    }
-                }
-            }
-        }
-        // the map picture, drawn again when what it shows, where it looks or the zoom's own
-        // thinness changed
-        if self.map_rect.is_some() {
-            if let Some(view) = self.mapview.picture(renderer) {
-                if let Some(gpu) = self.gpu.as_mut() {
-                    if self.map_gen != self.mapview.generation {
-                        self.map_gen = self.mapview.generation;
-                        let size = self.mapview.pixels();
-                        match self.map_tex {
-                            Some(id) => gpu.set_view(&renderer.device, id, &view, size),
-                            None => self.map_tex = Some(gpu.add_view(&renderer.device, &view, size)),
-                        }
-                    }
-                }
-            }
-        }
-        // server icons decoded this frame go to the GPU (drawn from the next)
-        for (addr, img) in std::mem::take(&mut self.icons_pending) {
-            if let Some(gpu) = self.gpu.as_mut() {
-                let (w, h) = img.dimensions();
-                let tex = renderer.device.create_texture(&wgpu::TextureDescriptor { label: Some("server icon"), size: wgpu::Extent3d { width: w, height: h, depth_or_array_layers: 1 }, mip_level_count: 1, sample_count: 1, dimension: wgpu::TextureDimension::D2, format: wgpu::TextureFormat::Rgba8UnormSrgb, usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST, view_formats: &[] });
-                renderer.queue.write_texture(tex.as_image_copy(), &img, wgpu::TexelCopyBufferLayout { offset: 0, bytes_per_row: Some(4 * w), rows_per_image: Some(h) }, wgpu::Extent3d { width: w, height: h, depth_or_array_layers: 1 });
-                let view = tex.create_view(&Default::default());
-                let id = gpu.add_view(&renderer.device, &view, (w, h));
-                self.icons.insert(addr, id);
-            }
-        }
-        let draws: Vec<Draw> = ranges.iter().enumerate().map(|(k, (r, tex))| Draw { buffer: 0, range: r.clone(), layer: k, texture: *tex }).collect();
-        let bg = wgpu::Color { r: 0.0056, g: 0.0056, b: 0.0056, a: 1.0 };
-        if let Some(gpu) = self.gpu.as_mut() {
-            gpu.upload(&renderer.device, &renderer.queue, 0, &verts);
-            gpu.upload_atlas(&renderer.queue, &mut self.ui.atlas);
-        }
-        // OMSI_LAUNCHER_SHOT: the window's picture into a file (drawn into a texture of its
-        // own, so a hidden window gives one too)
-        let t = self.started.elapsed().as_secs_f32();
-        if let Some((at, file)) = self.shot.clone() {
-            if t >= at {
-                self.shot = None;
-                if let Some(img) = self.shot_image(pw, ph, &layers, &draws, bg) {
-                    let _ = img.save(&file);
-                    log::info!("launcher: picture written to {}", file.display());
-                }
-            }
-        }
-        let Some(renderer) = self.renderer.as_mut() else { return };
-        let surface = self.surface.as_mut().unwrap();
-        let frame = match surface.surface.get_current_texture() {
-            wgpu::CurrentSurfaceTexture::Success(f) | wgpu::CurrentSurfaceTexture::Suboptimal(f) => f,
-            wgpu::CurrentSurfaceTexture::Outdated | wgpu::CurrentSurfaceTexture::Lost => {
-                surface.resize(renderer, pw, ph);
-                return;
-            }
-            _ => return,
-        };
-        let view = frame.texture.create_view(&Default::default());
-        if let Some(gpu) = self.gpu.as_mut() {
-            let mut enc = renderer.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: Some("launcher") });
-            gpu.render(&renderer.device, &renderer.queue, &mut enc, &view, (pw, ph), Some(bg), &layers, &draws);
-            renderer.queue.submit([enc.finish()]);
-        }
-        window.pre_present_notify();
-        frame.present();
-        if std::mem::take(&mut self.first_frame) {
-            log::info!("launcher: first frame presented in {:.2} s", self.started.elapsed().as_secs_f64());
-        }
-        self.check_exit(event_loop);
+        self.gui_frame(event_loop, dt, (pw, ph), scale, &window);
     }
 
     fn check_exit(&mut self, event_loop: &ActiveEventLoop) {
@@ -1044,11 +768,6 @@ impl Launcher {
     }
 
     fn run_script(&mut self) {
-        if self.release_next {
-            self.ui.input.released = true;
-            self.ui.input.down = false;
-            self.release_next = false;
-        }
         let t = self.started.elapsed().as_secs_f32();
         while let Some((at, cmd)) = self.script.first().cloned() {
             if at > t {
@@ -1059,67 +778,53 @@ impl Launcher {
             let (verb, arg) = cmd.split_once(' ').unwrap_or((cmd.as_str(), ""));
             let xy = || {
                 let mut it = arg.split(',').map(|v| v.trim().parse::<f32>().unwrap_or(0.0));
-                Vec2::new(it.next().unwrap_or(0.0), it.next().unwrap_or(0.0))
+                egui_retained::pos2(it.next().unwrap_or(0.0), it.next().unwrap_or(0.0))
             };
-            // (the new interface gets the same, as window events; `press <name>` clicks one of
-            // its nodes by name)
-            if let Some(g) = self.gui.as_mut() {
-                use egui_retained::input::{Button as B, InputEvent as E};
-                let mut click = |g: &mut gui::Gui, q: egui_retained::Pos2| {
-                    g.input.push(E::PointerMoved(q));
-                    g.input.push(E::PointerButton { pos: q, button: B::Primary, pressed: true });
-                    g.input.push(E::PointerButton { pos: q, button: B::Primary, pressed: false });
-                };
-                let at = xy();
-                match verb {
-                    "move" => g.input.push(E::PointerMoved(egui_retained::pos2(at.x, at.y))),
-                    "click" => click(g, egui_retained::pos2(at.x, at.y)),
-                    "press" => match g.ui.find(arg.trim()) {
-                        Some(n) => {
-                            let q = g.ui.rect(n).center();
-                            click(g, q);
-                        }
-                        None => log::warn!("launcher input: no node named {}", arg.trim()),
-                    },
-                    "wheel" => g.input.push(E::Wheel(egui_retained::vec2(0.0, arg.trim().parse::<f32>().unwrap_or(0.0) * 40.0))),
-                    "type" => g.input.push(E::Text(arg.to_string())),
-                    _ => {}
-                }
-            }
+            use egui_retained::input::{Button as B, InputEvent as E};
+            let button = |pos, pressed| E::PointerButton { pos, button: B::Primary, pressed };
+            let Some(g) = self.gui.as_mut() else { return };
             match verb {
-                "move" => self.ui.input.mouse = xy(),
+                "move" => g.input.push(E::PointerMoved(xy())),
                 "click" => {
-                    self.ui.input.mouse = xy();
-                    self.ui.input.pressed = true;
-                    self.ui.input.down = true;
-                    self.release_next = true;
+                    g.input.push(E::PointerMoved(xy()));
+                    g.input.push(button(xy(), true));
+                    g.input.push(button(xy(), false));
                 }
-                "wheel" => self.ui.input.wheel.y += arg.trim().parse::<f32>().unwrap_or(0.0),
+                // `press <name>`: a click on the node of that name
+                "press" => match g.ui.find(arg.trim()) {
+                    Some(n) => {
+                        let q = g.ui.rect(n).center();
+                        g.input.push(E::PointerMoved(q));
+                        g.input.push(button(q, true));
+                        g.input.push(button(q, false));
+                    }
+                    None => log::warn!("launcher input: no node named {}", arg.trim()),
+                },
                 // a drag: down at a place, `move` with the button still held, `up` at the end
                 "down" => {
-                    self.ui.input.mouse = xy();
-                    self.ui.input.pressed = true;
-                    self.ui.input.down = true;
-                    self.release_next = false;
+                    g.input.push(E::PointerMoved(xy()));
+                    g.input.push(button(xy(), true));
                 }
                 "up" => {
-                    self.ui.input.released = true;
-                    self.ui.input.down = false;
+                    let q = g.ui.pointer().unwrap_or(egui_retained::pos2(-1e4, -1e4));
+                    g.input.push(button(q, false));
                 }
-                "type" => self.ui.input.text.push_str(arg),
+                "wheel" => g.input.push(E::Wheel(egui_retained::vec2(0.0, arg.trim().parse::<f32>().unwrap_or(0.0) * 40.0))),
+                "type" => g.input.push(E::Text(arg.to_string())),
                 "key" => {
+                    use egui_retained::Key as K;
                     let k = match arg.trim() {
-                        "Enter" => Some(Key::Enter),
-                        "Escape" => Some(Key::Escape),
-                        "Backspace" => Some(Key::Backspace),
+                        "Enter" => Some(K::Enter),
+                        "Escape" => Some(K::Escape),
+                        "Backspace" => Some(K::Backspace),
+                        "Tab" => Some(K::Tab),
                         _ => None,
                     };
                     if let Some(k) = k {
-                        self.ui.input.keys.push(k);
+                        g.input.push(E::Key { key: k, pressed: true, repeat: false });
+                        g.input.push(E::Key { key: k, pressed: false, repeat: false });
                     }
                 }
-                // (the new interface's: done above)
-                "press" => {}
                 "shot" => self.shot = Some((0.0, std::path::PathBuf::from(arg.trim()))),
                 // `focus 0` / `focus 1`: the window loses or gets the keyboard
                 "focus" => self.set_focus(arg.trim() != "0"),
@@ -1133,251 +838,16 @@ impl Launcher {
         }
     }
 
-    /// The window's picture drawn again into a texture and read back (for OMSI_LAUNCHER_SHOT).
-    fn shot_image(&mut self, w: u32, h: u32, layers: &[omsi_ui::Layer], draws: &[Draw], bg: wgpu::Color) -> Option<image::RgbaImage> {
-        let r = self.renderer.as_mut()?;
-        let gpu = self.gpu.as_mut()?;
-        let tex = r.device.create_texture(&wgpu::TextureDescriptor { label: Some("launcher shot"), size: wgpu::Extent3d { width: w, height: h, depth_or_array_layers: 1 }, mip_level_count: 1, sample_count: 1, dimension: wgpu::TextureDimension::D2, format: r.format(), usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC, view_formats: &[] });
-        let view = tex.create_view(&Default::default());
-        let mut enc = r.device.create_command_encoder(&Default::default());
-        gpu.render(&r.device, &r.queue, &mut enc, &view, (w, h), Some(bg), layers, draws);
-        let stride = (w * 4).div_ceil(256) * 256;
-        let buf = r.device.create_buffer(&wgpu::BufferDescriptor { label: None, size: (stride * h) as u64, usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ, mapped_at_creation: false });
-        enc.copy_texture_to_buffer(tex.as_image_copy(), wgpu::TexelCopyBufferInfo { buffer: &buf, layout: wgpu::TexelCopyBufferLayout { offset: 0, bytes_per_row: Some(stride), rows_per_image: None } }, wgpu::Extent3d { width: w, height: h, depth_or_array_layers: 1 });
-        r.queue.submit([enc.finish()]);
-        buf.slice(..).map_async(wgpu::MapMode::Read, |_| {});
-        r.device.poll(wgpu::PollType::wait_indefinitely()).ok();
-        let data = buf.slice(..).get_mapped_range();
-        let bgra = matches!(r.format(), wgpu::TextureFormat::Bgra8UnormSrgb | wgpu::TextureFormat::Bgra8Unorm);
-        let mut img = image::RgbaImage::new(w, h);
-        for y in 0..h {
-            for x in 0..w {
-                let i = (y * stride + x * 4) as usize;
-                let (r_, g, b) = if bgra { (data[i + 2], data[i + 1], data[i]) } else { (data[i], data[i + 1], data[i + 2]) };
-                img.put_pixel(x, y, image::Rgba([r_, g, b, 255]));
-            }
+    /// What was clicked or typed while the launcher stood still (a game ran) is not done.
+    fn discard_input(&mut self) {
+        if let Some(g) = self.gui.as_mut() {
+            let _ = g.input.take(egui_retained::Vec2::ZERO, 1.0, 0.0);
         }
-        Some(img)
-    }
-
-    fn draw_ui(&mut self) {
-        if self.page != Page::Controls || self.pages.controls_tab != 1 {
-            self.pages.pads.cancel_feedback_test();
-        }
-        let size = self.ui.size;
-        let mobile = mobile::mobile();
-        // the storage browser (or the update dialog) lies over the page: the page sees no
-        // finger meanwhile
-        let dialog = self.update_dialog_open();
-        let disconnected = !dialog && self.state.disconnected.is_some();
-        let crash = !dialog && !disconnected && self.state.crash.is_some();
-        let reset = !dialog && !crash && !disconnected && self.pages.confirm_reset;
-        let key_picker = self.browser.is_none()
-            && !dialog
-            && !crash
-            && !reset
-            && !disconnected
-            && self.page == Page::Controls
-            && self.pages.controls_tab == 0
-            && self.pages.kb_picker.is_some();
-
-        if self.browser.is_some() || dialog || crash || reset || disconnected || key_picker {
-            self.pages.pads.cancel_feedback_test();
-        }
-        let saved = (self.browser.is_some() || dialog || crash || reset || disconnected || key_picker).then(|| {
-            let i = self.ui.input.clone();
-            self.ui.input.mouse = Vec2::new(-1e4, -1e4);
-            self.ui.input.pressed = false;
-            self.ui.input.released = false;
-            self.ui.input.wheel = Vec2::ZERO;
-            self.ui.input.keys.clear();
-            self.ui.input.text.clear();
-            self.ui.input.raw_key = None;
-            i
-        });
-        // a phone: the launcher made for it, not the desktop's pages
-        if mobile {
-            if self.page == Page::Setup && !omsi_cfg::missing_original_essentials(std::path::Path::new(&self.state.config.root)).is_empty() && self.phone.page.is_none() {
-                self.phone.tab = phone::Tab::More;
-                self.phone.page = Some(Page::Setup);
-            }
-            phone::draw(self);
-        } else {
-        let rail_w = RAIL_W;
-        self.page_anim = (self.page_anim + self.ui.dt / 0.15).min(1.0);
-        // (no wider than a page reads well: on a wide screen the rest is margin, the page
-        // in the middle - the panels stretched across 2000 px with their text at one end)
-        let (margin, top) = if mobile { (36.0, 14.0) } else { (64.0, 28.0) };
-        let avail = size.x - rail_w - margin;
-        let w = avail.min(1760.0);
-        let seen = size.y - top - 40.0;
-        // (a phone: laid out for a taller screen, scrolled)
-        let h = if mobile { seen.max(mobile::PAGE_H) } else { seen };
-        self.page_max = (h - seen).max(0.0);
-        self.page_scroll = self.page_scroll.clamp(0.0, self.page_max);
-        let content = Rect::new(rail_w + margin * 0.5 + (avail - w) * 0.5, top - self.page_scroll, w, h);
-        let e = 1.0 - (1.0 - self.page_anim).powi(3);
-        let content = Rect::new(content.x + 8.0 * (1.0 - e), content.y, content.w, content.h);
-        match self.page {
-            Page::Drive => drive::draw(self, content),
-            Page::Multiplayer => multiplayer::draw(self, content),
-            Page::Profile => pages::profile(self, content),
-            Page::Settings => pages::settings(self, content),
-            Page::Controls => pages::controls(self, content),
-            Page::Sessions => pages::sessions(self, content),
-            Page::Mods => pages::mods(self, content),
-            Page::Tutorials => pages::tutorials(self, content),
-            Page::Timetable => timetable::draw(self, content),
-            Page::Setup => pages::setup(self, content),
-        }
-        // the rail over the page (a scrolled page passes under it)
-        self.rail();
-        self.status_bar();
-        }
-        self.draw_updated_notice();
-        if let Some(i) = saved {
-            self.ui.input = i;
-            if dialog {
-                self.draw_update_dialog();
-            } else if disconnected {
-                self.draw_disconnect_dialog();
-            } else if crash {
-                self.draw_crash_dialog();
-            } else if reset {
-                pages::reset_dialog(self);
-            } else if key_picker {
-                pages::keybind_picker(self);
-            } else {
-                self.draw_browser();
-            }
-        }
-        // a game starts: the last picture before the launcher gives its graphics device up
-        // (see `frame`), which stays in the window until the game ends
-        if !mobile && self.state.in_game() && !self.awake() {
-            self.draw_game_banner();
-        }
-    }
-
-    /// Over the launcher's last picture while a game runs: why the launcher does not move.
-    fn draw_game_banner(&mut self) {
-        let size = self.ui.size;
-        let full = Rect::new(0.0, 0.0, size.x, size.y);
-        self.ui.solid(full);
-        self.ui.p().rect(full, omsi_ui::Color::rgba(0, 0, 0, 0.62));
-        let text = "The launcher rests while you drive, so that the game has the graphics card to itself. It is back as soon as the game ends.";
-        let w = (size.x - 48.0).min(520.0);
-        let th = self.ui.paragraph_height(text, w - 48.0, 13.0, Weight::Regular);
-        let h = 80.0 + th;
-        let r = Rect::new((size.x - w) * 0.5, (size.y - h) * 0.5, w, h);
-        self.ui.panel(r);
-        let inner = Rect::new(r.x + 24.0, r.y + 20.0, r.w - 48.0, r.h - 40.0);
-        self.ui.icon("directions_bus", Vec2::new(inner.x + 14.0, inner.y + 14.0), 26.0, ACCENT);
-        self.ui.text_in("The game is running", Rect::new(inner.x + 38.0, inner.y, inner.w - 38.0, 28.0), 18.0, Weight::Bold, TEXT, Align::Left);
-        self.ui.paragraph(text, Vec2::new(inner.x, inner.y + 40.0), inner.w, 13.0, Weight::Regular, TEXT_DIM);
-    }
-
-    /// The bus preview in `r`: the game's picture of it, or a word while it loads. The mouse
-    /// dragged on it turns the bus, the wheel zooms.
-    pub fn preview(&mut self, r: Rect) {
-        self.preview_rect = Some(r);
-        self.ui.solid(r);
-        self.ui.p().rounded(r, RADIUS, FIELD);
-        match (self.preview_tex, self.showroom.has_picture()) {
-            (Some(tex), true) => self.ui.image(r, tex, RADIUS),
-            _ => {
-                let t = if self.showroom.error.is_some() { "No preview" } else { "Loading…" };
-                self.ui.text_in(t, r, 13.0, Weight::Regular, TEXT_FAINT, Align::Center);
-            }
-        }
-        if self.showroom.busy && self.showroom.has_picture() {
-            let c = Vec2::new(r.right() - 16.0, r.y + 16.0);
-            let a = self.ui.time * 5.0;
-            self.ui.p().arc(c, 6.0, 8.0, a, a + 4.2, TEXT_SOFT);
-        }
-        if self.ui.hover(r) && self.ui.input.wheel.y.abs() > 0.0 {
-            self.showroom.zoom_by((1.0 - self.ui.input.wheel.y * 0.08).clamp(0.8, 1.25));
-        }
-        if self.ui.hover(r) {
-            self.ui.cursor = winit::window::CursorIcon::Grab;
-        }
-    }
-
-    /// The chosen map across `r`, the whole page behind the panels: every road the map has,
-    /// its entry points and the chosen trip's route, read from the tile files (see
-    /// `mapview`), or a word while it is read. `map_interact` gives it the mouse afterwards.
-    pub fn map_background(&mut self, r: Rect) {
-        self.map_rect = Some(r);
-        let status = self.mapview.status();
-        match (self.map_tex, status.is_empty()) {
-            (Some(tex), true) => self.ui.image(r, tex, RADIUS),
-            _ => {
-                self.ui.solid(r);
-                self.ui.p().rounded(r, RADIUS, omsi_ui::Color::rgba(13, 13, 13, 1.0));
-                let t = if status.is_empty() { "Loading…" } else { status };
-                self.ui.text_in(t, Rect::new(r.x, r.y + r.h * 0.5 - 12.0, r.w, 24.0), 13.5, Weight::Regular, TEXT_FAINT, Align::Center);
-            }
-        }
-        if self.mapview.busy() {
-            // (out of the way of the panels: the map is being read, the page is not)
-            let c = Vec2::new(r.right() - 26.0, r.y + r.h - 26.0);
-            let a = self.ui.time * 5.0;
-            self.ui.p().arc(c, 6.0, 8.0, a, a + 4.2, TEXT_SOFT);
-        }
-    }
-
-    /// The mouse over the map: what it drags, where it zooms, and the entry point a click
-    /// takes. Called once the page's panels are drawn - they have the first claim on it.
-    pub fn map_interact(&mut self, r: Rect, window: Rect) {
-        let p = mapview::Pointer {
-            at: self.ui.input.mouse,
-            pressed: self.ui.input.pressed,
-            released: self.ui.input.released,
-            down: self.ui.input.down,
-            wheel: self.ui.input.wheel.y,
-            blocked: self.ui.over_ui || !r.contains(self.ui.input.mouse),
-        };
-        self.mapview.think(r, window, self.ui.scale, p);
-        if let Some(i) = self.mapview.take_clicked() {
-            if self.state.choice.entry != i as i32 {
-                log::info!("launcher map: entry point {} of the map's list taken from the map", i + 1);
-                self.state.choice.entry = i as i32;
-                self.state.touched();
-            }
-        }
-    }
-
-    /// The bus across `r`, the whole page behind the panels. `focus` is where the panels end,
-    /// as a share of the window: the showroom frames the bus in what is left of it.
-    pub fn preview_full(&mut self, r: Rect, focus: f32) {
-        self.preview_rect = Some(r);
-        self.showroom.focus_x = focus.clamp(0.2, 0.95);
-        match (self.preview_tex, self.showroom.has_picture()) {
-            (Some(tex), true) => self.ui.image(r, tex, RADIUS),
-            _ => {
-                self.ui.solid(r);
-                self.ui.p().rounded(r, RADIUS, FIELD);
-                let t = if self.showroom.error.is_some() { "No preview" } else { "Loading…" };
-                self.ui.text_in(t, Rect::new(r.x, r.y + r.h * 0.5 - 12.0, r.w, 24.0), 13.0, Weight::Regular, TEXT_FAINT, Align::Center);
-            }
-        }
-    }
-
-    /// The wheel and the cursor over the showroom, once the panels have had the mouse.
-    pub fn showroom_pointer(&mut self, r: Rect) {
-        if self.ui.over_ui || !r.contains(self.ui.input.mouse) {
-            return;
-        }
-        if self.ui.input.wheel.y.abs() > 0.0 {
-            self.showroom.zoom_by((1.0 - self.ui.input.wheel.y * 0.08).clamp(0.8, 1.25));
-        }
-        self.ui.cursor = winit::window::CursorIcon::Grab;
     }
 
     pub fn go(&mut self, p: Page) {
         if self.page != p {
             self.page = p;
-            self.page_anim = 0.0;
-            self.page_scroll = 0.0;
             self.phone.page = match p {
                 Page::Drive => { self.phone.tab = phone::Tab::Play; None }
                 Page::Multiplayer => { self.phone.tab = phone::Tab::Online; None }
@@ -1393,96 +863,6 @@ impl Launcher {
         }
     }
 
-    fn rail(&mut self) {
-        let size = self.ui.size;
-        let rail = Rect::new(0.0, 0.0, RAIL_W, size.y);
-        self.ui.solid(rail);
-        self.ui.p().rect(rail, RAIL);
-        self.ui.p().rect(Rect::new(RAIL_W - 1.0, 0.0, 1.0, size.y), EDGE);
-        self.ui.text("openOMSI", Vec2::new(24.0, 46.0), 20.0, Weight::Bold, TEXT, Align::Left);
-        self.ui.text(crate::startup::VERSION, Vec2::new(24.0, 64.0), 12.0, Weight::Regular, TEXT_DIM, Align::Left);
-        let mut y = 96.0;
-        let running = self.state.instances.iter().filter(|i| i.running).count();
-        let jobs = self.state.jobs.iter().filter(|j| j.finished.is_none()).count();
-        for (p, name, icon) in PAGES {
-            let r = Rect::new(12.0, y, RAIL_W - 24.0, 38.0);
-            let id = ui::id_of(&format!("nav-{name}"));
-            let (h, _, clicked) = self.ui.interact(id, r);
-            if clicked {
-                self.go(p);
-            }
-            let sel = self.page == p;
-            if sel {
-                self.ui.p().rounded(r, 6.0, SELECTED);
-                self.ui.p().rounded(Rect::new(r.x, r.y + 10.0, 2.0, r.h - 20.0), 1.0, ACCENT);
-            } else if h {
-                self.ui.p().rounded(r, 6.0, HOVER);
-            }
-            let c = if sel { TEXT } else if h { TEXT_SOFT } else { TEXT_DIM };
-            self.ui.icon(icon, Vec2::new(r.x + 20.0, r.center().y), 18.0, c);
-            self.ui.text_in(name, Rect::new(r.x + 40.0, r.y, r.w - 70.0, r.h), 13.5, if sel { Weight::Medium } else { Weight::Regular }, c, Align::Left);
-            let count = match p {
-                Page::Sessions => running,
-                Page::Mods => jobs,
-                _ => 0,
-            };
-            if count > 0 {
-                self.ui.text_in(&count.to_string(), Rect::new(r.right() - 30.0, r.y, 20.0, r.h), 12.0, Weight::Bold, if p == Page::Sessions { OK } else { ACCENT }, Align::Right);
-            }
-            y += 42.0;
-        }
-        // the driver, quietly at the bottom
-        let card = Rect::new(12.0, size.y - 64.0, RAIL_W - 24.0, 48.0);
-        let id = ui::id_of("rail-profile");
-        let (h, _, clicked) = self.ui.interact(id, card);
-        if clicked {
-            self.go(Page::Profile);
-        }
-        if h {
-            self.ui.p().rounded(card, 6.0, HOVER);
-        }
-        let (level, name) = match &self.state.profile {
-            Some(p) => (p.level, p.name.clone()),
-            None => (1, self.state.config.profile.clone()),
-        };
-        self.ui.icon("account_circle", Vec2::new(card.x + 22.0, card.center().y), 24.0, TEXT_DIM);
-        self.ui.text_in(if name.is_empty() { "No driver" } else { &name }, Rect::new(card.x + 42.0, card.y + 6.0, card.w - 48.0, 18.0), 13.0, Weight::Medium, TEXT, Align::Left);
-        self.ui.text_in(&format!("Level {level}"), Rect::new(card.x + 42.0, card.y + 24.0, card.w - 48.0, 16.0), 11.5, Weight::Regular, TEXT_DIM, Align::Left);
-    }
-
-    fn status_bar(&mut self) {
-        let (text, err, at) = self.state.status.clone();
-        if text.is_empty() {
-            return;
-        }
-        let fade = if err { 1.0 } else { (1.0 - (at.elapsed().as_secs_f32() - 6.0) / 1.5).clamp(0.0, 1.0) };
-        if fade <= 0.0 {
-            return;
-        }
-        let size = self.ui.size;
-        let first = text.lines().next().unwrap_or("").to_string();
-        let rail_w = if mobile::mobile() { mobile::RAIL_W_MOBILE } else { RAIL_W };
-        let r = Rect::new(rail_w + 20.0, size.y - 30.0, size.x - rail_w - 40.0, 24.0);
-        if mobile::mobile() {
-            // (readable over a page scrolled under it)
-            self.ui.p().rect(Rect::new(rail_w, size.y - 34.0, size.x - rail_w, 34.0), RAIL.alpha(0.92));
-        }
-        let c = if err { DANGER } else { TEXT_DIM };
-        self.ui.text_in(&first, r, 12.0, Weight::Regular, c.alpha(fade), Align::Left);
-        self.ui.tooltip(r, &text);
-    }
-
-    /// A page's title and what it is for.
-    pub fn page_title(&mut self, r: Rect, title: &str, sub: &str) -> Rect {
-        self.ui.text(title, Vec2::new(r.x, r.y + 22.0), 22.0, Weight::Bold, TEXT, Align::Left);
-        if !sub.is_empty() {
-            // (a narrow window: the line stops short of the tabs some pages put top right,
-            // it ran under them on a phone)
-            let w = if r.w < 1100.0 { r.w - 340.0 } else { r.w };
-            self.ui.text_in(sub, Rect::new(r.x, r.y + 34.0, w, 20.0), 12.5, Weight::Regular, TEXT_DIM, Align::Left);
-        }
-        Rect::new(r.x, r.y + 64.0, r.w, (r.h - 64.0).max(0.0))
-    }
 }
 
 

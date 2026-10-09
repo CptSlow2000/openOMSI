@@ -1,15 +1,15 @@
 //! The Controls page: the keyboard's bindings (two lists, a key given by pressing it, the
 //! picker of every action a key can be given), and the game controllers - the devices of
 //! `gamectrler.cfg`, what their axes and buttons do, the set-up assistant and the force
-//! feedback's direction test. What the data is and how it is saved lives with the previous
-//! interface (`pages.rs`, `keybind_picker.rs`); this is how it is shown and changed.
+//! feedback's direction test. What the data is and how it is saved lives in `pages.rs` and
+//! `keybind_picker.rs`; this is how it is shown and changed.
 
 use super::kit::{self, len, lp, tr};
 use super::theme::{ACCENT, DANGER, OK};
 use super::Msg as Top;
 use crate::controllers::{self, Connected, DeviceCfg, Func};
 use crate::launcher::pages::keybind_picker::{bus_usage_label, controller_action_choices, ensure_key_action_catalog, filter_action_options, normalize_source_query, source_suggestions};
-use crate::launcher::pages::{self, Wizard, WIZARD_STEPS};
+use crate::launcher::pages::{self, PadsView, Wizard, WIZARD_STEPS};
 use crate::launcher::Launcher;
 use egui_retained::widgets::{Button, Checkbox, Icon, Select, Slider, Text, TextInput};
 use egui_retained::{Color32, Element, Layer, MeasureCx, NodeId, PaintCx, ScrollAxes, Ui, Vec2, Visual, taffy};
@@ -1200,11 +1200,7 @@ pub(in crate::launcher) fn handle(l: &mut Launcher, msg: Msg) {
                 pv.confirm_remove = Some(std::time::Instant::now());
             }
         }
-        Msg::WizCancel => {
-            let pv = &mut l.pages.pads;
-            pages::release_feedback(&mut pv.io, &mut pv.feedback_test);
-            pv.wizard = None;
-        }
+        Msg::WizCancel => wiz_cancel(&mut l.pages.pads),
         Msg::WizNext | Msg::WizSkip => {
             let connected = l.gui.as_ref().and_then(|g| g.controls.as_ref()).map(|p| p.connected.clone()).unwrap_or_default();
             let pv = &mut l.pages.pads;
@@ -1227,22 +1223,7 @@ pub(in crate::launcher) fn handle(l: &mut Launcher, msg: Msg) {
         Msg::FfTest => {
             let connected = l.gui.as_ref().and_then(|g| g.controls.as_ref()).map(|p| p.connected.clone()).unwrap_or_default();
             let hwnd = l.window.as_deref().and_then(controllers::window_handle);
-            let pv = &mut l.pages.pads;
-            let Some(d) = pv.devices.as_ref().and_then(|v| v.get(pv.selected)) else { return };
-            let Some(w) = pv.wizard.as_mut() else { return };
-            let axes = pages::wizard_result(&w.rest, &w.at);
-            let axis = axes.iter().position(|a| matches!(a, Some((Func::Steering, _))));
-            let dev = controllers::find_connected(&connected, &d.name);
-            if dev.is_none() || axis.is_none() {
-                w.error = Some("The wheel is unavailable. Reconnect it and try again.".into());
-            } else {
-                pv.io = None;
-                pv.io = Some(controllers::Devices::new(hwnd, true));
-                pv.feedback_test = true;
-                w.error = None;
-                log::info!("FFB calibration: device {}, raw steering axis {:?}, test strength {:.0}%", d.name, axis, w.test_strength * 100.0);
-                w.calibration = Some((std::time::Instant::now(), crate::ffb_calibration::Calibration::new(w.test_strength)));
-            }
+            ff_test(&mut l.pages.pads, &connected, || controllers::Devices::new(hwnd, true));
         }
         Msg::FfManual(v) => {
             if let Some(w) = l.pages.pads.wizard.as_mut() {
@@ -1251,17 +1232,50 @@ pub(in crate::launcher) fn handle(l: &mut Launcher, msg: Msg) {
         }
         Msg::FfFinish => {
             let global = l.state.settings.get("ff_invert").and_then(|v| v.as_bool()).unwrap_or(false);
-            let pv = &mut l.pages.pads;
-            let Some(d) = pv.devices.as_mut().and_then(|v| v.get_mut(pv.selected)) else { return };
-            let Some(w) = pv.wizard.as_ref() else { return };
-            d.axes = pages::wizard_result(&w.rest, &w.at);
-            d.ff_invert = Some(w.ff_choice.or(d.ff_invert).unwrap_or(global));
-            pages::release_feedback(&mut pv.io, &mut pv.feedback_test);
-            pv.wizard = None;
-            pv.dirty = true;
-            l.state.set_status("Set up: press Save to keep it (the buttons can be given their keys below).", false);
+            if ff_finish(&mut l.pages.pads, global) {
+                l.state.set_status("Set up: press Save to keep it (the buttons can be given their keys below).", false);
+            }
         }
     }
+}
+
+/// The assistant given up: the device stays as it was, the force feedback is let go.
+fn wiz_cancel(pv: &mut PadsView) {
+    pages::release_feedback(&mut pv.io, &mut pv.feedback_test);
+    pv.wizard = None;
+}
+
+/// The force feedback's direction test started on the device shown - only when it is
+/// connected and its steering axis is known (else the assistant says so). `open` opens the
+/// devices for force feedback.
+fn ff_test(pv: &mut PadsView, connected: &[Connected], open: impl FnOnce() -> controllers::Devices) {
+    let Some(d) = pv.devices.as_ref().and_then(|v| v.get(pv.selected)) else { return };
+    let Some(w) = pv.wizard.as_mut() else { return };
+    let axes = pages::wizard_result(&w.rest, &w.at);
+    let axis = axes.iter().position(|a| matches!(a, Some((Func::Steering, _))));
+    if controllers::find_connected(connected, &d.name).is_none() || axis.is_none() {
+        w.error = Some("The wheel is unavailable. Reconnect it and try again.".into());
+        return;
+    }
+    pv.io = None;
+    pv.io = Some(open());
+    pv.feedback_test = true;
+    w.error = None;
+    log::info!("FFB calibration: device {}, raw steering axis {:?}, test strength {:.0}%", d.name, axis, w.test_strength * 100.0);
+    w.calibration = Some((std::time::Instant::now(), crate::ffb_calibration::Calibration::new(w.test_strength)));
+}
+
+/// The assistant finished: the axes it found and the force feedback's direction (the one
+/// chosen or found, else the device's, else `global`) go to the device. Whether it did.
+fn ff_finish(pv: &mut PadsView, global: bool) -> bool {
+    let Some(d) = pv.devices.as_mut().and_then(|v| v.get_mut(pv.selected)) else { return false };
+    let Some(w) = pv.wizard.as_ref() else { return false };
+    d.axes = pages::wizard_result(&w.rest, &w.at);
+    d.ff_invert = Some(w.ff_choice.or(d.ff_invert).unwrap_or(global));
+    pages::release_feedback(&mut pv.io, &mut pv.feedback_test);
+    pv.wizard = None;
+    pv.dirty = true;
+    true
 }
 
 fn selected(l: &Launcher) -> Option<&DeviceCfg> {
@@ -1274,5 +1288,55 @@ fn edit(l: &mut Launcher, f: impl FnOnce(&mut DeviceCfg)) {
     if let Some(d) = pv.devices.as_mut().and_then(|v| v.get_mut(pv.selected)) {
         f(d);
         pv.dirty = true;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The assistant at the force feedback's step, a wheel that steers with axis 0.
+    fn at_feedback(device: DeviceCfg) -> PadsView {
+        PadsView {
+            devices: Some(vec![device]),
+            wizard: Some(Wizard {
+                step: WIZARD_STEPS.len(),
+                rest: [Some(0.0); 8],
+                at: vec![[Some(-1.0), None, None, None, None, None, None, None], [None; 8], [None; 8], [None; 8]],
+                error: None,
+                calibration: None,
+                ff_choice: None,
+                test_strength: crate::ffb_calibration::PULSE_FORCE,
+            }),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn manual_direction_is_only_applied_on_finish_and_cancel_preserves_the_device() {
+        let original = DeviceCfg { ff_invert: Some(true), ..Default::default() };
+        let mut pv = at_feedback(original.clone());
+        pv.wizard.as_mut().unwrap().ff_choice = Some(false);
+        assert_eq!(pv.devices.as_ref().unwrap()[0], original);
+        wiz_cancel(&mut pv);
+        assert!(pv.wizard.is_none());
+        assert_eq!(pv.devices.as_ref().unwrap()[0], original);
+        let mut pv = at_feedback(original);
+        pv.wizard.as_mut().unwrap().ff_choice = Some(false);
+        assert!(ff_finish(&mut pv, true));
+        let d = &pv.devices.as_ref().unwrap()[0];
+        assert_eq!(d.ff_invert, Some(false));
+        assert_eq!(d.axes[0], Some((Func::Steering, false)));
+        assert!(pv.dirty && pv.wizard.is_none() && pv.io.is_none());
+    }
+
+    #[test]
+    fn disconnected_wheel_cannot_start_a_hardware_test() {
+        let mut pv = at_feedback(DeviceCfg::default());
+        ff_test(&mut pv, &[], || unreachable!("no device is opened for a wheel that is not there"));
+        let w = pv.wizard.as_ref().unwrap();
+        assert!(w.error.is_some());
+        assert!(w.calibration.is_none());
+        assert!(!pv.feedback_test && pv.io.is_none());
     }
 }
