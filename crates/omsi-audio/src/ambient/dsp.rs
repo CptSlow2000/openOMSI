@@ -207,7 +207,7 @@ impl Ramp {
     }
 
     #[inline]
-    pub fn next(&mut self) -> f32 {
+    pub fn tick(&mut self) -> f32 {
         if self.left > 0 {
             self.cur += self.step;
             self.left -= 1;
@@ -330,7 +330,7 @@ mod tests {
     fn a_ramp_arrives_in_a_straight_line() {
         let mut r = Ramp::new(0.0);
         r.to(1.0, 4);
-        let v: Vec<f32> = (0..6).map(|_| r.next()).collect();
+        let v: Vec<f32> = (0..6).map(|_| r.tick()).collect();
         assert_eq!(v, vec![0.25, 0.5, 0.75, 1.0, 1.0, 1.0]);
     }
 }

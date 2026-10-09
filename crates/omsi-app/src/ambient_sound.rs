@@ -239,7 +239,7 @@ impl AmbientSound {
 
     /// The player's bus's tyres as the listener hears them: each side of the front axle and
     /// of the rear ones, on the surface under it (also told to the bus's scripts).
-    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments, clippy::needless_range_loop)]
     fn wheels(&mut self, w: &crate::scene::World, v: &mut omsi_sim::VehicleInstance, ear: &DVec3, right: Vec3, inside: bool, wetness: f32, speed: f32, (snowy, lying): (bool, bool)) -> [WheelInput; MAX_WHEELS] {
         let mut out = [WheelInput::default(); MAX_WHEELS];
         let Some(rb) = v.rigid.as_ref() else {

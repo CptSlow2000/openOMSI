@@ -191,12 +191,13 @@ impl Tyre {
     }
 
     /// Add `n` samples of this wheel into `out`.
+    #[allow(clippy::needless_range_loop)]
     pub fn render(&mut self, out: [&mut [f32]; 2], n: usize, rate: f32) {
         if !self.audible() {
             // (the ramps still move, so a wheel coming back starts from where it was)
             for _ in 0..n {
-                self.gain[0].next();
-                self.gain[1].next();
+                self.gain[0].tick();
+                self.gain[1].tick();
             }
             return;
         }
@@ -296,7 +297,7 @@ impl Tyre {
             if wash_gain > 1.0e-6 {
                 y += self.wash.run(pink) * wash_gain;
             }
-            let (gl, gr) = (self.gain[0].next(), self.gain[1].next());
+            let (gl, gr) = (self.gain[0].tick(), self.gain[1].tick());
             // heard through the floor: the panels pass the rumble, not the edge
             let y = if floor {
                 let a = self.floor[1].lp(y);

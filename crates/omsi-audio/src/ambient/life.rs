@@ -219,7 +219,7 @@ impl Scatter {
             // (silent: no excerpt runs, the next starts fresh when it is wanted)
             self.playing.clear();
             for _ in 0..n {
-                self.level.next();
+                self.level.tick();
             }
             return;
         }
@@ -229,7 +229,7 @@ impl Scatter {
         let fade = self.fade.max(1);
         let [l, r] = env;
         for i in 0..n {
-            let g = self.level.next();
+            let g = self.level.tick();
             // the next excerpt comes in as the last one starts to fade out
             if self.playing.last().is_some_and(|e| e.at + fade == e.len) {
                 self.start(rate);

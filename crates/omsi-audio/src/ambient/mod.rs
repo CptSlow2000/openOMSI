@@ -380,8 +380,8 @@ impl Ambient {
         self.out_gain.to(on * p.volume.clamp(0.0, 1.0) * master.max(0.0), n);
         let mut total = 0.0f32;
         for i in 0..n {
-            let w = self.wall_ramp.next();
-            let og = self.out_gain.next();
+            let w = self.wall_ramp.tick();
+            let og = self.out_gain.tick();
             let [wl, wr] = &mut self.wall;
             let el = wl[0].lp(self.env[0][i]);
             let er = wr[0].lp(self.env[1][i]);

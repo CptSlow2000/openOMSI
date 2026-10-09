@@ -180,7 +180,7 @@ impl Offscreen<'_> {
                 rec.samples.push((x * 32767.0).round().clamp(-32768.0, 32767.0) as i16);
             }
         }
-        if i % 30 == 0 {
+        if i.is_multiple_of(30) {
             let parts: Vec<String> = omsi_audio::ambient::PARTS.iter().zip(a.ambient_levels()).filter(|(_, l)| *l > 1.0e-5).map(|(k, l)| format!("{k} {:.0}", 20.0 * l.log10())).collect();
             log::info!("record: {:.1} s, {} [{}]", t_s, rec.ambient.last, parts.join(", "));
         }
