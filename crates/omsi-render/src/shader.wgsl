@@ -968,13 +968,11 @@ fn shadow_receiver_slope(lvp: mat4x4<f32>, n: vec3<f32>) -> vec2<f32> {
     return clamp(g, vec2<f32>(-2.0), vec2<f32>(2.0));
 }
 
-// The filter's half width in texels of each cascade. The penumbra the old 16-tap Poisson
-// disc gave (1.6, 1.8 and 2.2 texels across, plus the bilinear compare's own texel): a tent
-// of these radii spreads a shadow edge by as much (the same second moment), so the shadows
-// keep their softness.
-const SHADOW_TENT_NEAR: f32 = 2.2;
-const SHADOW_TENT_CLOSE: f32 = 2.4;
-const SHADOW_TENT_FAR: f32 = 2.9;
+// The filter's half width in texels. A tent of 2 texels covers 4 x 4 texels, two gathers a
+// side - four in all, fewer texture reads than the Poisson kernel's five (sixteen on an
+// edge) - and spreads an edge about as the old kernel did in the near and close cascades
+// (0.82 of a texel's standard deviation against 0.9 and 1.0; a fifth sharper in the far one).
+const SHADOW_TENT: f32 = 2.0;
 // At most this many 2 x 2 gathers along each axis (a tent up to 5.5 texels wide).
 const SHADOW_TENT_BLOCKS: i32 = 6;
 
@@ -1029,14 +1027,14 @@ fn shadow_tent(near_atlas: bool, uv: vec2<f32>, size: f32, origin: vec2<f32>, z:
 // cascade's own the filter is (Enhanced: a veil of high cloud enlarging the sun).
 fn shadow_pcf_near(uv: vec2<f32>, z: f32, slope: vec2<f32>, widen: f32) -> f32 {
     let size = f32(textureDimensions(t_shadow).y);
-    return shadow_tent(true, uv, size, vec2<f32>(0.0), z, slope, SHADOW_TENT_NEAR * widen, SHADOW_BIAS_NEAR / SHADOW_DEPTH_RANGE);
+    return shadow_tent(true, uv, size, vec2<f32>(0.0), z, slope, SHADOW_TENT * widen, SHADOW_BIAS_NEAR / SHADOW_DEPTH_RANGE);
 }
 
 fn shadow_pcf_close(uv: vec2<f32>, z: f32, slope: vec2<f32>) -> f32 {
     // (camera.post.w: the close map's size over the near map's)
     let half = f32(textureDimensions(t_shadow).y);
     let size = half * select(1.0, camera.post.w, camera.post.w > 0.0);
-    return shadow_tent(true, uv, size, vec2<f32>(half, 0.0), z, slope, SHADOW_TENT_CLOSE, SHADOW_BIAS_CLOSE / SHADOW_DEPTH_RANGE);
+    return shadow_tent(true, uv, size, vec2<f32>(half, 0.0), z, slope, SHADOW_TENT, SHADOW_BIAS_CLOSE / SHADOW_DEPTH_RANGE);
 }
 
 fn shadow_push_close(n: vec3<f32>, ndl: f32) -> vec3<f32> {
@@ -1069,7 +1067,7 @@ fn shadow_close(world: vec3<f32>, n: vec3<f32>, ndl: f32, thin: bool) -> vec2<f3
 // street lamps' tiles lie under it (`FAR_MAP_ASPECT` in lib.rs).
 fn shadow_pcf_far(uv: vec2<f32>, z: f32, slope: vec2<f32>, widen: f32) -> f32 {
     let size = f32(textureDimensions(t_shadow_far).x);
-    return shadow_tent(false, uv, size, vec2<f32>(0.0), z, slope, SHADOW_TENT_FAR * widen, SHADOW_BIAS_FAR / SHADOW_DEPTH_RANGE);
+    return shadow_tent(false, uv, size, vec2<f32>(0.0), z, slope, SHADOW_TENT * widen, SHADOW_BIAS_FAR / SHADOW_DEPTH_RANGE);
 }
 
 // The shadow lookup point: pushed off the surface along its normal by about a texel of the
