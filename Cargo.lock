@@ -1439,7 +1439,7 @@ checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
 [[package]]
 name = "ecolor"
 version = "0.35.0"
-source = "git+https://github.com/openOMSI-org/egui-openomsi?rev=fa65df8e695b2e3f056d6b4743632bfa07f366f6#fa65df8e695b2e3f056d6b4743632bfa07f366f6"
+source = "git+https://github.com/openOMSI-org/egui-openomsi?rev=bf386ff85e4e80bc6f3c6cc9bc730b2dd82f4aa8#bf386ff85e4e80bc6f3c6cc9bc730b2dd82f4aa8"
 dependencies = [
  "bytemuck",
  "emath",
@@ -1470,7 +1470,7 @@ dependencies = [
 [[package]]
 name = "egui-wgpu"
 version = "0.35.0"
-source = "git+https://github.com/openOMSI-org/egui-openomsi?rev=fa65df8e695b2e3f056d6b4743632bfa07f366f6#fa65df8e695b2e3f056d6b4743632bfa07f366f6"
+source = "git+https://github.com/openOMSI-org/egui-openomsi?rev=bf386ff85e4e80bc6f3c6cc9bc730b2dd82f4aa8#bf386ff85e4e80bc6f3c6cc9bc730b2dd82f4aa8"
 dependencies = [
  "ahash",
  "bytemuck",
@@ -1487,7 +1487,7 @@ dependencies = [
 [[package]]
 name = "egui_retained"
 version = "0.35.0"
-source = "git+https://github.com/openOMSI-org/egui-openomsi?rev=fa65df8e695b2e3f056d6b4743632bfa07f366f6#fa65df8e695b2e3f056d6b4743632bfa07f366f6"
+source = "git+https://github.com/openOMSI-org/egui-openomsi?rev=bf386ff85e4e80bc6f3c6cc9bc730b2dd82f4aa8#bf386ff85e4e80bc6f3c6cc9bc730b2dd82f4aa8"
 dependencies = [
  "ecolor",
  "egui-wgpu",
@@ -1508,7 +1508,7 @@ checksum = "252afb9ae5eaa683babdc6a068b3f5726eb19e05070c731f9b2a23a7c3e8ed34"
 [[package]]
 name = "emath"
 version = "0.35.0"
-source = "git+https://github.com/openOMSI-org/egui-openomsi?rev=fa65df8e695b2e3f056d6b4743632bfa07f366f6#fa65df8e695b2e3f056d6b4743632bfa07f366f6"
+source = "git+https://github.com/openOMSI-org/egui-openomsi?rev=bf386ff85e4e80bc6f3c6cc9bc730b2dd82f4aa8#bf386ff85e4e80bc6f3c6cc9bc730b2dd82f4aa8"
 dependencies = [
  "bytemuck",
 ]
@@ -1611,7 +1611,7 @@ dependencies = [
 [[package]]
 name = "epaint"
 version = "0.35.0"
-source = "git+https://github.com/openOMSI-org/egui-openomsi?rev=fa65df8e695b2e3f056d6b4743632bfa07f366f6#fa65df8e695b2e3f056d6b4743632bfa07f366f6"
+source = "git+https://github.com/openOMSI-org/egui-openomsi?rev=bf386ff85e4e80bc6f3c6cc9bc730b2dd82f4aa8#bf386ff85e4e80bc6f3c6cc9bc730b2dd82f4aa8"
 dependencies = [
  "ahash",
  "bytemuck",
@@ -1635,7 +1635,7 @@ dependencies = [
 [[package]]
 name = "epaint_default_fonts"
 version = "0.35.0"
-source = "git+https://github.com/openOMSI-org/egui-openomsi?rev=fa65df8e695b2e3f056d6b4743632bfa07f366f6#fa65df8e695b2e3f056d6b4743632bfa07f366f6"
+source = "git+https://github.com/openOMSI-org/egui-openomsi?rev=bf386ff85e4e80bc6f3c6cc9bc730b2dd82f4aa8#bf386ff85e4e80bc6f3c6cc9bc730b2dd82f4aa8"
 
 [[package]]
 name = "equivalent"

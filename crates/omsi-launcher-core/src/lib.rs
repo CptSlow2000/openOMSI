@@ -10,6 +10,7 @@
 pub mod index;
 pub mod install;
 pub mod instances;
+pub mod mods;
 
 use anyhow::{anyhow, Context, Result};
 use serde::{Deserialize, Serialize};
@@ -438,6 +439,8 @@ pub struct ModsStatus {
     /// What an earlier, interrupted install left and was removed now.
     pub cleaned: Vec<String>,
     pub jobs: Vec<install::Progress>,
+    /// Every mod, one by one (see `mods`).
+    pub installed: Vec<mods::Mod>,
 }
 
 /// Start installing the mod at `src` (a folder, .zip, .7z or .rar) into the content folder in the
@@ -474,7 +477,7 @@ fn inbox_entries(content: &Path) -> Vec<PathBuf> {
         .map(|e| e.path())
         .filter(|p| {
             let name = p.file_name().unwrap_or_default().to_string_lossy().to_string();
-            !(name.starts_with('.') || name.eq_ignore_ascii_case("installed") || name.eq_ignore_ascii_case(install::WAITING) || name.eq_ignore_ascii_case(install::PLUGINS_HELD) || name.eq_ignore_ascii_case(install::UNINSTALLED) || name.eq_ignore_ascii_case("README.txt"))
+            !(name.starts_with('.') || name.eq_ignore_ascii_case("installed") || name.eq_ignore_ascii_case(install::WAITING) || name.eq_ignore_ascii_case(install::PLUGINS_HELD) || name.eq_ignore_ascii_case(install::UNINSTALLED) || name.eq_ignore_ascii_case(mods::DISABLED) || name.eq_ignore_ascii_case("README.txt"))
                 && (p.is_dir() || p.extension().map(|x| ["zip", "7z", "rar"].iter().any(|ext| x.eq_ignore_ascii_case(ext))).unwrap_or(false))
         })
         .collect();
@@ -608,7 +611,20 @@ pub fn mods_status() -> Result<ModsStatus> {
         free_bytes: install::free_space(&content).unwrap_or(0),
         cleaned,
         jobs: install::jobs(),
+        installed: mods::list(&content),
     })
+}
+
+/// Switch the mod `id` of the content folder off or on (see `mods::set_enabled`); its name.
+pub fn mod_set_enabled(id: &str, on: bool) -> Result<String> {
+    let content = content_dir().ok_or_else(|| anyhow!("no game binary configured, so no content folder"))?;
+    mods::set_enabled(&content, id, on)
+}
+
+/// Delete the mod `id` of the content folder (see `mods::remove`); its name.
+pub fn mod_remove(id: &str) -> Result<String> {
+    let content = content_dir().ok_or_else(|| anyhow!("no game binary configured, so no content folder"))?;
+    mods::remove(&content, id)
 }
 
 /// What the page asks every few seconds: whether the content changed (then it asks for the

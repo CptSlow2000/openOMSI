@@ -39,15 +39,24 @@ impl TutorialsPage {
                 s.size.width = taffy::Dimension::percent(0.48);
                 s.flex_grow = 1.0;
                 s.min_size.width = len(320.0);
-                s.max_size.height = len(340.0);
+                s.max_size.height = len(300.0);
+                s.overflow = taffy::Point { x: taffy::Overflow::Hidden, y: taffy::Overflow::Hidden };
             });
             let t = kit::text(ui, c, title, "heading");
             ui.visual(t, egui_retained::Visual::new().font_size(17.0_f32));
+            // (the lesson's first lines; a long one is cut at the card's foot)
             let body = kit::para(ui, c, text, "dim");
-            kit::grow(ui, body);
-            ui.style(body, |s| s.overflow = taffy::Point { x: taffy::Overflow::Hidden, y: taffy::Overflow::Hidden });
+            ui.style(body, |s| {
+                s.flex_shrink = 1.0;
+                s.min_size.height = len(0.0);
+                s.overflow = taffy::Point { x: taffy::Overflow::Hidden, y: taffy::Overflow::Hidden };
+            });
             let b = ui.add(c, Button::new(tr("Start the lesson")).icon("play_arrow").class("primary"));
-            ui.style(b, |s| s.align_self = Some(taffy::AlignSelf::FlexStart));
+            ui.style(b, |s| {
+                s.align_self = Some(taffy::AlignSelf::FlexStart);
+                s.margin.top = taffy::LengthPercentageAuto::auto();
+                s.flex_shrink = 0.0;
+            });
             ui.on_click(b, Top::Tutorials(Msg::Start(*n)));
         }
         TutorialsPage { root }

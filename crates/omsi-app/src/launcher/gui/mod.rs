@@ -123,8 +123,6 @@ impl Gui {
         ui.add_class(header, "header");
         let brand = ui.text(header, "openOMSI");
         ui.add_class(brand, "brand");
-        let name = ui.text(header, "Launcher");
-        ui.add_class(name, "app-name");
         ui.spacer(header);
         let theme_button = ui.add(header, Button::new(""));
         ui.on_click(theme_button, Msg::ToggleTheme);
@@ -499,6 +497,7 @@ impl Launcher {
         self.gui_controls_tick();
         self.gui_multiplayer_tick();
         self.gui_timetable_tick();
+        self.gui_mods_tick();
         let Some(mut g) = self.gui.take() else { return };
         // (the renderer from the first frame: a frame not shown - a hidden window - still
         // hands its textures over, the fonts' atlas among them)

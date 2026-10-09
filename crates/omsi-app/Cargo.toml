@@ -67,7 +67,7 @@ zip.workspace = true
 arboard = { version = "3", default-features = false }
 # The launcher's interface: the retained-mode core of the org's egui fork (on epaint and egui-wgpu)
 # the interface of the launcher: the org's egui fork, its retained-mode crate
-egui_retained = { git = "https://github.com/openOMSI-org/egui-openomsi", rev = "fa65df8e695b2e3f056d6b4743632bfa07f366f6", features = ["wgpu", "winit"] }
+egui_retained = { git = "https://github.com/openOMSI-org/egui-openomsi", rev = "bf386ff85e4e80bc6f3c6cc9bc730b2dd82f4aa8", features = ["wgpu", "winit"] }
 rfd.workspace = true
 
 # Steam's rich presence: only where `assets/steam_redist` has the library (the build script

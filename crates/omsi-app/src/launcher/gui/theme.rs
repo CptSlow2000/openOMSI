@@ -27,6 +27,7 @@ struct Palette {
     text_faint: Color32,
     nav_hover: Color32,
     selected: Color32,
+    row_selected: Color32,
 }
 
 const DARK: Palette = Palette {
@@ -45,6 +46,7 @@ const DARK: Palette = Palette {
     text_faint: Color32::from_rgb(0x66, 0x69, 0x70),
     nav_hover: Color32::from_rgb(0x22, 0x25, 0x2C),
     selected: Color32::from_rgb(0x70, 0x3D, 0x21),
+    row_selected: Color32::from_rgb(0x2A, 0x22, 0x1D),
 };
 
 const LIGHT: Palette = Palette {
@@ -63,6 +65,7 @@ const LIGHT: Palette = Palette {
     text_faint: Color32::from_rgb(0x8A, 0x8F, 0x97),
     nav_hover: Color32::from_rgb(0xDE, 0xE1, 0xE6),
     selected: Color32::from_rgb(0xFC, 0xDD, 0xC8),
+    row_selected: Color32::from_rgb(0xFE, 0xF1, 0xE8),
 };
 
 fn lp(v: f32) -> taffy::LengthPercentage {
@@ -146,9 +149,11 @@ pub fn theme(dark: bool) -> Theme {
     t.rule("tab", Rule::visual(v().radius(6.0_f32).color(p.text_dim).cursor(Cursor::Pointer)
         .on_hover(v().color(p.text_strong).background(p.nav_hover))
         .on_select(v().background(p.selected).color(ACCENT))));
-    t.rule("list-row", Rule::visual(v().radius(8.0_f32).cursor(Cursor::Pointer).transition(0.08_f32)
+    // (a chosen row keeps its texts' colours, grey and orange among them: a faint tint and an
+    // orange edge say it is chosen, not a fill they would not read on)
+    t.rule("list-row", Rule::visual(v().radius(8.0_f32).cursor(Cursor::Pointer).transition(0.08_f32).border(Stroke::new(1.0, Color32::TRANSPARENT))
         .on_hover(v().background(p.nav_hover))
-        .on_select(v().background(p.selected)))
+        .on_select(v().background(p.row_selected).border(Stroke::new(1.0, ACCENT.gamma_multiply(0.7)))))
         .with_layout(|s| {
             s.padding = taffy::Rect { left: lp(10.0), right: lp(10.0), top: lp(7.0), bottom: lp(7.0) };
             s.flex_shrink = 0.0;
