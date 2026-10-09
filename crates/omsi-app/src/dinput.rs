@@ -45,12 +45,33 @@ impl Default for RawState {
 const RANGE: i32 = 10_000;
 const VJOY_HARDWARE_ID: (u16, u16) = (0x1234, 0xBEAD);
 const LOGITECH_VENDOR: u16 = 0x046D;
+/// The G923's product ids (PlayStation/PC and Xbox models, each in both of its modes).
+const G923_PRODUCTS: [u16; 4] = [0xC266, 0xC267, 0xC26D, 0xC26E];
 
-/// Logitech's wheels turn the other way from DirectInput's positive force (measured on a G923
-/// with a pulse test: +0.15 turned it left, -0.15 right), which made the game's centring
-/// spring a push away from the middle. The other makers' wheels do not.
+/// A G923 turns the other way from DirectInput's positive force (measured with a pulse test:
+/// +0.15 turned it left, -0.15 right), which made the game's centring spring a push away from
+/// the middle. Only the G923, the one wheel measured: the other models stay as they were
+/// until one of them is.
 fn force_flipped_for(hardware_id: Option<(u16, u16)>) -> bool {
-    hardware_id.is_some_and(|(vendor, _)| vendor == LOGITECH_VENDOR)
+    hardware_id.is_some_and(|(vendor, product)| vendor == LOGITECH_VENDOR && G923_PRODUCTS.contains(&product))
+}
+
+/// `OMSI_TRACE_FFB=<csv>`: the force feedback frame by frame - the wheel's position (now and
+/// a frame before), whether the force was turned round, the force sent and what made it.
+pub(crate) fn trace_ffb(f: &crate::controllers::FfInput, x: f32, x0: f32, inverted: bool, force: f32) {
+    let Some(path) = omsi_cfg::flags::OMSI_TRACE_FFB.os() else { return };
+    use std::io::Write;
+    static TRACE: std::sync::Mutex<Option<(std::fs::File, std::time::Instant)>> = std::sync::Mutex::new(None);
+    let mut g = TRACE.lock().unwrap_or_else(|e| e.into_inner());
+    if g.is_none() {
+        *g = std::fs::File::create(&path).ok().map(|mut file| {
+            let _ = writeln!(file, "t,dt,kmh,pos,pos_before,inverted,force_sent,lateral,bump,micro");
+            (file, std::time::Instant::now())
+        });
+    }
+    if let Some((file, t0)) = g.as_mut() {
+        let _ = writeln!(file, "{:.3},{:.4},{:.2},{:.4},{:.4},{},{:.4},{:.3},{:.3},{:.3}", t0.elapsed().as_secs_f32(), f.dt, f.kmh, x, x0, inverted as u8, force, f.lateral_accel, f.wheel_bump, f.micro);
+    }
 }
 /// A failed read after reacquiring can be transient, but several in a row mean the
 /// DirectInput object itself is stale. Reopen it instead of keeping its last state forever.
@@ -1337,9 +1358,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn only_logitech_wheels_have_their_force_flipped() {
-        assert!(force_flipped_for(Some((0x046D, 0xC266)))); // G923
-        assert!(force_flipped_for(Some((0x046D, 0xC24F)))); // G29
+    fn only_the_g923_has_its_force_flipped() {
+        assert!(force_flipped_for(Some((0x046D, 0xC266)))); // G923 PlayStation/PC
+        assert!(force_flipped_for(Some((0x046D, 0xC26E)))); // G923 Xbox
+        assert!(!force_flipped_for(Some((0x046D, 0xC24F)))); // G29
         assert!(!force_flipped_for(Some((0x044F, 0xB66E)))); // Thrustmaster T300
         assert!(!force_flipped_for(Some(VJOY_HARDWARE_ID)));
         assert!(!force_flipped_for(None));

@@ -1542,20 +1542,7 @@ impl Controllers {
             let axis_reversed = force_axis_reversed(cfg, di.force_axis(&name));
             let inverted = feedback_inverted(cfg, self.ff_invert, axis_reversed) ^ di.force_flipped(&name);
             let force = if inverted { -force } else { force };
-            if let Some(path) = omsi_cfg::flags::OMSI_TRACE_FFB.os() {
-                use std::io::Write;
-                static TRACE: std::sync::Mutex<Option<(std::fs::File, std::time::Instant)>> = std::sync::Mutex::new(None);
-                let mut g = TRACE.lock().unwrap_or_else(|e| e.into_inner());
-                if g.is_none() {
-                    *g = std::fs::File::create(&path).ok().map(|mut f| {
-                        let _ = writeln!(f, "t,dt,kmh,pos,pos_before,inverted,force_sent,lateral,bump,micro");
-                        (f, std::time::Instant::now())
-                    });
-                }
-                if let Some((file, t0)) = g.as_mut() {
-                    let _ = writeln!(file, "{:.3},{:.4},{:.2},{:.4},{:.4},{},{:.4},{:.3},{:.3},{:.3}", t0.elapsed().as_secs_f32(), f.dt, f.kmh, x, x0, inverted as u8, force, f.lateral_accel, f.wheel_bump, f.micro);
-                }
-            }
+            crate::dinput::trace_ffb(&f, x, x0, inverted, force);
             if di.set_force(&name, force) {
                 return;
             }
