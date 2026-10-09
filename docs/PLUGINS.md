@@ -8,6 +8,11 @@ content root):
   through the plugin API: the player's bus, the duty and timetable, the map, the AI traffic
   and the people, the weather and the clock, the camera, input, sound, panels of their own
   on the screen, storage, settings and the LAN session - about 270 functions and 60 events.
+* **Compiled plugins** (`.oop`) - a plugin built with the
+  [openOMSI Development Tools](https://github.com/openOMSI-org/openOMSI-Development-Tools):
+  Lua, or Rust (and other languages) compiled to WebAssembly. One file for every platform,
+  run in a sandbox with only the permissions it declares (see
+  [below](#compiled-plugins-oop)).
 * **OMSI plugins** (`.opl` + DLL) - the original's plugins, unchanged (see
   [below](#omsi-plugins-plugins-opl-dll)).
 
@@ -805,6 +810,44 @@ declared to call the function (a plain `.lua` file has them all).
 | `lan_chat` | `name`, `text` | A line was said in the LAN session's chat (by another player or this one). | 0.2.22 |
 
 <!-- api:end -->
+
+## Compiled plugins (`.oop`)
+
+An `.oop` (openOMSI Plugin) is to a plugin what a DLL is to a program, but sandboxed: build
+output, not sources. `oopc build` of the [openOMSI Development
+Tools](https://github.com/openOMSI-org/openOMSI-Development-Tools) makes one from a plugin
+project, and the game loads `plugins/<name>.oop` like the other plugins. Two kinds:
+
+* **Lua**, compiled into one obfuscated chunk (its locals renamed, its strings encoded, its
+  modules bundled): it behaves as the sources did, through the same API, but the sources are
+  not in the file. Compiled Lua *bytecode* is refused - Lua checks no bytecode, and crafted
+  bytecode could break out of the sandbox.
+* **WebAssembly** (`wasm32-unknown-unknown`), usually Rust with the plugin SDK of the
+  Development Tools: the module calls every function of the API by its name here
+  (`openomsi.call("ui.set", ...)`, the SDK wraps them all) and gets the same events, timers
+  and watches. It runs in an interpreter (wasmi) on every platform the game runs on; one call
+  into it that runs too long stops the plugin, not the game, and it may use 256 MB of memory.
+  A callback that the module's own call raises (its `emit` reaching its own handler) runs
+  right after that call returns.
+
+What the game does with an `.oop`:
+
+* It checks the file whole before anything of it runs: a file changed after it was built, cut
+  short or made for a newer plugin API is refused (the log says why).
+* The code stays in memory; the plugin's pictures, sounds and data files go into
+  `plugins/.oop-cache/<name>/`, where its API functions read them.
+* **Permissions.** An `.oop` declares what it may do (`ui`, `storage`, `vehicle_write`,
+  `traffic_write`, `world_write`, `camera`, `audio`, `network_local`, `lan`); a function
+  that needs another one fails with an error the plugin can catch. Reading the game needs
+  none. (A plain `.lua` file keeps every permission, as before.)
+* **Signatures.** A signed plugin is logged with its author's key fingerprint
+  (`signed by 3097:e2de:e2cb:4a34`); an unsigned one with a warning that its builder is not
+  known.
+* A `.lua` plugin of the same name wins over an `.oop` (the copy being worked on).
+
+How safe the code is from copying: the file is encrypted, and the key is in the game, so it
+can be decrypted with effort - but what one gets then is the stripped or obfuscated build
+output, never the author's sources, which are not in the file.
 
 ## The telemetry file (for programs beside the game)
 

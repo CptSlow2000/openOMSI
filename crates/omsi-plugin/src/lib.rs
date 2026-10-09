@@ -29,7 +29,9 @@ pub mod api;
 pub mod io;
 pub mod lua;
 pub mod ui;
+pub mod oop;
 pub mod wasm;
+pub mod wasm_plugin;
 
 pub use io::*;
 
@@ -630,8 +632,11 @@ impl Plugin {
 #[derive(Default)]
 pub struct Plugins {
     pub loaded: Vec<Plugin>,
-    /// The Lua plugins (`plugins/*.lua`, `plugins/<name>/main.lua`).
+    /// The Lua plugins (`plugins/*.lua`, `plugins/<name>/main.lua`, and `.oop` files of
+    /// compiled Lua).
     pub lua: Vec<lua::LuaPlugin>,
+    /// The WebAssembly plugins (`.oop` files of kind `wasm`).
+    pub wasm: Vec<wasm_plugin::WasmHost>,
     /// What the Lua plugins show on the screen (`omsi.ui`), for the game to draw.
     pub ui: ui::SharedUi,
     /// What the plugins share: the panels, their messages, who is loaded.
@@ -678,11 +683,39 @@ impl Plugins {
                 }
             }
         }
-        Plugins { loaded, lua, ui, hub }
+        // compiled plugins (`.oop`): a name a `.lua` plugin has already is left out
+        let mut wasm = Vec::new();
+        for dir in dirs {
+            for path in oop::find_oop(dir) {
+                let name = path.file_stem().map(|n| n.to_string_lossy().to_ascii_lowercase()).unwrap_or_default();
+                if lua.iter().any(|p: &lua::LuaPlugin| p.name.eq_ignore_ascii_case(&name)) || wasm.iter().any(|p: &wasm_plugin::WasmHost| p.name.eq_ignore_ascii_case(&name)) {
+                    log::warn!("plugin {} left out: a plugin of that name is loaded already", path.display());
+                    continue;
+                }
+                match oop::load(&path) {
+                    Ok(oop::Loaded::Lua(spec)) => match lua::LuaPlugin::start_spec(spec, &path, &mut lua::NoVehicle, hub.clone()) {
+                        Ok(p) => {
+                            log::info!("Lua plugin {} loaded ({})", p.name, path.display());
+                            lua.push(p);
+                        }
+                        Err(e) => log::warn!("Could not load plugin {}: {e}", path.display()),
+                    },
+                    Ok(oop::Loaded::Wasm(spec)) => match wasm_plugin::WasmHost::start(spec, &path, &mut lua::NoVehicle, hub.clone()) {
+                        Ok(p) => {
+                            log::info!("WASM plugin {} loaded ({})", p.name, path.display());
+                            wasm.push(p);
+                        }
+                        Err(e) => log::warn!("Could not load plugin {}: {e}", path.display()),
+                    },
+                    Err(e) => log::warn!("Could not load plugin {}: {e}", path.display()),
+                }
+            }
+        }
+        Plugins { loaded, lua, wasm, ui, hub }
     }
 
     pub fn is_empty(&self) -> bool {
-        self.loaded.is_empty() && self.lua.is_empty()
+        self.loaded.is_empty() && self.lua.is_empty() && self.wasm.is_empty()
     }
 
     pub fn frame(&mut self, io: &mut dyn PluginIo) {
@@ -692,12 +725,18 @@ impl Plugins {
         for p in &mut self.lua {
             p.frame(io);
         }
+        for p in &mut self.wasm {
+            p.frame(io);
+        }
     }
 
     /// Send an event to every Lua plugin now, outside its frame (the game pausing: `pause`,
     /// `menu_open`, which the plugins hear although they stand still).
     pub fn emit(&mut self, io: &mut dyn PluginIo, event: &'static str, args: Vec<api::Value>) {
         for p in &mut self.lua {
+            p.emit(io, event, args.clone());
+        }
+        for p in &mut self.wasm {
             p.emit(io, event, args.clone());
         }
     }
@@ -710,12 +749,12 @@ impl Plugins {
     /// Whether a plugin listens to `event` (its comparison or bookkeeping can be left out
     /// when none does).
     pub fn hears(&self, event: &str) -> bool {
-        self.lua.iter().any(|p| p.hears(event))
+        self.lua.iter().any(|p| p.hears(event)) || self.wasm.iter().any(|p| p.hears(event))
     }
 
     /// Whether a Lua plugin of this name is loaded.
     pub fn has(&self, plugin: &str) -> bool {
-        self.lua.iter().any(|p| p.name.eq_ignore_ascii_case(plugin))
+        self.lua.iter().any(|p| p.name.eq_ignore_ascii_case(plugin)) || self.wasm.iter().any(|p| p.name.eq_ignore_ascii_case(plugin))
     }
 
     pub fn finalize(&mut self) {
@@ -727,6 +766,10 @@ impl Plugins {
             p.stop(&mut lua::NoVehicle);
         }
         self.lua.clear();
+        for p in &mut self.wasm {
+            p.stop(&mut lua::NoVehicle);
+        }
+        self.wasm.clear();
     }
 }
 

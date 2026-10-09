@@ -12,7 +12,6 @@
 //! it. A call into the module that runs too long (its fuel, about 50 ms of work, burnt) is stopped
 //! and the plugin disabled, as a Lua plugin's runaway loop is; its memory is held to 256 MB.
 
-use serde_json::Value;
 use wasmi::{Caller, Config, Engine, Extern, Linker, Memory, Module, Store, StoreLimits, StoreLimitsBuilder, TypedFunc};
 
 /// The ABI version a module's `oop_abi` must return.
@@ -30,9 +29,9 @@ const MAX_MESSAGE: usize = 16 << 20;
 
 /// The game's side of a WebAssembly plugin's calls: the plugin API by name.
 pub trait Dispatch {
-    /// Calls API function `name` with `args` (a JSON array). The result is any JSON value;
-    /// `Err` is a message the module gets through `last_error`.
-    fn call(&mut self, name: &str, args: Value) -> Result<Value, String>;
+    /// Calls API function `name` with `args` (a JSON array, as the module sent it). The
+    /// result is JSON text; `Err` is a message the module gets through `last_error`.
+    fn call(&mut self, name: &str, args: &str) -> Result<String, String>;
     /// A line for the log from the module (0 debug, 1 info, 2 warn, 3 error).
     fn log(&mut self, level: i32, text: &str) {
         match level {
@@ -116,12 +115,12 @@ impl WasmPlugin {
     }
 
     /// Calls the module's callback `id` with `args` (a JSON array).
-    pub fn callback(&mut self, dispatch: &mut dyn Dispatch, id: i64, args: &Value) {
+    pub fn callback(&mut self, dispatch: &mut dyn Dispatch, id: i64, args: &str) {
         let Some(f) = self.callback else { return };
         if self.disabled.is_some() {
             return;
         }
-        let text = args.to_string();
+        let text = args;
         let Some(ptr) = self.write_buffer(dispatch, text.as_bytes()) else { return };
         let len = text.len() as i32;
         self.enter(dispatch, "oop_callback", |store| f.call(store, (id, ptr, len)));
@@ -226,14 +225,10 @@ fn with_dispatch<R>(caller: &mut Caller<'_, HostState>, f: impl FnOnce(&mut dyn 
 fn link(linker: &mut Linker<HostState>) -> Result<(), wasmi::Error> {
     linker.func_wrap("openomsi", "call", |mut caller: Caller<'_, HostState>, name_ptr: i32, name_len: i32, args_ptr: i32, args_len: i32| -> Result<i64, wasmi::Error> {
         let name = read_text(&caller, name_ptr, name_len)?;
-        let args = read_bytes(&caller, args_ptr, args_len)?;
-        let result = match serde_json::from_slice::<Value>(&args) {
-            Ok(args @ Value::Array(_)) => with_dispatch(&mut caller, |d| d.call(&name, args))?,
-            Ok(_) => Err(format!("{name}: the arguments must be a JSON array")),
-            Err(e) => Err(format!("{name}: the arguments are not JSON: {e}")),
-        };
+        let args = read_text(&caller, args_ptr, args_len)?;
+        let result = with_dispatch(&mut caller, |d| d.call(&name, &args))?;
         match result {
-            Ok(v) => hand_over(&mut caller, v.to_string().as_bytes()),
+            Ok(v) => hand_over(&mut caller, v.as_bytes()),
             Err(e) => {
                 caller.data_mut().last_error = e;
                 Ok(-1)

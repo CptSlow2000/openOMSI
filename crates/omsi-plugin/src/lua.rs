@@ -176,6 +176,11 @@ pub struct LuaPlugin {
 /// Each plugin's mark on its panels (a plugin loaded again keeps its own).
 static NEXT_OWNER: AtomicU64 = AtomicU64::new(1);
 
+/// A new plugin's mark on its panels (every kind of plugin counts on from the same).
+pub(crate) fn next_owner() -> u64 {
+    NEXT_OWNER.fetch_add(1, Ordering::Relaxed)
+}
+
 /// The game, the plugin's state and its binding while the plugin runs: set only for the
 /// length of a call into it, so the API's functions it calls reach them.
 #[derive(Clone, Copy)]

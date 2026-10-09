@@ -1,21 +1,20 @@
 //! WebAssembly plugins: the host side of the ABI, with small modules written in WAT.
 
 use omsi_plugin::wasm::{Dispatch, WasmPlugin};
-use serde_json::{json, Value};
 
 #[derive(Default)]
 struct Game {
-    calls: Vec<(String, Value)>,
+    calls: Vec<(String, String)>,
     logs: Vec<(i32, String)>,
 }
 
 impl Dispatch for Game {
-    fn call(&mut self, name: &str, args: Value) -> Result<Value, String> {
-        self.calls.push((name.to_string(), args.clone()));
+    fn call(&mut self, name: &str, args: &str) -> Result<String, String> {
+        self.calls.push((name.to_string(), args.to_string()));
         match name {
-            "speed" => Ok(json!(42.5)),
-            "message" => Ok(Value::Null),
-            "on" => Ok(json!(true)),
+            "speed" => Ok("42.5".into()),
+            "message" => Ok("null".into()),
+            "on" => Ok("true".into()),
             _ => Err(format!("{name}: no such function")),
         }
     }
@@ -71,11 +70,11 @@ fn a_module_calls_the_api_and_is_called_back() {
     let mut p = WasmPlugin::load("guest", GUEST.as_bytes()).expect("load");
     p.start(&mut game);
     assert_eq!(p.disabled, None);
-    assert_eq!(game.calls[0], ("speed".into(), json!([])));
-    assert_eq!(game.calls[2], ("on".into(), json!(["frame", {"$cb": 7}])));
+    assert_eq!(game.calls[0], ("speed".into(), "[]".into()));
+    assert_eq!(game.calls[2], ("on".into(), r#"["frame",{"$cb":7}]"#.into()));
     assert_eq!(game.logs[0], (1, "42.5".into()));
     assert_eq!(game.logs[1], (3, "nope: no such function".into()));
-    p.callback(&mut game, 7, &json!([0.016]));
+    p.callback(&mut game, 7, "[0.016]");
     assert_eq!(game.logs[2], (7, "[0.016]".into()));
 }
 
@@ -94,7 +93,7 @@ fn an_endless_loop_stops_the_plugin_not_the_game() {
     assert!(p.disabled.as_deref().is_some_and(|w| w.contains("ran too long")), "{:?}", p.disabled);
     assert!(t.elapsed().as_secs_f32() < 2.0, "{:?}", t.elapsed());
     // and it is called no more
-    p.callback(&mut game, 1, &json!([]));
+    p.callback(&mut game, 1, "[]");
     assert!(game.calls.is_empty());
 }
 
