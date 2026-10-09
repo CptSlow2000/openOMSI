@@ -1365,6 +1365,10 @@ pub struct Scene {
     /// let go twice a frame (the window's picture and a mirror's), went back to the system
     /// each time and came back as fresh pages to be faulted in.
     grid_scratch: Vec<u32>,
+    /// The smoke's sprites, their order and the sorted list of the last `prepare_smoke`,
+    /// kept for the next: every car's exhaust is thousands of sprites, and lists made anew
+    /// each time grew by copying and went back to the system (see `grid_scratch`).
+    smoke_scratch: (Vec<(f64, GpuCorona)>, Vec<(f64, u32)>, Vec<GpuCorona>),
     /// The street lamps that had a shadow map last frame (their places in centimetres):
     /// they keep it against a lamp only a little stronger (`prepare_lights`).
     lamp_shadow_last: Vec<[i64; 3]>,
@@ -3292,6 +3296,7 @@ impl Renderer {
             cpu_params: Vec::new(),
             last_grid: Vec::new(),
             grid_scratch: Vec::new(),
+            smoke_scratch: Default::default(),
             lamp_shadow_last: Vec::new(),
             last_lights: Vec::new(),
             bind_groups: HashMap::new(),
@@ -6420,19 +6425,30 @@ impl Renderer {
         // gathered after: sorting the 80-byte sprites themselves moved them about many
         // times over, for the window's picture and again for each mirror; a stable sort of
         // the same keys gives the same order)
-        let sprites: Vec<(f64, GpuCorona)> = scene
-            .smoke
-            .iter()
-            .filter_map(|p| smoke_sprite(p, ro).map(|g| (-(p.position - eye).length_squared(), g)))
-            .collect();
-        let mut order: Vec<(f64, u32)> = sprites.iter().enumerate().map(|(i, (d, _))| (*d, i as u32)).collect();
+        let (mut sprites, mut order, mut data) = std::mem::take(&mut scene.smoke_scratch);
+        sprites.clear();
+        sprites.extend(
+            scene
+                .smoke
+                .iter()
+                .filter_map(|p| smoke_sprite(p, ro).map(|g| (-(p.position - eye).length_squared(), g))),
+        );
+        order.clear();
+        order.extend(sprites.iter().enumerate().map(|(i, (d, _))| (*d, i as u32)));
         order.sort_by(|a, b| a.0.total_cmp(&b.0));
-        let data: Vec<GpuCorona> = order.into_iter().map(|(_, i)| sprites[i as usize].1).collect();
+        data.clear();
+        data.extend(order.iter().map(|&(_, i)| sprites[i as usize].1));
         scene.smoke_count = data.len() as u32;
+        self.upload_smoke(scene, &data);
+        scene.smoke_scratch = (sprites, order, data);
+    }
+
+    /// The sorted smoke sprites into the smoke buffer, grown when they do not fit.
+    fn upload_smoke(&self, scene: &mut Scene, data: &[GpuCorona]) {
         if data.is_empty() {
             return;
         }
-        let bytes: &[u8] = bytemuck::cast_slice(&data);
+        let bytes: &[u8] = bytemuck::cast_slice(data);
         match &scene.smoke_buf {
             Some(b) if b.size() as usize >= bytes.len() => self.queue.write_buffer(b, 0, bytes),
             _ => {
