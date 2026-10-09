@@ -41,6 +41,10 @@ pub(super) fn terrain_height(world: &World, x: f64, y: f64) -> Option<f64> {
     ) as f64)
 }
 
+/// How long fewer than half the cars asked for may drive about the player before one is let
+/// appear in view far off (s, see `wake_dormant`).
+const STARVED_AFTER: f32 = 20.0;
+
 impl Traffic {
     /// Is a vehicle of radius `r` at `p` hidden from the viewer by buildings (or a hill)?
     /// Every line of sight to it must be: to its middle, to both ends whichever way it
@@ -504,6 +508,18 @@ impl Traffic {
         let mut budget = (target as f32 * 1.25).ceil() as usize;
         budget = budget.saturating_sub(active);
         let centers: Vec<DVec3> = std::iter::once(center).chain(self.sim.lan_centers.iter().copied()).collect();
+        // Open country: nothing within NEAR_HIDE is behind anything, and a car coming along
+        // the road is in plain view from the edge of the range on - it was never woken, and
+        // Grundorf's traffic fell from 19 cars to 1 in three minutes. Starved for a while, a
+        // car is let appear in view, though only farther off than NEAR_HIDE (a few pixels
+        // there), as OMSI puts its cars on the road.
+        let now = self.sim.time;
+        if active * 2 < target {
+            self.sim.starved_since.get_or_insert(now);
+        } else {
+            self.sim.starved_since = None;
+        }
+        let starved = self.sim.starved_since.is_some_and(|t| now - t > STARVED_AFTER);
         let mut i = 0;
         while i < self.sim.dormant.len() && budget > 0 {
             let (p, h, ty) = {
@@ -518,7 +534,7 @@ impl Traffic {
             // the mirror or just round the corner)
             let ok = near
                 && world.has_ground(p.x, p.y)
-                && self.may_appear(world, p)
+                && (self.may_appear(world, p) || starved && self.sim.nearest_eye(p).is_none_or(|d| d > omsi_sim::ai_traffic::viewer::NEAR_HIDE))
                 && !self.sim.cars.iter().any(|c| (c.vehicle.position - p).length() < 14.0)
                 && self.spawn_clear(&ty, p, h);
             if ok {
