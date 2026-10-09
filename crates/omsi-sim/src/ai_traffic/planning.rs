@@ -294,8 +294,60 @@ impl TrafficSim {
             .any(|&(j, os, _, _)| j != i && os > s - back && os < s + ahead)
     }
 
+    /// The vehicles the AI does not drive (the player's bus, the LAN players') that stand in
+    /// `lane` or on a lane just before or after it, going its way: (distance of their centre
+    /// along `lane` - negative on a lane before it -, speed, half length). A lane change
+    /// looks at these as at the cars there: they are not on the lanes, and a car moved over
+    /// into the lane the player's bus was driving in, beside it.
+    pub fn players_on(&self, lane: usize) -> Vec<(f32, f32, f32)> {
+        let mut out = Vec::new();
+        let Some(l) = self.net.lanes.get(lane) else { return out };
+        let boxes = self.player.iter().chain(self.others_now.iter()).copied();
+        for (centre, heading, half_len, half_w, speed) in boxes {
+            let far = |p: DVec3| (p - centre).truncate().length() > l.length() as f64 + 200.0;
+            if speed < -0.3 || (far(l.start()) && far(l.end())) {
+                continue;
+            }
+            // (on the lane itself or on one joining it at either end: inside it by some of
+            // its width, its heading within 50 degrees of the lane's)
+            let near = |k: usize, off: f32| -> Option<f32> {
+                let x = &self.net.lanes[k];
+                let (s, d) = x.nearest_point(centre)?;
+                let h = x.at(s).1 as f64;
+                let turn = ((h - heading + 540.0).rem_euclid(360.0) - 180.0).abs();
+                (d < (x.width * 0.5 + half_w - 0.3).max(1.2) as f64 && turn < 50.0 && s > 0.01 && s < x.length() - 0.01).then_some(s + off)
+            };
+            let at = near(lane, 0.0)
+                .or_else(|| self.net.prev.get(lane).into_iter().flatten().find_map(|&p| near(p, -self.net.lanes[p].length())))
+                .or_else(|| l.next.iter().find_map(|&n| near(n, l.length())));
+            if let Some(s) = at {
+                out.push((s, speed.max(0.0), half_len));
+            }
+        }
+        out
+    }
+
+    /// May car `i` move over into `lane` at `s` as far as the vehicles the AI does not
+    /// drive are concerned? They do not brake for it: nothing of theirs beside it, room
+    /// ahead, and one coming up from behind far enough back to stay there without braking
+    /// hard (its speed over a second and a fifth, and the closing speed at a gentle 1.5 m/s²).
+    pub fn players_let_in(&self, i: usize, lane: usize, s: f32) -> bool {
+        if self.player.is_none() && self.others_now.is_empty() {
+            return true;
+        }
+        let me = &self.cars[i].state;
+        self.players_on(lane).iter().all(|&(ps, pv, hl)| {
+            if ps >= s {
+                ps - hl - s - me.front > 3.0 + (me.speed - pv).max(0.0) * 1.5
+            } else {
+                s - me.rear - (ps + hl) > 3.0 + pv * 1.2 + (pv - me.speed).max(0.0).powi(2) / (2.0 * 1.5)
+            }
+        })
+    }
+
     /// May car `i` move over into `lane` at `s` now? Nothing may be beside it or just ahead,
-    /// and every car coming up behind must be able to stop comfortably behind it.
+    /// and every car coming up behind must be able to stop comfortably behind it - the
+    /// player's bus and the LAN players' included (`players_let_in`).
     pub fn can_merge(
         &self,
         i: usize,
@@ -303,6 +355,9 @@ impl TrafficSim {
         s: f32,
         by_lane: &HashMap<usize, Vec<(usize, f32, f32, bool)>>,
     ) -> bool {
+        if !self.players_let_in(i, lane, s) {
+            return false;
+        }
         let me = &self.cars[i].state;
         if !parked_lane_clear(
             self.parked.get(&lane).map(Vec::as_slice).unwrap_or(&[]),

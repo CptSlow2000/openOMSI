@@ -242,6 +242,9 @@ pub struct TrafficSim {
     /// Cars the last `tick` took off the road (their ids): their sounds and pictures are
     /// for the game to let go (see omsi-app's `Traffic::tick`).
     pub retired: Vec<u64>,
+    /// The LAN players' vehicles as of this tick (`others` is taken for the tick's scene):
+    /// the lane changes look at them (`players_on`).
+    pub others_now: Vec<PlayerBox>,
     /// `OMSI_TRAFFIC_STATS`: the flow statistics of the run (see `stats`).
     pub stats: Option<Box<stats::TrafficStats>>,
 }

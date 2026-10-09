@@ -251,6 +251,29 @@ fn a_queue_moves_off_without_closing_up_or_braking_hard() {
     }
 }
 
+#[test]
+fn a_car_does_not_change_lanes_into_the_players_bus() {
+    // two lanes north, the car on the right one at 100 m; the player's bus on the left one
+    let f = Fixture::new();
+    let lanes = vec![street(DVec3::ZERO, 0.0, 300.0), street(DVec3::new(-3.5, 0.0, 0.0), 0.0, 300.0)];
+    let mut net = Network { lanes, ..Default::default() };
+    net.link(1.5);
+    let mut t = traffic(&f, net);
+    let id = add_car(&mut t, &f, 0, 100.0, 0x42, Some(10.0));
+    let i = t.cars.iter().position(|c| c.id == id).unwrap();
+    let bus_at = |y: f64, v: f32| -> PlayerBox { (DVec3::new(-3.5, y, 0.0), 0.0, 6.0, 1.25, v) };
+    // beside it, or coming up fast just behind: not into that lane
+    for (y, v) in [(100.0, 10.0), (88.0, 14.0)] {
+        t.player = Some(bus_at(y, v));
+        assert!(!t.players_let_in(i, 1, 100.0), "bus at {y} m, {v} m/s");
+    }
+    // far behind, or well ahead and faster: room
+    for (y, v) in [(30.0, 10.0), (140.0, 12.0)] {
+        t.player = Some(bus_at(y, v));
+        assert!(t.players_let_in(i, 1, 100.0), "bus at {y} m, {v} m/s");
+    }
+}
+
 /// When the car on a lane that runs into another (lane 1 joining lane 0, both going on as
 /// lane 2) gets onto the lane beyond the joint while lane 0's queue rolls past at `v` m/s,
 /// a car every `spacing` m (None: not within `secs`).

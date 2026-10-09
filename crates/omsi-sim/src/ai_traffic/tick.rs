@@ -78,6 +78,7 @@ impl TrafficSim {
         let walkers = self.walker_requests();
         self.run_light_programs(dt);
         let (others, player_standing) = self.track_players(dt, player);
+        self.others_now = others.iter().map(|o| o.1).collect();
         let t_plan = std::time::Instant::now();
         let mut remove = Vec::new();
         let mut frames: Vec<Option<AiFrame>> = vec![None; self.cars.len()];
