@@ -164,9 +164,9 @@ impl Renderer {
             .unwrap_or(3.0);
         // (a copy: the casters are gathered on the worker pool, the renderer is not shared)
         let omsi_shadow_casters = self.options.omsi_shadow_casters;
-        let casters = |span: std::ops::Range<usize>| -> [Vec<DrawItem>; SHADOW_LISTS] {
-            let mut out: [Vec<DrawItem>; SHADOW_LISTS] = std::array::from_fn(|_| Vec::new());
-            let mut ranges: Vec<(u8, u32, u32, usize, u32)> = Vec::new();
+        // (the lists are filled in place, block after block of the instances: a fresh list
+        // per block was a few hundred small allocations a frame and every item copied twice)
+        let casters = |span: std::ops::Range<usize>, out: &mut [Vec<DrawItem>; SHADOW_LISTS], ranges: &mut Vec<(u8, u32, u32, usize, u32)>| {
             for inst in &scene.instances[span] {
                 if !inst.visible || !inst.casts_shadow || (omsi_shadow_casters && !inst.omsi_caster) {
                     continue;
@@ -194,6 +194,35 @@ impl Renderer {
                         continue;
                     }
                 }
+                // Which maps the instance falls into, before its materials are looked at: on
+                // most frames only the close cascade (30 m round the camera) is drawn, and
+                // most of a city's instances lie outside it - looking up the materials of
+                // every one of them first was most of this planning's time.
+                let lamp_hit = !lamp_shadows.is_empty() && !(m.bounds_radius > 0.0 && m.bounds_radius < 0.1) && lamp_reach(c, r);
+                let mut hits = [false; 3];
+                for (cascade, &(range, lvp, min_radius)) in boxes.iter().enumerate() {
+                    if !active[cascade] {
+                        continue;
+                    }
+                    if m.bounds_radius > 0.0 && m.bounds_radius < min_radius {
+                        if dbg_shadow && cascade == 0 && m.bounds_radius >= dbg_r {
+                            log::info!("shadow: mesh r={:.1} skipped (ranges {})", m.bounds_radius, m.ranges.len());
+                        }
+                        continue;
+                    }
+                    let lc = lvp.project_point3(c);
+                    let rr = r / range;
+                    if lc.x.abs() > 1.0 + rr || lc.y.abs() > 1.0 + rr {
+                        if dbg_shadow && cascade == 0 && r >= dbg_r {
+                            log::info!("shadow: mesh r={r:.1} outside the light box at ({:.2}, {:.2})", lc.x, lc.y);
+                        }
+                        continue;
+                    }
+                    hits[cascade] = true;
+                }
+                if !lamp_hit && hits == [false; 3] {
+                    continue;
+                }
                 ranges.clear();
                 for (ri, (_, _, slot)) in m.ranges.iter().enumerate() {
                     let mat_id = inst.materials.get(*slot as usize).copied().unwrap_or(0);
@@ -217,43 +246,28 @@ impl Renderer {
                     }
                     ranges.push((kind, ri as u32, *slot, mat_id, mat.look));
                 }
-                if !lamp_shadows.is_empty() && !(m.bounds_radius > 0.0 && m.bounds_radius < 0.1) && lamp_reach(c, r) {
+                if lamp_hit {
                     // (each lamp's map takes the casters within its own reach: one list
                     // drawn into every map cost each lamp the others' casters as well)
                     for (k, light) in lamp_shadows.iter().enumerate() {
                         if (light.owner.is_some() && light.owner == inst.shadow_owner) || !lamp_reaches(light, c, r) {
                             continue;
                         }
-                        for &(kind, ri, slot, mat_id, look) in &ranges {
+                        for &(kind, ri, slot, mat_id, look) in ranges.iter() {
                             let kind = if kind == PIPE_KINDS { PIPE_OPAQUE } else { kind };
                             let (material, look) = depth_only_material(kind, mat_id, look);
                             out[3 + k].push(DrawItem { pipe: kind, mesh: inst.mesh as u32, range: ri, material, look, entry: inst.base + slot });
                         }
                     }
                 }
-                for (cascade, &(range, lvp, min_radius)) in boxes.iter().enumerate() {
-                    if !active[cascade] {
+                for cascade in 0..3 {
+                    if !hits[cascade] {
                         continue;
                     }
-                    let dbg = dbg_shadow && cascade == 0 && r >= dbg_r;
-                    if m.bounds_radius > 0.0 && m.bounds_radius < min_radius {
-                        if dbg_shadow && cascade == 0 && m.bounds_radius >= dbg_r {
-                            log::info!("shadow: mesh r={:.1} skipped (ranges {})", m.bounds_radius, m.ranges.len());
-                        }
-                        continue;
-                    }
-                    let lc = lvp.project_point3(c);
-                    let rr = r / range;
-                    if lc.x.abs() > 1.0 + rr || lc.y.abs() > 1.0 + rr {
-                        if dbg {
-                            log::info!("shadow: mesh r={r:.1} outside the light box at ({:.2}, {:.2})", lc.x, lc.y);
-                        }
-                        continue;
-                    }
-                    if dbg {
+                    if dbg_shadow && cascade == 0 && r >= dbg_r {
                         log::info!("shadow: caster r={r:.1} at {:?} slots {:?}", inst.origin, ranges.iter().map(|x| x.0).collect::<Vec<_>>());
                     }
-                    for &(kind, ri, slot, mat_id, look) in &ranges {
+                    for &(kind, ri, slot, mat_id, look) in ranges.iter() {
                         let kind = if kind == PIPE_KINDS {
                             if cascade != 1 {
                                 continue;
@@ -275,7 +289,6 @@ impl Renderer {
                     }
                 }
             }
-            out
         };
         if active.iter().any(|a| *a) || !lamp_shadows.is_empty() {
             let n = scene.instances.len();
@@ -295,14 +308,13 @@ impl Renderer {
             let mut found: [Vec<DrawItem>; SHADOW_LISTS] = std::array::from_fn(|_| Vec::new());
             for part in run_parts(self.encoding_pool.as_ref(), parts, |p| {
                 let mut out: [Vec<DrawItem>; SHADOW_LISTS] = std::array::from_fn(|_| Vec::new());
+                let mut ranges = Vec::new();
                 let end = ((p + 1) * chunk).min(n);
                 let mut b = p * chunk;
                 while b < end {
                     let next = (b + CULL_BLOCK).min(end);
                     if lit(b / CULL_BLOCK) {
-                        for (a, x) in out.iter_mut().zip(casters(b..next)) {
-                            a.extend(x);
-                        }
+                        casters(b..next, &mut out, &mut ranges);
                     }
                     b = next;
                 }
