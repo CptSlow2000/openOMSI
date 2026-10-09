@@ -278,10 +278,15 @@ impl City {
     }
 
     /// The hum's amplitude: traffic noise is a sum of many cars, its power goes with the
-    /// number of them (+3 dB per doubling), the amplitude with its root.
+    /// number of them (+3 dB per doubling), the amplitude with its root. Around the ear the
+    /// roads are as many as the place is built up (`urban`), and as near: sparser houses,
+    /// roads farther apart - N sources at r ~ 1/sqrt(N) give N/r² ~ urban², so the town's
+    /// own hum goes with `urban` itself (out in the fields it was barely below a town
+    /// street's, louder than the birds there).
     pub fn amplitude(p: &AmbientParams) -> f32 {
-        let flow = (p.urban.clamp(0.0, 1.0) * traffic_profile(p.hour)).max(p.traffic.clamp(0.0, 1.0));
-        flow.sqrt()
+        let urban = p.urban.clamp(0.0, 1.0);
+        let town = urban * urban * traffic_profile(p.hour);
+        town.max(p.traffic.clamp(0.0, 1.0)).sqrt()
     }
 
     pub fn control(&mut self, p: &AmbientParams, dt: f32, rate: f32) {

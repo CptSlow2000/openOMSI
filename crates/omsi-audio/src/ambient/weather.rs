@@ -262,6 +262,8 @@ pub struct Rain {
     rng: Rng,
     /// Drops per second: on the ground nearby, on the glass, on the roof.
     ground_rate: f32,
+    /// Drops a second from the wet trees around after the rain (see `control`).
+    drip_rate: f32,
     glass_rate: f32,
     roof_rate: f32,
     lambda: f32,
@@ -281,6 +283,7 @@ impl Rain {
         Rain {
             rng: Rng::new(seed),
             ground_rate: 0.0,
+            drip_rate: 0.0,
             glass_rate: 0.0,
             roof_rate: 0.0,
             lambda: 4.0,
@@ -307,6 +310,11 @@ impl Rain {
         self.glass_rate = if p.inside && p.glass_rain { flux * 1.5 + drop_density(r, AUDIBLE_DROP) * 4.0 * p.bus_speed.abs() * 0.25 } else { 0.0 };
         self.roof_rate = if p.inside && p.roof_rain { drop_flux(r, 0.5) * 25.0 } else { 0.0 };
         self.puddle_share = (p.wetness.clamp(0.0, 1.0) - 0.4).max(0.0) * 0.5;
+        // after the rain the crowns drip on for a long while: the water a canopy holds (a
+        // millimetre or so) runs off its leaves as big drops of 4 - 5 mm. The wet ground
+        // stands for what the leaves still hold; a full canopy around the ear lets some
+        // half a dozen a second fall within earshot.
+        self.drip_rate = if p.inside || r > 0.05 { 0.0 } else { 6.0 * p.foliage.clamp(0.0, 1.0) * ((p.wetness.clamp(0.0, 1.0) - 0.2) / 0.8).max(0.0) };
         self.click[0].highpass(1500.0, 0.7, rate);
         self.click[1].highpass(1700.0, 0.7, rate);
         // a pane's lowest plate modes and the hollow of the sheet-metal roof
@@ -335,12 +343,13 @@ impl Rain {
     }
 
     pub fn render(&mut self, env: [&mut [f32]; 2], dir: [&mut [f32]; 2], n: usize, rate: f32) {
-        if self.ground_rate + self.glass_rate + self.roof_rate < 0.1 && self.bubbles.iter().all(|b| b.amp < 1.0e-5) {
+        if self.ground_rate + self.drip_rate + self.glass_rate + self.roof_rate < 0.1 && self.bubbles.iter().all(|b| b.amp < 1.0e-5) {
             return;
         }
         let [el, er] = env;
         let [dl, dr] = dir;
         let p_ground = (self.ground_rate / rate).min(0.5);
+        let p_drip = (self.drip_rate / rate).min(0.5);
         let p_glass = (self.glass_rate / rate).min(0.5);
         let roof_on = self.roof_rate > 0.1;
         let p_roof = (self.roof_rate / rate).min(1.0);
@@ -351,6 +360,18 @@ impl Rain {
                 let d = self.drop();
                 let a = Self::impact(d) * (0.3 + 0.7 * self.rng.uniform());
                 if self.rng.uniform() < self.puddle_share {
+                    self.ring(d, a);
+                } else if self.rng.uniform() < 0.5 {
+                    gl += a;
+                } else {
+                    gr += a;
+                }
+            }
+            // a drip from the leaves: a big drop, on the ground or into a puddle
+            if self.rng.uniform() < p_drip {
+                let d = 4.0 + self.rng.uniform();
+                let a = Self::impact(d) * (0.4 + 0.6 * self.rng.uniform());
+                if self.rng.uniform() < self.puddle_share * 1.5 {
                     self.ring(d, a);
                 } else if self.rng.uniform() < 0.5 {
                     gl += a;
@@ -541,6 +562,24 @@ mod tests {
         assert!(town > 2.0 && town < 4.0, "{town}");
         assert!(field > 7.0 && field < 8.5, "{field}");
         assert!(turbulence_intensity(1.0) > turbulence_intensity(0.03));
+    }
+
+    #[test]
+    fn the_trees_drip_after_the_rain() {
+        let mut rain = Rain::new(7);
+        let wet = AmbientParams { enabled: true, rain_mm_h: 0.0, wetness: 0.9, foliage: 1.0, ..Default::default() };
+        rain.control(&wet, 48000.0);
+        assert!(rain.drip_rate > 3.0, "{}", rain.drip_rate);
+        // dry, raining (the drops are the rain's then), out in the open, or inside: none
+        for p in [
+            AmbientParams { wetness: 0.1, ..wet.clone() },
+            AmbientParams { rain_mm_h: 4.0, ..wet.clone() },
+            AmbientParams { foliage: 0.0, ..wet.clone() },
+            AmbientParams { inside: true, ..wet.clone() },
+        ] {
+            rain.control(&p, 48000.0);
+            assert_eq!(rain.drip_rate, 0.0);
+        }
     }
 
     #[test]
