@@ -45,6 +45,9 @@ fn triple(s: &Value) -> bool {
 fn vr(s: &Value) -> bool {
     cfg!(windows) && get(s, "vr").as_bool().unwrap_or(false)
 }
+fn ambient_on(s: &Value) -> bool {
+    get(s, "ambient").as_bool() != Some(false)
+}
 fn windows(_: &Value) -> bool {
     cfg!(windows)
 }
@@ -282,6 +285,8 @@ fn table() -> [[(&'static str, Vec<Row>); 2]; 6] {
                 Slider("Traffic", "vol_ai", 0.0, 1.0, 0.05, 1.0, pct, always),
                 Slider("Surroundings", "vol_scenery", 0.0, 1.0, 0.05, 1.0, pct, always),
                 Toggle("Doppler effect", "doppler", always),
+                Toggle("Ambience (wind, nature, road surfaces)", "ambient", always),
+                Slider("Ambience volume", "vol_ambient", 0.0, 1.0, 0.05, 0.8, pct, ambient_on),
                 Select("Passenger voices", "pax_voices", Opts::Fixed(&[("all", "Greetings and tickets"), ("tickets", "Only the ticket asked for"), ("off", "Silent")]), always),
             ]),
             ("Radio stations", vec![
