@@ -171,18 +171,23 @@ nothing - what virtual bus companies ask their drivers for.
 
 The launcher is the game's own window (`crates/omsi-app/src/launcher`): `omsi` started
 without arguments (or with `--launcher`) opens it. It is drawn with wgpu - no web engine -
-flat and dark (neutral greys, one amber accent), every control custom (sliders, switches,
-dropdowns, a calendar, a time picker, text fields, segmented buttons), Material Symbols
-icons and Roboto (`crates/omsi-ui`). The Drive page shows the chosen bus in a card, as a
+on `egui_retained`, the retained-mode interface of the org's egui fork
+([egui-openomsi](https://github.com/openOMSI-org/egui-openomsi)): a tree of nodes laid out
+like CSS flexbox, drawn again only when something changed. Its look is the Development
+Tools' - a header, a sidebar, cards, a status bar, dark or light - with Material Symbols
+icons and Roboto. On a phone or in a window narrower than 760 points the sidebar gives way
+to a tab bar at the foot (Play, Online, Mods, More), with a Play screen of the bus and the
+duty as big cards, and every list choice on a sheet of its own. The Drive page shows the chosen bus in a card, as a
 picture **drawn by the game's renderer** - its model, paint, materials, reflections and
 shadows exactly as in the game, under the light of the chosen time and weather - drawn
 again only when something changes; drag on it to turn the bus, scroll to zoom. Its pages:
 
-* **Drive** - four steps: the bus (search, liveries, depot file, number plate), the route (map, start
-  point, line and tour - the lines that run on the chosen date), time and weather (time,
-  date, season, traffic, passengers, timetable buses, autostart, *LAN play: host / join*,
-  the weather presets that suit the season), and the roadbook with the IBIS codes; the
-  summary and **Start the duty** bottom right.
+* **Drive** - three steps: the bus (makers and types, search, favourites, liveries, depot
+  file, number plate), the day and the weather (time, date, season, traffic, passengers,
+  timetable buses, autostart, the weather presets that suit the season, custom and live
+  weather), and the map and the duty (map, line and tour - the lines that run on the chosen
+  date - the start point, picked from the map too, and the roadbook with the IBIS codes);
+  the summary and **Start the duty** at the foot.
 * **Profile** - hours, experience and level, from OMSI's own `.odr` personnel files plus
   the session summaries the game writes to `~/.openomsi/sessions`.
 * **Settings** - everything in `settings.cfg` below, saved as it changes; keys the page
@@ -518,6 +523,14 @@ a plan, the disk is checked for room, everything is unpacked into a staging fold
 content volume and moved into place in one step, and it can be cancelled and cleaned up at
 any point. A repaint for a bus that is not installed is kept aside and installed when the
 bus arrives.
+
+The Mods page lists **every mod of the content folder** - each install the launcher made
+(noted in `Mods/.mods.json` with the folders it made, or the archive it is read from), and
+what lies there without a note, one entry per bus, map, other folder and archive - with a
+search and filters (buses, maps, archives, other, switched off). Each one can be **switched
+off** - its folders move to `Mods/disabled/<name>`, out of the game's and the lists' sight,
+and back again when it is switched on - or **deleted**, after a question. A mod that only
+added files to a folder another mod made goes with that folder's entry.
 
 Archives can also be **used in place**: a `.zip` laid out like OMSI 2 is put into the
 content folder's `Archives/` (hard-linked when it is on the same disk, moved from the

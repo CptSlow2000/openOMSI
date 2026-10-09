@@ -4,6 +4,48 @@ Every push to `main` is released as `MAJOR.MINOR.COMMIT` (see
 [docs/VERSIONING.md](docs/VERSIONING.md)); the downloads are on the
 [Releases](https://github.com/openOMSI-Project/openOMSI/releases) page.
 
+## 0.2.22 - 2026-10-09
+
+### New
+- **A new launcher.** Every page is built anew on `egui_retained`, the retained-mode interface of the org's egui fork, in the look of the Development Tools: a header, a sidebar, cards and a status bar, dark or light. The Drive page has three steps (the bus, the day and the weather, the map and the duty) with the bus turning on its stage and the map with its stops and times. Settings come as six tabs, and the Controls page holds the keyboard bindings with their action picker, the game controllers with live axes, the set-up assistant and the force-feedback test. Multiplayer, Profile, Sessions, Tutorials, Timetable and Setup are rebuilt too, and so are the update, crash, disconnect and reset dialogs. On a phone or in a narrow window it has a tab bar, a Play screen and full-screen sheets; lists scroll with a finger and a pinch zooms the bus.
+- **The Mods page lists every mod.** Each one can be switched off and on, or deleted after a question; search and filters cover buses, maps, archives and switched-off mods. Each install is noted with the folders it made, and anything in the content folder without a note is listed by itself. Installing an archive or a folder, dropping it on the window and following the installs stay on the page.
+- **Ambience.** Wind and gusts, rustling leaves, rain drops on the ground, in puddles and on the glass, thunder, birds, crickets and the town's far hum are synthesised live from the weather, the time, the season and the place. The tyres sound by the surface under each wheel (asphalt, concrete, cobbles, gravel, dirt and mud, grass, snow, wet road, puddles), and the trees drip after the rain. It is heard muffled through the bodywork inside a bus. Switch it off and set its volume under Settings → Sound.
+- **Plugins.**
+  - **Lua API.** One API registry serves every plugin language, with 271 functions and 59 events: the bus, the AI traffic and the people; the duty, the timetable and the map; time, weather, camera, input and sound; the game and the LAN.
+  - **Plugin panels.** Panels get checkboxes, sliders, text fields, tabs, charts, tables, pictures and dragging.
+  - **WebAssembly plugins.** They run sandboxed, with fuel and memory limits.
+  - **Compiled `.oop` plugins.** They are encrypted, signed and sandboxed, and are made with the new [openOMSI Development Tools](https://github.com/openOMSI-org/openOMSI-Development-Tools) (the plugin workbench with the API documentation and the compiler, for Windows, Linux and macOS).
+  - **Docs.** The plugin docs cover every API group, with three complete example plugins.
+- **AI traffic jams far less.**
+  - No car drives into a junction it cannot leave.
+  - Rings of cars waiting on each other are broken.
+  - A driver who has waited long at a busy main road gets across.
+  - Cars take turns where two lanes become one.
+  - Lane changes look out for the player's and the LAN players' buses.
+  - Cars that gave up count towards the population, so it no longer grows until the town locks.
+  - In open country, where nothing hides a car, the traffic no longer dies out.
+
+  On Spandau with 120 cars, the cars standing for over a minute fell from 41-77 to 10-21.
+- **Vanilla and Vanilla+ sky as in Omsi.exe.** The weather's own cloud texture lies on its cloud cone, the haze comes from the fog range and the cloud height, and the dome's pictures blend by the sun's height.
+
+### Fixes
+- **Sun shadows.**
+  - A tent filter reads every texel under it, so a lit gap no longer shows as an X of magnified texels ("Minecraft" squares) and the edges stop shimmering.
+  - The cascades snap to their own map's texels, so the shadows round the bus no longer tremble while it moves.
+  - Enhanced+ soft shadow edges no longer crawl with a checker pattern.
+- **Sky**: the clouds keep their outline from one mip level to the next; something white no longer vanishes at the line where the sky goes over to a smaller level.
+- **Enhanced, wet roads**: the headlamps are reflected by the road's film of water - a short gleam on the asphalt and their image in puddles - instead of an endless white line down to the camera; drops in the bus's own beams are no longer a hundred times too bright.
+- **Double-deckers**: the player walks the upper deck instead of standing stuck at the top of the stairs.
+- **LAN**: a player who gets out of the bus keeps the figure they drove in instead of a random passenger's.
+- **Faster on the CPU**:
+  - The vehicle lights take no lists, keys or locks per lamp per frame.
+  - The smoke is sorted by its keys, with the light grid and the sorting lists kept between frames.
+  - Shadow casters ask which maps they fall into before their materials.
+  - The scenery scripts find their emitters' objects in one pass.
+- **The launcher**: a bus's 3D preview is no longer left out for good when the launcher was closed while the preview loaded.
+- **Apple M4**: the scene shaders build again, so 4x MSAA, the snowfall, the lamps in the fog and the street lamps' shadows are back.
+- **Links**: the project moved to [github.com/openOMSI-org](https://github.com/openOMSI-org/openOMSI) and [openomsi.org](https://openomsi.org/).
+
 ## 0.2.21 - 2026-10-08
 
 ### New
