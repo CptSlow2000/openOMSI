@@ -1172,6 +1172,10 @@ impl Network {
 /// Growing the network while the map streams in: the lanes of newly loaded tiles are
 /// appended (existing indices stay valid for the cars and routes that hold them) and linked
 /// to what is there, with the same rules as [`Network::link`].
+/// How near (m) a lane's end and the next one's start must lie to be linked: what the game
+/// links its road network with, and what a driving choice measures short paths against.
+pub const LINK_TOLERANCE: f64 = 1.5;
+
 impl Network {
     /// Append `new` lanes and link them. Returns the range of their indices.
     pub fn extend(&mut self, new: Vec<Lane>, tol: f64) -> std::ops::Range<usize> {
@@ -2182,7 +2186,7 @@ impl AiState {
                         // Reject the short return only when the graph links both ways.
                         // Keep the graph itself intact: reach and upstream route choices
                         // retain their existing behavior.
-                        && (!nl.next.contains(&lane) || nl.continues_from(l, 1.5))
+                        && (!nl.next.contains(&lane) || nl.continues_from(l, LINK_TOLERANCE))
                 })
                 .collect()
         };
