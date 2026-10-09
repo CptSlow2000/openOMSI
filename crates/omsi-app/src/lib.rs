@@ -732,6 +732,7 @@ fn assemble_app(args: Args, settings: settings::Settings) -> App {
             dragging: false,
             html_pressed: None,
             html_object_pressed: None,
+            pressed_scenery_object: None,
             drag_delta: (0.0, 0.0),
             cursor_kind: 0,
             touch,

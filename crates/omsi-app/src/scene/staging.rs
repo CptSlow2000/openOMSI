@@ -19,6 +19,8 @@ pub struct ObjectType {
     pub mesh_shadow: Vec<bool>,
     /// `[shadow]` per loaded mesh: the meshes OMSI casts (stencil) shadows from.
     pub mesh_casts: Vec<bool>,
+    /// Whether any loaded mesh carries a `[mouseevent]`.
+    pub has_mouse_events: bool,
     /// Compiled scripts when the object is scripted or animated.
     pub program: Option<Arc<omsi_script::Program>>,
     /// Further `[LOD]` levels: (min screen size, meshes), in model order after LOD 0.
@@ -346,6 +348,19 @@ pub struct PageHit {
     /// 0..1 across the page, `v` down from the top.
     pub u: f32,
     pub v: f32,
+}
+
+/// Where a ray lands on a mesh of a scenery object with a `[mouseevent]`: see
+/// [`World::scenery_object_hit`].
+#[derive(Clone, Debug)]
+pub struct SceneryHit {
+    /// Distance (m) along the ray.
+    pub t: f32,
+    pub map_id: i64,
+    #[allow(dead_code)]
+    pub mesh_index: usize,
+    /// The event name from the mesh's `[mouseevent]`.
+    pub event: String,
 }
 
 /// What the timetable tells the scenery: the time of day, and the buses due at the stops

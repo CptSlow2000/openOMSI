@@ -24,7 +24,7 @@ file 11702 crates/omsi-render/src/lib.rs
 file 2902 crates/omsi-sim/src/human.rs
 file 2398 crates/omsi-sim/src/rigid.rs
 file 3341 crates/omsi-sim/src/traffic.rs
-file 6004 crates/omsi-sim/src/vehicle.rs
+file 6035 crates/omsi-sim/src/vehicle.rs
 fn 467 crates/omsi-app::client crates/omsi-app/src/lan_world.rs
 fn 370 crates/omsi-app::draw crates/omsi-app/src/navigator.rs
 fn 424 crates/omsi-app::draw_menu crates/omsi-app/src/ui.rs
