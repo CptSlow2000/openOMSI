@@ -19,9 +19,9 @@ mod season;
 mod state;
 #[cfg_attr(not(target_os = "android"), allow(unused_imports))]
 pub(crate) use state::crash_of;
-mod theme;
+pub(crate) mod theme;
 mod timetable;
-mod ui;
+pub(crate) mod ui;
 mod update;
 
 use glam::Vec2;

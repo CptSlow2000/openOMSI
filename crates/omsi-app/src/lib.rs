@@ -69,6 +69,8 @@ mod schedule;
 mod schedule_paper;
 mod real_time;
 mod settings;
+mod shell;
+mod photo;
 mod telemetry;
 mod threads;
 mod tiles;
@@ -764,6 +766,8 @@ fn assemble_app(args: Args, settings: settings::Settings) -> App {
         service_msg: clock_note.map(|m| (m, 10.0)),
         settings,
         exiting: false,
+        shell: crate::shell::Shell::new(),
+        photo: None,
     }
 }
 

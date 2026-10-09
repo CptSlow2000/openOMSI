@@ -1372,6 +1372,7 @@ fn known_action(a: &str) -> Option<String> {
         ("sim_pause", "Pause"),
         ("open_menu", "Open / close the main menu"),
         ("screenshot", "Screenshot"),
+        ("photo_mode", "Photo mode"),
         ("quicksave", "Quicksave"),
         ("toggel_mouse_ctrl", "Toggle mouse steering"),
         ("toggel_ctrler", "Toggle game controllers"),

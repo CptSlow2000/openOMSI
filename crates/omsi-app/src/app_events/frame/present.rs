@@ -57,6 +57,10 @@ impl App {
                     crate::plugins::queue_event(&mut self.integrations.plugin_events, "screenshot", vec![omsi_plugin::InfoValue::Text(file)]);
                 }
             }
+            // the photo mode's pictures (the window shows the developed photo)
+            if self.photo.is_some() {
+                self.photo_render(lighting);
+            }
             let (frame, view, shown_nothing) = self.frame_acquire(&mut reconfigure);
             match view {
                 Some(view) => self.frame_draw(time.raw_dt, lighting, vr_nav_display, frame, view),
@@ -99,15 +103,20 @@ impl App {
         // what an automated window run draws (also when the window is hidden,
         // so it does not depend on a frame being acquired)
         let (path, include_touch) = shot;
-        match r.render_to_image(
+        // the photo mode: its developed photo (stretched to the window) under its panel
+        let developed = self.photo.as_ref().and_then(|ph| ph.developed()).map(|(w, h, px)| crate::photo::stretch(w, h, px, s.config.width, s.config.height));
+        match developed.map(Ok).unwrap_or_else(|| r.render_to_image(
             scene,
             s.config.width,
             s.config.height,
             cam,
             lighting,
-        ) {
+        )) {
             Ok(mut px) => match {
                 // (with the on-screen controls, when there are)
+                if let Some(over) = self.shell.picture_for_shot(r, s.config.width, s.config.height) {
+                    crate::touch::composite(&mut px, &over);
+                }
                 if include_touch {
                     if let Some(over) = self.input.touch.picture(r, s.config.width, s.config.height) {
                         crate::touch::composite(&mut px, &over);
@@ -232,7 +241,10 @@ impl App {
     ) {
         #[cfg(not(windows))]
         let _ = vr_nav_display;
-        self.frame_mirrors(raw_dt, lighting);
+        let photo = self.photo.is_some();
+        if !photo {
+            self.frame_mirrors(raw_dt, lighting);
+        }
         let (Some(s), Some(r), Some(scene), Some(cam), Some(win)) = (
             self.gfx.surface.as_ref(),
             self.renderer.as_mut(),
@@ -279,7 +291,9 @@ impl App {
                 }
             }
         }
-        if !mirrored
+        if photo {
+            // (the developed photo covers the window: the screens draw it)
+        } else if !mirrored
             && self.settings.triple.enabled
             && !self.settings.vr_requested()
         {
@@ -307,6 +321,8 @@ impl App {
                 lighting,
             );
         }
+        // the pause menu and the photo mode's panel
+        self.shell.render(r, &view, s.config.width, s.config.height);
         // the on-screen controls over the picture (a phone)
         self.input.touch.render(r, &view, s.config.width, s.config.height);
         *self.perf.profile.entry("render").or_default() += __t.elapsed().as_secs_f64();

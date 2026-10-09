@@ -124,6 +124,9 @@ impl ApplicationHandler for App {
             // back count only when pressed anew)
             WindowEvent::KeyboardInput { is_synthetic, ref event, .. } if self.input.input_away || (is_synthetic && event.state == ElementState::Pressed) => {}
             WindowEvent::MouseInput { .. } | WindowEvent::MouseWheel { .. } if self.input.input_away => {}
+            // a background test window driven by an input script takes no real mouse (the
+            // person at the computer moving theirs over it clicked through the test)
+            WindowEvent::MouseInput { .. } | WindowEvent::MouseWheel { .. } | WindowEvent::CursorMoved { .. } if scripted_window() => {}
             WindowEvent::ModifiersChanged(modifiers) => {
                 for code in input_script::release_inactive_modifiers(&mut self.input.keys, modifiers.state()) {
                     self.on_key(event_loop, code, false, false);
@@ -340,6 +343,9 @@ impl ApplicationHandler for App {
             }
         }
         if let DeviceEvent::MouseMotion { delta } = event {
+            if scripted_window() {
+                return;
+            }
             if self.xr.vr_nav_edit.is_some() {
                 if self.input.window_focused { self.vr_nav_drag(delta.0 as f32, delta.1 as f32); }
                 return;
@@ -429,6 +435,15 @@ impl App {
 
     /// The mouse wheel (or a pinch of two fingers): `amount` notches, up positive.
     pub(crate) fn wheel(&mut self, amount: f32) {
+        // the photo mode: the lens zooms, or its panel scrolls under the mouse
+        if self.photo_on() {
+            if self.shell.over_ui {
+                self.shell.wheel(amount);
+            } else if let Some(ph) = self.photo.as_mut() {
+                ph.zoom(amount);
+            }
+            return;
+        }
         if self.xr.vr_nav_edit.is_some() { self.vr_nav_scroll(amount); return; }
         // over a mirror panel the wheel resizes it (Shift: wider or narrower)
         if let Some(size) = self.mirror_hud_size() {
@@ -525,6 +540,19 @@ impl App {
     /// The left mouse button (or a finger's tap) where the cursor is.
     pub(crate) fn left_button(&mut self, event_loop: &ActiveEventLoop, pressed: bool) {
         if let Some(edit) = self.xr.vr_nav_edit.as_mut() { edit.moving = pressed; return; }
+        // the pause menu (and the photo mode) of the launcher's toolkit take the clicks
+        if self.shell_takes_mouse() {
+            if pressed {
+                self.menus.menu_kbd = false;
+            }
+            self.shell.button(pressed);
+            // (the left button dragged over the photo turns the photo camera)
+            let over = self.shell.over_ui;
+            if let Some(ph) = self.photo.as_mut() {
+                ph.looking = pressed && !over;
+            }
+            return;
+        }
         // a mirror panel is dragged with the left button (a release always ends a drag)
         if let Some(size) = self
             .mirror_hud_size()
@@ -918,4 +946,10 @@ mod vr_mirror_tests {
         assert_eq!(vr_mirror_updates(&mut budget, 0.1, 360.0, 0), 0);
         assert_eq!(budget, 0.0);
     }
+}
+
+/// A test window in the background driven by an input script (`OMSI_BACKGROUND` with
+/// `OMSI_INPUT`): its mouse is the script's alone.
+fn scripted_window() -> bool {
+    omsi_cfg::flags::OMSI_BACKGROUND.is_set() && omsi_cfg::flags::OMSI_INPUT.var().is_some()
 }

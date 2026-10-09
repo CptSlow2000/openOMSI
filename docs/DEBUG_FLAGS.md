@@ -130,7 +130,7 @@ effect. On Android, `openOMSI/env.txt` holds `NAME=value` lines that are set bef
 | `OMSI_API_BLESS` | bool | off | use | plugin | cargo test -p omsi-plugin api_manifest: write docs/plugin-api.json and the reference tables of docs/PLUGINS.md again from the plugin API registry. |
 | `OMSI_AUDIT_LINE` | num | - | test | sim | bus_audit example: the line (number and letter code) the IBIS typist enters instead of the bus's own. |
 | `OMSI_AUTOPILOT` | num | - | use | app | Offscreen: the player's bus follows the lanes at this speed in km/h (finds where it falls through or leaves the road). |
-| `OMSI_BACKGROUND` | bool | off | use | app | A test window that does not take the keyboard focus (OMSI_INPUT drives the handlers directly). |
+| `OMSI_BACKGROUND` | bool | off | use | app | A test window that does not take the keyboard focus (OMSI_INPUT drives the handlers directly); with OMSI_INPUT it ignores the real mouse too. |
 | `OMSI_BATCH` | num | - | use | app | Offscreen: prepare the map tiles this many at a time, as the window's streaming does. |
 | `OMSI_BENCH` | num | - | use | app | Offscreen: draw the final picture this many more times and log the median CPU and GPU-wait time. |
 | `OMSI_BLEND_AB` | bool | off | use | app | Offscreen: a second picture with the blended draws in the old order, for a before/after of the draw order. |
@@ -194,6 +194,7 @@ effect. On Android, `openOMSI/env.txt` holds `NAME=value` lines that are set bef
 | `OMSI_PAX_CAM` | num | - | use | app | Offscreen --view pax: the n-th passenger camera. |
 | `OMSI_PAX_CROSS` | text | - | use | sim | x,y: send pedestrians across the signalised crossing nearest that point. |
 | `OMSI_PAX_WAITING` | num | - | use | sim | Number of passengers waiting at each stop. |
+| `OMSI_PHOTO` | text | - | use | app | Photo mode settings for a test, key=value by commas: orbit (dist, around, up), kmh (the bus moving), focal (mm), dof, fstop (f-number), focus (m; none: on the bus), motion, shutter (1/s), filter (0..10), vignette, grain, exposure (EV), aspect (0..7), grid (0..3), quality (0..3). |
 | `OMSI_POPULATION_SHOTS` | bool | off | use | app | Offscreen: pictures of the framed population spawns. |
 | `OMSI_PROBE` | text | - | use | app | x0,y0,x1,y1[,n]: print terrain and road surface heights along a line. |
 | `OMSI_PROBE_GRID` | text | - | use | app | x,y,half,step: the wheels' ground on a grid around a point. |

@@ -150,15 +150,47 @@ LAN session. Esc opens the game menu: drive the next placed vehicle, place any v
 the installation in front of the camera (or beside the bus), couple what stands close behind
 the bus and uncouple it again, save the situation or load the quicksave, the next weather, the clock an hour on or back, refuel and wash (only at a
 petrol station, as in OMSI), repair (the team needs the map's travel time when the bus stands
-in no depot yard), screenshot, timetable, skip the duty's next stop (also **Ctrl+Shift+H**: for a
-stop the bus cannot reach or never registers at), the object editor (below), quit. Its *Options* hold
-one line a setting under the launcher's headings (Simulation, Display & sound, Driving,
-Camera): **Left** and **Right** (or a click on the arrows round the value) step it down and
-up, Enter as before; they are kept for the next game. Home is the ticket desk camera and Insert the timetable view (as OMSI's keyboard.cfg binds them), and the
+in no depot yard), the photo mode (below), timetable, skip the duty's next stop (also **Ctrl+Shift+H**: for a
+stop the bus cannot reach or never registers at), the object editor (below), quit. The menu is a
+page of the launcher: its rail on the left (the menu's lines as its pages, the picture of the
+game beside it with a card of what is being driven and **Resume**), and *Options*, *Controls*,
+*Vehicle options*, *World options* and the lists open as launcher pages right of the rail - the
+tabs as the launcher's bar, the settings in two columns with its fields, switches, sliders and
+drop-downs. **Up**/**Down** and **Enter** work them as before, **Left** and **Right** step a
+value; the settings are kept for the next game. Home is the ticket desk camera and Insert the timetable view (as OMSI's keyboard.cfg binds them), and the
 change keys of keyboard.cfg hand out or take back the change. The HUD
 shows time, speed, line, next stop, delay and what the workshop just did (and why the bus
 stands: the parking brake, low air pressure, a line the date's chrono takes off), and the
 controls for the first seconds.
+
+### Photo mode
+
+*Photo mode* in the game menu (or **Ctrl+F12**, the `photo_mode` key) stops the game and hands
+over a camera of its own, as the racing games' photo modes do. **WASD** fly it (level over the
+ground whichever way it looks), **Q**/**E** (or Space) go down and up, the right mouse button
+held - or the left one over the picture - looks round (the arrows too), the wheel and **+**/**-**
+zoom the lens, **Z**/**X** roll it and **R** levels it again, **Shift** is faster and **Alt**
+slower, **Tab** steps through the panel's pages, **H** hides the panel, **Enter** (or F12) takes
+the photo and **Esc** leaves. A gamepad: the left stick moves, the right one looks, the triggers
+go down and up, the shoulder buttons roll, the d-pad zooms, A takes the photo, Y hides the
+panel, X levels, B leaves. The camera stays within a distance of the bus (25 m to unlimited)
+and above the ground; *Orbit* turns it round the bus instead.
+
+The panel has five pages. *Camera*: free or orbit, the focal length (10-400 mm, a full-frame
+camera's), the roll, the speed, the distance allowed, the frame (the window's or 16:9, 21:9,
+3:2, 4:3, 1:1, 4:5, 9:16 - the photo is cut to it) and the guides (thirds, golden ratio,
+centre). *Lens*: depth of field with the aperture (f/1.2-f/22), the focus on the bus or at a
+distance set by hand and the bokeh's shape (round, 5, 6 or 8 blades); motion blur for a
+rolling shot with the shutter speed (the bus stays sharp, the street passes - it needs the
+bus moving when the game was stopped); how many samples a photo is made of. *Colour*:
+exposure, contrast, highlights, shadows, saturation, vibrance, temperature, tint. *Effects*:
+a film look (vivid, warm, cool, vintage, sepia, black and white, noir, bleach bypass, teal and
+orange, faded film) and its strength, film grain, vignette, colour fringes, sharpening.
+*Scene*: the clock an hour or a quarter on or back, and the photo's size (the window's or
+double). Depth of field and motion blur are real: the photo is the average of many pictures,
+each taken through another point of the aperture and at another moment of the shutter, so
+what is shown sharpens over a second or two once the camera stands still (the panel shows
+how far). What is shown is the photo as it is saved - a PNG in the `Screenshots` folder.
 
 On a duty the game keeps a **journey log** in the content folder's `Journeys` (one text file
 a duty, named by the real date and time it began and the line and tour): each trip driven

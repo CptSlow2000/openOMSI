@@ -49,6 +49,10 @@ pub(crate) struct App {
     pub(crate) settings: settings::Settings,
     /// The exit is under way.
     pub(crate) exiting: bool,
+    /// The pause menu, its windows and the photo mode, drawn with the launcher's toolkit.
+    pub(crate) shell: crate::shell::Shell,
+    /// The photo mode, while it is on.
+    pub(crate) photo: Option<crate::photo::Photo>,
 }
 
 impl App {

@@ -15,6 +15,7 @@ pub(crate) fn is_game_action(name: &str) -> bool {
             "sim_pause"
                 | "open_menu"
                 | "screenshot"
+                | "photo_mode"
                 | "quicksave"
                 | "toggel_mouse_ctrl"
                 | "toggel_ctrler"
@@ -28,6 +29,11 @@ pub(crate) const SCENERY_OBJECT_REACH: f32 = 50.0;
 impl App {
     /// A key of the window, or of an `OMSI_INPUT` script.
     pub(crate) fn on_key(&mut self, event_loop: &ActiveEventLoop, code: KeyCode, pressed: bool, repeat: bool) {
+        // the photo mode has all the keys
+        if self.photo_on() {
+            self.photo_key(code, pressed, repeat);
+            return;
+        }
         if self.xr.vr_nav_edit.is_some() {
             self.vr_nav_edit_key(code, pressed, repeat);
             return;
@@ -418,6 +424,11 @@ impl App {
                 }
                 // (F12 alone only where the bus has no key of its own on it: in OMSI's
                 // keyboard.cfg it is the pram/wheelchair button, which it took away)
+                // the photo mode: Ctrl+F12
+                KeyCode::F12 if ctrl => {
+                    self.enter_photo();
+                    return true;
+                }
                 KeyCode::F12 if !self.player.as_ref().is_some_and(|p| p.bindings.iter().any(|b| b.scan_code == 88 && b.chord() == 0 && p.vehicle.ty.program.trigger(&b.action).is_some())) => {
                     self.take_screenshot();
                     return true;
@@ -769,6 +780,8 @@ impl App {
                     let (x, y) = xy();
                     self.on_cursor(x * scale, y * scale);
                 }
+                // `photo`: into the photo mode (OMSI_PHOTO sets it up)
+                "photo" => self.enter_photo(),
                 // `weather`: the next weather, as the admin menu's "Next weather"
                 "weather" => self.next_weather(),
                 // `rawmouse dx[,dy]`: the mouse moved by (dx, dy) logical pixels as a locked
@@ -829,7 +842,7 @@ impl App {
                     let (press, release) = (arg != "up", arg != "down");
                     if self.menus.placing.is_some() && self.menus.game_menu.is_none() {
                         self.placing_click();
-                    } else if self.menus.game_menu.is_some() {
+                    } else if self.menus.game_menu.is_some() || self.shell_takes_mouse() {
                         // (on the menu as the window's button: its lines, its arrows)
                         if press {
                             self.left_button(event_loop, true);

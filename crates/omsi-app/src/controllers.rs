@@ -335,7 +335,7 @@ pub(crate) const HAT_BUTTONS: usize = 128;
 /// and on Windows DirectInput for everything a gamepad is not (`crate::dinput`) - many wheels
 /// never show up in the system's newer interface that gilrs uses there.
 pub(crate) struct Devices {
-    gilrs: Option<Gilrs>,
+    pub(crate) gilrs: Option<Gilrs>,
     #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
     calibration_wheel: Option<crate::evdev_ff::Wheel>,
     /// Whether a gilrs device is also a native evdev constant-force wheel.
@@ -1108,7 +1108,7 @@ fn gamepad_triggers(axes: &mut Vec<(usize, f32)>, left: f32, right: f32) {
 pub struct Controllers {
     /// Each wheel's suspension travel, settled over a tenth of a second (see `wheel_bump`).
     settled: Vec<f32>,
-    devices: Devices,
+    pub(crate) devices: Devices,
     focused: bool,
     cfg: Vec<DeviceCfg>,
     held: HeldButtons,

@@ -53,6 +53,10 @@ impl App {
     /// the view in the bus), or with OMSI's `[altView]` turns the view; the middle button
     /// turns it in any case. Where there is nothing to zoom it turns the view.
     pub(crate) fn on_right(&mut self, pressed: bool) {
+        if let Some(ph) = self.photo.as_mut() {
+            ph.looking = pressed;
+            return;
+        }
         self.input.buttons_held.1 = pressed;
         // the left button already down on nothing it works: both held zoom
         if pressed && self.input.buttons_held.0 && !self.input.dragging && self.start_both_drag() {
@@ -207,6 +211,17 @@ impl App {
     /// editor's drag, the city map) and no switch is to be named.
     fn move_cursor(&mut self, x: f32, y: f32) -> bool {
         let last = self.input.cursor;
+        self.shell.pointer(x, y);
+        // the photo camera turned by a drag (and nothing else of the game's under the mouse)
+        if let Some(ph) = self.photo.as_mut() {
+            self.input.cursor = (x, y);
+            if ph.looking {
+                let scale = self.window.as_ref().map(|w| w.scale_factor() as f32).unwrap_or(1.0).max(0.1);
+                let k = look_deg_per_px(ph.cam.fov_deg) * self.settings.look_sens;
+                ph.look((x - last.0) / scale * k, (y - last.1) / scale * k);
+            }
+            return false;
+        }
         self.input.cursor = (x, y);
         // the navigator held by the mouse follows it
         if let Some(n) = self.menus.navigator.as_mut() {
