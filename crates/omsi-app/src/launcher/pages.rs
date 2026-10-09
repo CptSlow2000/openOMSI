@@ -625,6 +625,7 @@ fn graphics_tab(ui: &mut Ui, s: &mut Value, dirty: &mut f32, cols: [Rect; 2]) ->
     if matches!(get(s, "graphics").as_str(), Some("enhanced" | "enhanced_plus")) && get(s, "clouds").as_bool() != Some(false) {
         sel_setting(ui, s, dirty, "s-cloud-quality", c.row(), "Cloud quality", "cloud_quality", &[("high", "High"), ("low", "Low")]);
     }
+    sel_setting(ui, s, dirty, "s-rain-quality", c.row(), "Rain quality", "rain_quality", &[("high", "High"), ("medium", "Medium"), ("low", "Low")]);
     toggle_setting(ui, s, dirty, c.row(), "Windy trees", "windy_trees");
     let left = c.used();
     let mut c = Col::new(ui, cols[1], "Display");
@@ -1078,12 +1079,6 @@ fn sound_tab(ui: &mut Ui, s: &mut Value, dirty: &mut f32, cols: [Rect; 2]) -> [f
         }
     }
     toggle_setting(ui, s, dirty, c.row(), "Doppler effect", "doppler");
-    toggle_setting(ui, s, dirty, c.row(), "Ambience (wind, nature, road surfaces)", "ambient");
-    let mut amb = get(s, "vol_ambient").as_f64().unwrap_or(0.8) as f32;
-    if ui.slider("s-volamb", c.row(), &mut amb, 0.0, 1.0, 0.05, "Ambience volume", &|v| format!("{:.0}%", v * 100.0)) {
-        s["vol_ambient"] = json!((amb * 100.0).round() / 100.0);
-        *dirty = 0.3;
-    }
     sel_setting(ui, s, dirty, "s-voices", c.row(), "Passenger voices", "pax_voices", &[("all", "Greetings and tickets"), ("tickets", "Only the ticket asked for"), ("off", "Silent")]);
     [c.used(), radio_stations(ui, cols[1])]
 }
@@ -2947,7 +2942,7 @@ mod settings_tests {
     fn by_tab() -> Vec<Vec<&'static str>> {
         let mut graphics = vec![
             "s-gp-sel", "s-gp-load", "s-gp-del", "s-gp-name", "s-gp-save",
-            "s-preset", "s-graphics", "s-msaa", "s-scale", "s-af", "s-shadow", "set-ssao", "set-shadows", "s-casters", "set-detail_textures", "s-night", "s-led", "s-led-mip", "set-shadow_blobs", "set-reflections", "set-clouds", "s-cloud-quality", "set-windy_trees",
+            "s-preset", "s-graphics", "s-msaa", "s-scale", "s-af", "s-shadow", "set-ssao", "set-shadows", "s-casters", "set-detail_textures", "s-night", "s-led", "s-led-mip", "set-shadow_blobs", "set-reflections", "set-clouds", "s-cloud-quality", "s-rain-quality", "set-windy_trees",
             "set-fullscreen", "s-res", "set-vsync", "s-fps", "s-view", "s-maxobj", "s-minobj", "s-mirror", "s-mirror-refresh", "s-texmem", "set-texture_compression", "set-gpu_texture_compression",
         ];
         if !cfg!(target_os = "macos") {
@@ -2999,7 +2994,7 @@ mod settings_tests {
             camera.extend(["set-vr", "s-vr-scale", "s-vr-head-smoothing", "s-vr-mirror-rate", "set-vr_desktop_mirror", "s-go-vr-keys"]);
         }
         // (the radio stations: one, see `frame`)
-        let sound = vec!["s-vol", "s-volai", "s-volsc", "set-doppler", "set-ambient", "s-volamb", "s-voices", "radio-name-0", "radio-url-0", "radio-del-0", "radio-add"];
+        let sound = vec!["s-vol", "s-volai", "s-volsc", "set-doppler", "s-voices", "radio-name-0", "radio-url-0", "radio-del-0", "radio-add"];
         let gameplay = vec![
             "s-board", "set-exact_fare", "s-pax", "set-get_up", "s-unsched", "s-maxsched", "s-maxpark", "set-ai_wait_timed_stops_only",
             "s-maint", "set-collision_vehicles", "set-collision_objects", "set-collision_pedestrians", "set-use_real_time", "set-use_real_date", "set-time_sync", "set-metar_sync", "s-timespeed",
