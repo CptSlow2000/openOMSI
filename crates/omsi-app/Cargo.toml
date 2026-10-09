@@ -65,6 +65,9 @@ zip.workspace = true
 # the desktop's clipboard and file dialogs (a phone has neither in this form)
 [target.'cfg(not(target_os = "android"))'.dependencies]
 arboard = { version = "3", default-features = false }
+# The launcher's interface: the retained-mode core of the org's egui fork (on epaint and egui-wgpu)
+# the interface of the launcher: the org's egui fork, its retained-mode crate
+egui_retained = { git = "https://github.com/openOMSI-org/egui-openomsi", rev = "fa65df8e695b2e3f056d6b4743632bfa07f366f6", features = ["wgpu", "winit"] }
 rfd.workspace = true
 
 # Steam's rich presence: only where `assets/steam_redist` has the library (the build script

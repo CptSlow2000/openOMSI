@@ -335,6 +335,7 @@ effect. On Android, `openOMSI/env.txt` holds `NAME=value` lines that are set bef
 | `OMSI_INSTANCE` | text | - | use | app, launcher-core | The id of a game instance started by the launcher (set for the child process). |
 | `OMSI_LAN_IP` | text | - | use | net | a.b.c.d[,e.f.g.h]: LAN addresses to offer first (when the detection gets them wrong). |
 | `OMSI_LAUNCHER` | text | - | use | app | Program to open as the launcher instead of the built-in one. |
+| `OMSI_LAUNCHER_UI` | text | - | use |  | Launcher: `new` draws the interface with egui_retained (being ported page by page). |
 | `OMSI_OFFICIAL_KEY` | text | - | use | app | File of the official server's signing key. |
 | `OMSI_PLUGIN_HOST32` | text | beside the game | use | plugin | Path of omsi-plugin-host32.exe. |
 | `OMSI_PRESENCE_URL` | text | built-in | use | app | Base URL of the presence ("playing now") service. |

@@ -10,11 +10,11 @@ use std::collections::HashMap;
 /// An action the picker offers: its name, what it does, where it was found (the language
 /// files, OMSI's events, a bus's script, the keyboard file) and the bus files that use it.
 #[derive(Clone)]
-pub(super) struct KeyActionOption {
-    action: String,
-    label: String,
-    sources: Vec<String>,
-    bus_paths: Vec<String>,
+pub(crate) struct KeyActionOption {
+    pub(crate) action: String,
+    pub(crate) label: String,
+    pub(crate) sources: Vec<String>,
+    pub(crate) bus_paths: Vec<String>,
 }
 
 /// Every action the vehicles' section can be given: the language files' texts, OMSI's events
@@ -65,7 +65,7 @@ fn action_options(names: &crate::describe::ControlNames, script_actions: &HashMa
 /// The actions a controller's button can be given on the launcher's page, and their labels:
 /// the keyboard file's vehicle actions, the H-pattern gates and the game's own (built once
 /// and kept, not every frame).
-pub(super) fn controller_action_choices(names: &crate::describe::ControlNames, bindings: &Value) -> (Vec<String>, Vec<String>) {
+pub(crate) fn controller_action_choices(names: &crate::describe::ControlNames, bindings: &Value) -> (Vec<String>, Vec<String>) {
     let mut actions: Vec<String> = vec!["<none>".into()];
     actions.extend(bindings.get("vehicles").and_then(|a| a.as_array()).map(|a| a.iter().filter_map(|b| b.get("action").and_then(|x| x.as_str()).map(String::from)).collect::<Vec<_>>()).unwrap_or_default());
     // H-pattern shifters use OMSI's "_fest" actions: pressing the gate selects the gear,
@@ -87,7 +87,7 @@ pub(super) fn controller_action_choices(names: &crate::describe::ControlNames, b
 }
 
 /// The actions whose name or label has `query` and that a bus matching `source_query` uses.
-fn filter_action_options(options: &[KeyActionOption], query: &str, source_query: &str) -> Vec<KeyActionOption> {
+pub(crate) fn filter_action_options(options: &[KeyActionOption], query: &str, source_query: &str) -> Vec<KeyActionOption> {
     let query = query.trim().to_lowercase();
     let source_query = normalize_source_query(source_query);
     options.iter().filter(|option| {
@@ -104,7 +104,7 @@ fn filter_action_options(options: &[KeyActionOption], query: &str, source_query:
 }
 
 /// Lower case, every run of other characters one space: "MAN A26" finds `MAN_A26_3D.bus`.
-fn normalize_source_query(text: &str) -> String {
+pub(crate) fn normalize_source_query(text: &str) -> String {
     let mut normalized = String::new();
     for c in text.chars() {
         if c.is_alphanumeric() {
@@ -117,7 +117,7 @@ fn normalize_source_query(text: &str) -> String {
 }
 
 /// The bus folders and files that match, those that start so first.
-fn source_suggestions(paths: &[String], query: &str) -> Vec<String> {
+pub(crate) fn source_suggestions(paths: &[String], query: &str) -> Vec<String> {
     let query = normalize_source_query(query);
     if query.is_empty() {
         return Vec::new();
@@ -158,7 +158,7 @@ fn bus_source_paths(sources: &[String]) -> Vec<String> {
     paths
 }
 
-fn bus_usage_label(bus_count: usize, total_bus_count: usize) -> String {
+pub(crate) fn bus_usage_label(bus_count: usize, total_bus_count: usize) -> String {
     format!("Used by {bus_count}/{total_bus_count} buses")
 }
 
@@ -198,7 +198,7 @@ fn save_script_action_cache(path: &std::path::Path, cache: &ScriptActionCache) -
 
 /// The picker's actions: the cache read once, the scan started once per session (in the
 /// background) and what it sent taken in, the list rebuilt when it changed.
-fn ensure_key_action_catalog(l: &mut Launcher) {
+pub(crate) fn ensure_key_action_catalog(l: &mut Launcher) {
     let root = std::path::PathBuf::from(&l.state.config.root);
     if l.pages.kb_script_actions_root.as_ref() != Some(&root) {
         l.pages.kb_script_actions = None;

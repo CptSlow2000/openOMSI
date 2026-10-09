@@ -9,6 +9,7 @@
 //! functions `omsi-launcher --cli` offers a terminal.
 
 pub(crate) mod drive;
+mod gui;
 pub(crate) mod mapview;
 pub mod mobile;
 pub mod phone;
@@ -165,6 +166,12 @@ pub struct Launcher {
     /// Background drop of the graphics device given up while a game runs (see `frame`).
     /// Joined before a new device is opened so the two do not meet on the card.
     gpu_rest_drop: Option<std::thread::JoinHandle<()>>,
+    /// The interface on egui_retained (`OMSI_LAUNCHER_UI=new`, see `gui`).
+    gui: Option<gui::Gui>,
+    /// The last key pressed (its code and the Shift/Ctrl/Alt chord) and the modifiers held,
+    /// for a key binding the new interface waits for.
+    gui_key: Option<(winit::keyboard::KeyCode, i32)>,
+    gui_mods: winit::keyboard::ModifiersState,
 }
 
 /// Run the launcher window until it is closed.
@@ -241,6 +248,9 @@ impl Launcher {
         #[cfg(not(target_os = "android"))]
         discord_next_try: Instant::now(),
         gpu_rest_drop: None,
+        gui: gui::enabled().then(gui::Gui::new),
+        gui_key: None,
+        gui_mods: Default::default(),
     };
     // after an update: the files it set aside go, and the launcher says what happened
     #[cfg(not(target_os = "android"))]
@@ -307,6 +317,9 @@ impl Launcher {
         self.map_gen = 0;
         self.mapview.drop_gpu();
         self.icons.clear();
+        if let Some(g) = self.gui.as_mut() {
+            g.drop_gpu();
+        }
     }
 
     /// The window, its surface and the renderer, given up for the game (a phone plays in the
@@ -447,6 +460,42 @@ impl ApplicationHandler for Launcher {
             if let Some(w) = self.window.as_ref() {
                 let (at, size) = (w.outer_position().ok(), w.outer_size());
                 core::instances::set_screen_at(at.map(|p| (p.x + size.width as i32 / 2, p.y + size.height as i32 / 2)));
+            }
+        }
+        // the new interface takes the pointer, the keys and the text (and two fingers' pinch
+        // zooms the bus)
+        if let (true, WindowEvent::Touch(t)) = (self.gui.is_some(), &event) {
+            self.gui_pinch(*t, scale);
+        }
+        if let Some(g) = self.gui.as_mut() {
+            let input = matches!(
+                event,
+                WindowEvent::CursorMoved { .. } | WindowEvent::CursorLeft { .. } | WindowEvent::MouseInput { .. } | WindowEvent::MouseWheel { .. } | WindowEvent::KeyboardInput { .. } | WindowEvent::ModifiersChanged(_) | WindowEvent::Touch(_) | WindowEvent::Ime(_)
+            );
+            if input || matches!(event, WindowEvent::Focused(_)) {
+                g.input.on_event(&event, scale);
+                // (the raw key and the modifiers held, for a key binding waited for)
+                match &event {
+                    WindowEvent::ModifiersChanged(m) => self.gui_mods = m.state(),
+                    WindowEvent::KeyboardInput { event: k, .. } if k.state.is_pressed() && !k.repeat => {
+                        if let winit::keyboard::PhysicalKey::Code(code) = k.physical_key {
+                            let md = self.gui_mods;
+                            self.gui_key = Some((code, omsi_content::input::chord(md.shift_key(), md.control_key(), md.alt_key())));
+                        }
+                    }
+                    _ => {}
+                }
+                if g.input.wants_paste() {
+                    if let Some(t) = self.clipboard.as_mut().and_then(|c| c.get_text().ok()) {
+                        g.input.paste(t);
+                    }
+                }
+                if let Some(w) = self.window.as_ref() {
+                    w.request_redraw();
+                }
+                if input {
+                    return;
+                }
             }
         }
         match event {
@@ -874,6 +923,10 @@ impl Launcher {
         if let Some(r) = self.renderer.as_ref() {
             self.showroom.update(r, dt);
         }
+        if self.gui.is_some() {
+            self.gui_frame(event_loop, dt, (pw, ph), scale, &window);
+            return;
+        }
 
         // --- the interface
         self.preview_rect = None;
@@ -1008,6 +1061,31 @@ impl Launcher {
                 let mut it = arg.split(',').map(|v| v.trim().parse::<f32>().unwrap_or(0.0));
                 Vec2::new(it.next().unwrap_or(0.0), it.next().unwrap_or(0.0))
             };
+            // (the new interface gets the same, as window events; `press <name>` clicks one of
+            // its nodes by name)
+            if let Some(g) = self.gui.as_mut() {
+                use egui_retained::input::{Button as B, InputEvent as E};
+                let mut click = |g: &mut gui::Gui, q: egui_retained::Pos2| {
+                    g.input.push(E::PointerMoved(q));
+                    g.input.push(E::PointerButton { pos: q, button: B::Primary, pressed: true });
+                    g.input.push(E::PointerButton { pos: q, button: B::Primary, pressed: false });
+                };
+                let at = xy();
+                match verb {
+                    "move" => g.input.push(E::PointerMoved(egui_retained::pos2(at.x, at.y))),
+                    "click" => click(g, egui_retained::pos2(at.x, at.y)),
+                    "press" => match g.ui.find(arg.trim()) {
+                        Some(n) => {
+                            let q = g.ui.rect(n).center();
+                            click(g, q);
+                        }
+                        None => log::warn!("launcher input: no node named {}", arg.trim()),
+                    },
+                    "wheel" => g.input.push(E::Wheel(egui_retained::vec2(0.0, arg.trim().parse::<f32>().unwrap_or(0.0) * 40.0))),
+                    "type" => g.input.push(E::Text(arg.to_string())),
+                    _ => {}
+                }
+            }
             match verb {
                 "move" => self.ui.input.mouse = xy(),
                 "click" => {
@@ -1040,6 +1118,8 @@ impl Launcher {
                         self.ui.input.keys.push(k);
                     }
                 }
+                // (the new interface's: done above)
+                "press" => {}
                 "shot" => self.shot = Some((0.0, std::path::PathBuf::from(arg.trim()))),
                 // `focus 0` / `focus 1`: the window loses or gets the keyboard
                 "focus" => self.set_focus(arg.trim() != "0"),

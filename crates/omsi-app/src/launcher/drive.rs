@@ -16,21 +16,21 @@ use omsi_ui::paint::Align;
 use omsi_ui::{Color, Rect, Weight};
 
 #[derive(Clone)]
-struct BusVariant {
-    file: String,
-    name: String,
-    variant: String,
-    fresh: bool,
-    installed: bool,
-    paints: usize,
-    incomplete: bool,
+pub(crate) struct BusVariant {
+    pub(crate) file: String,
+    pub(crate) name: String,
+    pub(crate) variant: String,
+    pub(crate) fresh: bool,
+    pub(crate) installed: bool,
+    pub(crate) paints: usize,
+    pub(crate) incomplete: bool,
 }
 
 #[derive(Clone)]
-struct BusManufacturer {
-    key: String,
-    name: String,
-    variants: Vec<BusVariant>,
+pub(crate) struct BusManufacturer {
+    pub(crate) key: String,
+    pub(crate) name: String,
+    pub(crate) variants: Vec<BusVariant>,
 }
 
 #[derive(Default)]
@@ -64,20 +64,20 @@ pub struct DriveView {
     only_favourites: bool,
 }
 
-fn favourites_file() -> std::path::PathBuf {
+pub(crate) fn favourites_file() -> std::path::PathBuf {
     omsi_launcher_lib::data_dir().join("favourite-buses.txt")
 }
 
-fn fav_key(file: &str) -> String {
+pub(crate) fn fav_key(file: &str) -> String {
     file.replace('\\', "/").to_lowercase()
 }
 
 /// The starred buses of the file (one bus file a line).
-fn read_favourites() -> std::collections::BTreeSet<String> {
+pub(crate) fn read_favourites() -> std::collections::BTreeSet<String> {
     std::fs::read_to_string(favourites_file()).map(|t| t.lines().map(str::trim).filter(|l| !l.is_empty()).map(fav_key).collect()).unwrap_or_default()
 }
 
-fn write_favourites(f: &std::collections::BTreeSet<String>) {
+pub(crate) fn write_favourites(f: &std::collections::BTreeSet<String>) {
     let text: String = f.iter().map(|l| format!("{l}\n")).collect();
     if let Err(e) = std::fs::write(favourites_file(), text) {
         log::warn!("favourite buses not saved: {e}");
@@ -188,7 +188,7 @@ pub fn draw(l: &mut Launcher, area: Rect) {
 }
 
 /// The icon a weather file deserves: what it says about itself.
-fn weather_icon_of(w: &WeatherInfo) -> &'static str {
+pub(crate) fn weather_icon_of(w: &WeatherInfo) -> &'static str {
     if w.snow || w.precip.starts_with("snow") {
         "weather_snowy"
     } else if w.precip.starts_with("rain") {
@@ -464,7 +464,7 @@ fn duty_panel(l: &mut Launcher, body: Rect) {
 /// Whether all of a tour's trips have left at `now`, and the trip a start then takes: the one
 /// under way or the next, or with a search (`q`, lower case) the first still to come that
 /// matches it by name, line or stop (a tour whose number matches keeps the usual one).
-fn tour_trip(t: &omsi_launcher_lib::TourInfo, now: f64, q: &str) -> (bool, Option<usize>) {
+pub(crate) fn tour_trip(t: &omsi_launcher_lib::TourInfo, now: f64, q: &str) -> (bool, Option<usize>) {
     let ended = t.runs && t.trips.iter().all(|x| x.departure < now - 120.0);
     let first = trip_index_at(t, now);
     let has = |s: &str| s.to_lowercase().contains(q);
@@ -613,7 +613,7 @@ fn foot(l: &mut Launcher, f: Rect, tab: usize) {
 }
 
 /// The livery the bus would wear.
-fn paint_line(l: &Launcher) -> String {
+pub(crate) fn paint_line(l: &Launcher) -> String {
     match l.state.bus() {
         Some(bus) if l.state.choice.paint.is_empty() => default_livery_label(bus).to_string(),
         Some(_) => l.state.choice.paint.clone(),
@@ -622,7 +622,7 @@ fn paint_line(l: &Launcher) -> String {
 }
 
 /// The chosen day and weather in one line.
-fn start_line(l: &Launcher) -> String {
+pub(crate) fn start_line(l: &Launcher) -> String {
     // on a server: its clock and its weather, whatever this machine has chosen
     if let Some(i) = l.state.joined_server.as_ref().and_then(|a| l.state.server_info.get(a)).and_then(|x| x.1.as_ref().ok()) {
         let weather = if i.weather.is_empty() {
@@ -647,7 +647,7 @@ fn start_line(l: &Launcher) -> String {
 }
 
 /// The duty in words: the line and the tour, and when the trip the game would take runs.
-fn duty_of(l: &Launcher) -> (String, String) {
+pub(crate) fn duty_of(l: &Launcher) -> (String, String) {
     let map = l.state.map().map(|m| if m.friendly.is_empty() { m.name.clone() } else { m.friendly.clone() }).unwrap_or_else(|| "-".into());
     match (&l.state.choice.line, &l.state.choice.tour, l.state.choice.free) {
         (_, _, true) | (None, _, _) => (format!("Free drive · {map}"), String::new()),
@@ -661,7 +661,7 @@ fn duty_of(l: &Launcher) -> (String, String) {
 }
 
 /// Where the bus is put down.
-fn duty_place(l: &Launcher) -> String {
+pub(crate) fn duty_place(l: &Launcher) -> String {
     match l.state.choice.entry {
         e if e < 0 => "starting point: automatic".to_string(),
         e => l
@@ -735,7 +735,7 @@ fn map_labels(l: &mut Launcher, map: Rect, avoid: &[Rect]) {
 
 /// OMSI takes the manufacturer and the complete type from [friendlyname]. The
 /// vehicle folder and rendering configuration do not define this hierarchy.
-fn build_bus_manufacturers(vehicles: &[omsi_launcher_lib::VehicleInfo], allowed: Option<&std::collections::HashSet<String>>, fresh: &std::collections::HashSet<String>) -> Vec<BusManufacturer> {
+pub(crate) fn build_bus_manufacturers(vehicles: &[omsi_launcher_lib::VehicleInfo], allowed: Option<&std::collections::HashSet<String>>, fresh: &std::collections::HashSet<String>) -> Vec<BusManufacturer> {
     let mut grouped = std::collections::BTreeMap::<String, BusManufacturer>::new();
     for vehicle in vehicles {
         if !allowed.map(|a| a.contains(&vehicle.file.replace('\\', "/").to_lowercase())).unwrap_or(true) {
@@ -781,7 +781,7 @@ fn build_bus_manufacturers(vehicles: &[omsi_launcher_lib::VehicleInfo], allowed:
 
 /// Sort numeric runs wherever they occur: DL9 precedes DL10; case does not change
 /// a manufacturer's position.
-fn bus_name_cmp(a: &str, b: &str) -> std::cmp::Ordering {
+pub(crate) fn bus_name_cmp(a: &str, b: &str) -> std::cmp::Ordering {
     use std::cmp::Ordering;
     let a = a.to_lowercase();
     let b = b.to_lowercase();
@@ -822,15 +822,15 @@ pub(super) fn liveries_text(repaints: usize) -> String {
 }
 
 /// A type of a bus family in its dropdown: the type and its liveries.
-fn variant_option(variant: &BusVariant) -> String {
+pub(crate) fn variant_option(variant: &BusVariant) -> String {
     format!("{} · {}", variant.variant, liveries_text(variant.paints))
 }
 
-fn variant_matches(variant: &BusVariant, q: &str) -> bool {
+pub(crate) fn variant_matches(variant: &BusVariant, q: &str) -> bool {
     q.is_empty() || variant.name.to_lowercase().contains(q) || variant.variant.to_lowercase().contains(q) || display_bus_name(&variant.file).to_lowercase().contains(q)
 }
 
-fn manufacturer_matches(model: &BusManufacturer, q: &str) -> bool {
+pub(crate) fn manufacturer_matches(model: &BusManufacturer, q: &str) -> bool {
     q.is_empty() || model.name.to_lowercase().contains(q) || model.variants.iter().any(|v| variant_matches(v, q))
 }
 
@@ -1073,7 +1073,7 @@ pub(super) fn natural(s: &str) -> (u64, String) {
 }
 
 /// Time from the departure to the arrival of one trip.
-fn trip_duration(first: f64, last: f64) -> String {
+pub(crate) fn trip_duration(first: f64, last: f64) -> String {
     let minutes = ((last - first).max(0.0) / 60.0).round() as i64;
     let hours = minutes / 60;
     let remaining = minutes % 60;
@@ -1086,7 +1086,7 @@ fn trip_duration(first: f64, last: f64) -> String {
 }
 
 /// The name of the server the Drive page is joined to (see the Multiplayer page).
-fn joined_server_name(l: &Launcher) -> Option<String> {
+pub(crate) fn joined_server_name(l: &Launcher) -> Option<String> {
     let a = l.state.joined_server.as_ref()?;
     let entry = l.state.servers.iter().find(|s| &s.address == a);
     let info = l.state.server_info.get(a).and_then(|x| x.1.as_ref().ok());
@@ -1094,7 +1094,7 @@ fn joined_server_name(l: &Launcher) -> Option<String> {
 }
 
 /// After the season changed: a chosen weather that does not fit it goes, and the duty is saved.
-fn season_weather_fits(l: &mut Launcher) {
+pub(crate) fn season_weather_fits(l: &mut Launcher) {
     let w = l.state.choice.weather.clone();
     if let Some(wi) = l.state.weathers.iter().find(|x| x.file == w).cloned() {
         if !l.state.weather_fits(&wi) {
@@ -1520,7 +1520,7 @@ pub(super) fn ibis_box(l: &mut Launcher, r: Rect) {
 /// What the map picture should show, from the current choice: the map, the trip of the
 /// chosen tour that a start now would begin with (`State::first_trip`, the same one the
 /// launch choice takes), and the entry point the player picked.
-fn map_look(l: &Launcher) -> super::mapview::Look {
+pub(crate) fn map_look(l: &Launcher) -> super::mapview::Look {
     let file = l.state.choice.map.clone();
     // (the map list came from the content roots; ask them the same way, case-insensitively,
     // so a mod's map is found wherever its root sits)
@@ -1536,7 +1536,7 @@ pub(super) fn start_from_phone(l: &mut Launcher) {
     start(l);
 }
 
-fn start(l: &mut Launcher) {
+pub(crate) fn start(l: &mut Launcher) {
     if l.state.bus().is_none() || l.state.map().is_none() {
         l.state.set_status("Choose a bus and a map first.", true);
         return;
@@ -1763,7 +1763,7 @@ mod vehicle_picker_tests {
 
 /// A trip without passengers (to or from the depot): no line, or a terminus that says so -
 /// Spandau's are "Betriebsfahrt" with the line of the trip they lead to.
-fn depot_run(t: &omsi_launcher_lib::TripInfo) -> bool {
+pub(crate) fn depot_run(t: &omsi_launcher_lib::TripInfo) -> bool {
     let to = t.terminus.to_lowercase();
     t.line.trim().is_empty()
         || ["betriebsfahrt", "leerfahrt", "dienstfahrt", "not in service", "out of service", "hors service", "zjazd do zajezdni"].iter().any(|w| to.contains(w))

@@ -17,26 +17,26 @@ use std::path::{Path, PathBuf};
 pub struct TimetableView {
     pub map: usize,
     /// The map the data was read for (its `global.cfg`).
-    loaded: Option<String>,
-    data: Option<TimetableData>,
-    map_dir: PathBuf,
-    line: usize,
-    tour: usize,
+    pub(crate) loaded: Option<String>,
+    pub(crate) data: Option<TimetableData>,
+    pub(crate) map_dir: PathBuf,
+    pub(crate) line: usize,
+    pub(crate) tour: usize,
     /// The departures being typed, one per trip of the shown tour.
-    times: Vec<String>,
-    times_for: Option<(usize, usize)>,
+    pub(crate) times: Vec<String>,
+    pub(crate) times_for: Option<(usize, usize)>,
     /// Minutes a copied tour runs after the one it copies (and the repeat's interval).
-    offset: String,
+    pub(crate) offset: String,
     /// The repeat's last departure ("h:mm").
-    until: String,
+    pub(crate) until: String,
     /// The name typed for a new line.
-    new_line: String,
+    pub(crate) new_line: String,
     /// The lines changed and not saved yet (by name): kept while the player moves between
     /// lines - the page used to drop a line's changes when another was clicked, and a day's
     /// timetable took a save after every line.
-    dirty: std::collections::BTreeSet<String>,
+    pub(crate) dirty: std::collections::BTreeSet<String>,
     /// The reset button was pressed once: the next press puts the map's own timetable back.
-    reset_armed: bool,
+    pub(crate) reset_armed: bool,
 }
 
 /// Marks a `TTData` folder the launcher copied into the content folder (see `save_target`):
@@ -98,7 +98,7 @@ fn save_target(line: &Line, map_folder: &str, original_ttdata: &Path) -> Result<
 /// The map's own timetable back: the launcher's copy of its `TTData` deleted, or (a map
 /// unpacked in the content folder) every line saved over put back from its `.orig`.
 /// Returns what was done.
-fn reset_timetable(map_dir: &Path, map_folder: &str) -> Result<String, String> {
+pub(crate) fn reset_timetable(map_dir: &Path, map_folder: &str) -> Result<String, String> {
     let content = core::content_dir().ok_or("no content folder")?;
     let copy = content.join("maps").join(map_folder).join("TTData");
     if copy.join(COPY_MARK).is_file() {
@@ -125,7 +125,7 @@ fn reset_timetable(map_dir: &Path, map_folder: &str) -> Result<String, String> {
 
 /// Save every changed line of the map (see `save_target`); how many were saved, and the
 /// first error.
-fn save_all(tv: &mut TimetableView) -> (usize, Option<String>) {
+pub(crate) fn save_all(tv: &mut TimetableView) -> (usize, Option<String>) {
     let Some(data) = tv.data.as_mut() else { return (0, None) };
     let folder = tv.map_dir.file_name().map(|f| f.to_string_lossy().into_owned()).unwrap_or_default();
     let original = omsi_cfg::resolve_path(&tv.map_dir, "TTData");
@@ -156,7 +156,7 @@ fn save_all(tv: &mut TimetableView) -> (usize, Option<String>) {
 
 /// Copies of `base` every `every` minutes after it, as long as the copy's first departure is
 /// not after `until` (minutes of the day); numbered on from the highest. Returns how many.
-fn repeat_tour(tours: &mut Vec<Tour>, base: &Tour, every: f32, until: f32) -> usize {
+pub(crate) fn repeat_tour(tours: &mut Vec<Tour>, base: &Tour, every: f32, until: f32) -> usize {
     let first = base.trips.first().map(|t| t.departure).unwrap_or(0.0);
     let mut made = 0;
     let mut k = 1.0;
@@ -174,28 +174,26 @@ fn repeat_tour(tours: &mut Vec<Tour>, base: &Tour, every: f32, until: f32) -> us
 }
 
 /// A new tour's number: one past the highest that is a number.
-fn next_number(tours: &[Tour]) -> String {
+pub(crate) fn next_number(tours: &[Tour]) -> String {
     (tours.iter().filter_map(|t| t.number.trim().parse::<i64>().ok()).max().unwrap_or(0) + 1).to_string()
 }
 
-pub fn draw(l: &mut Launcher, area: Rect) {
-    let body = l.page_title(area, "Timetable", "A map's lines: their tours and when each trip leaves. Saved as the line's .ttl (in the content folder; OMSI 2's own files stay as they are).");
-    let maps: Vec<(String, String)> = l.state.maps.iter().map(|m| (m.friendly.clone(), m.file.clone())).collect();
+/// The chosen map's timetable read (once per map; first shown: the map chosen on the Drive
+/// page, not the first of the list).
+pub(crate) fn ensure_loaded(l: &mut Launcher) {
+    let maps: Vec<String> = l.state.maps.iter().map(|m| m.file.clone()).collect();
     if maps.is_empty() {
-        l.ui.paragraph("No maps found.", glam::Vec2::new(body.x, body.y), body.w, 14.0, Weight::Regular, TEXT_DIM);
         return;
     }
     let tv = &mut l.pages.tt;
-    // (first shown: the map chosen on the Drive page, not the first of the list)
     if tv.loaded.is_none() {
-        if let Some(k) = maps.iter().position(|m| m.1 == l.state.choice.map) {
+        if let Some(k) = maps.iter().position(|m| *m == l.state.choice.map) {
             tv.map = k;
         }
     }
     tv.map = tv.map.min(maps.len() - 1);
-    // read the chosen map's timetable
-    if tv.loaded.as_deref() != Some(maps[tv.map].1.as_str()) {
-        let file = &maps[tv.map].1;
+    if tv.loaded.as_deref() != Some(maps[tv.map].as_str()) {
+        let file = &maps[tv.map];
         let root = PathBuf::from(&l.state.config.root);
         let global = core::content_dir().map(|c| c.join(file)).filter(|p| p.is_file()).unwrap_or_else(|| omsi_cfg::resolve_path(&root, file));
         tv.map_dir = global.parent().map(Path::to_path_buf).unwrap_or_default();
@@ -214,6 +212,17 @@ pub fn draw(l: &mut Launcher, area: Rect) {
     if tv.until.is_empty() {
         tv.until = "22:00".into();
     }
+}
+
+pub fn draw(l: &mut Launcher, area: Rect) {
+    let body = l.page_title(area, "Timetable", "A map's lines: their tours and when each trip leaves. Saved as the line's .ttl (in the content folder; OMSI 2's own files stay as they are).");
+    let maps: Vec<(String, String)> = l.state.maps.iter().map(|m| (m.friendly.clone(), m.file.clone())).collect();
+    if maps.is_empty() {
+        l.ui.paragraph("No maps found.", glam::Vec2::new(body.x, body.y), body.w, 14.0, Weight::Regular, TEXT_DIM);
+        return;
+    }
+    ensure_loaded(l);
+    let tv = &mut l.pages.tt;
     let col1 = (body.w * 0.24).min(300.0);
     let col2 = (body.w * 0.22).min(260.0);
     let left = Rect::new(body.x, body.y, col1, body.h);

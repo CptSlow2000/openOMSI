@@ -57,10 +57,10 @@ pub struct Browser {
     pub purpose: Purpose,
     pub dir: PathBuf,
     /// (name, is a folder, bytes)
-    entries: Vec<(String, bool, u64)>,
+    pub(crate) entries: Vec<(String, bool, u64)>,
     /// The folder is a complete OMSI 2 (Root only).
-    is_root: bool,
-    error: Option<String>,
+    pub(crate) is_root: bool,
+    pub(crate) error: Option<String>,
 }
 
 /// The places a phone keeps files: the shared storage and any card or stick.
@@ -129,7 +129,7 @@ impl Browser {
         b
     }
 
-    fn open(&mut self, dir: PathBuf) {
+    pub(crate) fn open(&mut self, dir: PathBuf) {
         self.entries.clear();
         self.error = None;
         match std::fs::read_dir(&dir) {
@@ -159,7 +159,7 @@ impl Browser {
         self.dir = dir;
     }
 
-    fn title(&self) -> &'static str {
+    pub(crate) fn title(&self) -> &'static str {
         match self.purpose {
             Purpose::Root => "Choose the OMSI 2 folder",
             Purpose::ModFolder => "Choose the mod folder",
@@ -254,6 +254,37 @@ impl Launcher {
                 self.ui.input.released = true;
                 self.ui.input.down = false;
                 self.fingers.lift = true;
+            }
+        }
+    }
+
+    /// Two fingers with the new interface (which takes one finger as the pointer): spread
+    /// or pinched, they zoom the bus.
+    pub(super) fn gui_pinch(&mut self, t: Touch, scale: f32) {
+        let p = Vec2::new(t.location.x as f32, t.location.y as f32) / scale;
+        match t.phase {
+            TouchPhase::Started => {
+                self.fingers.at.retain(|(id, _)| *id != t.id);
+                self.fingers.at.push((t.id, p));
+                if self.fingers.at.len() == 2 {
+                    self.fingers.pinch = Some(self.fingers.at[0].1.distance(self.fingers.at[1].1).max(1.0));
+                }
+            }
+            TouchPhase::Moved => {
+                if let Some(f) = self.fingers.at.iter_mut().find(|(id, _)| *id == t.id) {
+                    f.1 = p;
+                }
+                if let (Some(d0), 2) = (self.fingers.pinch, self.fingers.at.len()) {
+                    let d = self.fingers.at[0].1.distance(self.fingers.at[1].1).max(1.0);
+                    self.showroom.zoom_by((d0 / d).clamp(0.8, 1.25));
+                    self.fingers.pinch = Some(d);
+                }
+            }
+            TouchPhase::Ended | TouchPhase::Cancelled => {
+                self.fingers.at.retain(|(id, _)| *id != t.id);
+                if self.fingers.at.len() < 2 {
+                    self.fingers.pinch = None;
+                }
             }
         }
     }
@@ -381,7 +412,7 @@ impl Launcher {
         }
     }
 
-    fn browser_chose(&mut self, purpose: Purpose, p: &Path) {
+    pub(super) fn browser_chose(&mut self, purpose: Purpose, p: &Path) {
         let s = p.to_string_lossy().to_string();
         match purpose {
             Purpose::Root => {

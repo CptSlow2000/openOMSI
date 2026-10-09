@@ -13,7 +13,7 @@ use serde_json::{json, Value};
 
 // the "Add binding" picker of the keyboard page: OMSI's events and the installed buses' own
 // triggers, searchable
-mod keybind_picker;
+pub(crate) mod keybind_picker;
 pub use keybind_picker::keybind_picker;
 use keybind_picker::{controller_action_choices, KeyActionOption};
 
@@ -44,15 +44,15 @@ pub struct PagesView {
     kb_script_cache_loaded: bool,
     kb_script_scan_actions: Option<std::collections::HashMap<String, Vec<String>>>,
     kb_script_scan_paths: Vec<String>,
-    kb_source_paths: Vec<String>,
+    pub(crate) kb_source_paths: Vec<String>,
     kb_source_path_set: std::collections::HashSet<String>,
     kb_source_suggestions: Option<(String, Vec<String>)>,
     pub kb_script_scan: (usize, usize, String),
-    kb_script_total_buses: usize,
+    pub(crate) kb_script_total_buses: usize,
     pub kb_script_scan_complete: bool,
-    kb_action_options: Option<Vec<KeyActionOption>>,
-    kb_filtered_options: Option<(String, String, Vec<KeyActionOption>)>,
-    controller_action_choices: Option<std::sync::Arc<(Vec<String>, Vec<String>)>>,
+    pub(crate) kb_action_options: Option<Vec<KeyActionOption>>,
+    pub(crate) kb_filtered_options: Option<(String, String, Vec<KeyActionOption>)>,
+    pub(crate) controller_action_choices: Option<std::sync::Arc<(Vec<String>, Vec<String>)>>,
     /// The Settings page's tab (see `SETTINGS_TABS`).
     pub settings_tab: usize,
     pub pads: PadsView,
@@ -66,7 +66,7 @@ pub struct PadsView {
     pub io: Option<crate::controllers::Devices>,
     /// The set-up assistant, while it runs.
     pub wizard: Option<Wizard>,
-    feedback_test: bool,
+    pub(crate) feedback_test: bool,
     pub devices: Option<Vec<crate::controllers::DeviceCfg>>,
     pub selected: usize,
     /// Waiting for a button of the shown device to be pressed (to add its binding).
@@ -78,7 +78,7 @@ pub struct PadsView {
     /// sees which it is and what it does, and can give it an action there.
     pub last_pressed: Option<(usize, std::time::Instant)>,
     /// "Remove this device" clicked once, and when: a second click removes it.
-    confirm_remove: Option<std::time::Instant>,
+    pub(crate) confirm_remove: Option<std::time::Instant>,
 }
 
 /// The set-up assistant of a device: the player lets go of everything, then turns the wheel
@@ -91,9 +91,9 @@ pub struct Wizard {
     pub rest: [Option<f32>; 8],
     pub at: Vec<[Option<f32>; 8]>,
     pub error: Option<String>,
-    calibration: Option<(std::time::Instant, crate::ffb_calibration::Calibration)>,
-    ff_choice: Option<bool>,
-    test_strength: f32,
+    pub(crate) calibration: Option<(std::time::Instant, crate::ffb_calibration::Calibration)>,
+    pub(crate) ff_choice: Option<bool>,
+    pub(crate) test_strength: f32,
 }
 
 impl PadsView {
@@ -114,7 +114,7 @@ impl PadsView {
     }
 }
 
-fn release_feedback(io: &mut Option<crate::controllers::Devices>, active: &mut bool) {
+pub(crate) fn release_feedback(io: &mut Option<crate::controllers::Devices>, active: &mut bool) {
     if *active {
         *io = None;
         *active = false;
@@ -260,7 +260,7 @@ fn hours_short(h: f64) -> String {
 }
 
 /// A Unix time as "YYYY-MM-DD HH:MM" in the machine's time zone.
-fn chrono_like(t: u64) -> String {
+pub(crate) fn chrono_like(t: u64) -> String {
     #[cfg(unix)]
     {
         let tt = t as libc::time_t;
@@ -1305,13 +1305,13 @@ fn mb(v: i64) -> String {
 /// and the views - both of OMSI's view resets, the one view's (C) and every view's (Space),
 /// which a controller could not bring back to the first camera (#1167) - and the main menu,
 /// which Esc opens and a controller has no Esc for.
-const PAD_GAME_ACTIONS: [&str; 27] = ["doors_all", "door_4", "door_3", "door_2", "door_1", "gear_up", "gear_down", "view_look_left", "view_look_right", "view_look_up", "view_look_down", "view_reset_direction", "view_reset_all_directions", "view_interiorcam_plus", "view_interiorcam_minus", "view_toggle_viewpoint", "view_toggle_interior", "view_set_driver", "view_set_passenger", "view_set_outside", "sim_pause", "open_menu", "screenshot", "quicksave", "toggel_mouse_ctrl", "toggel_ctrler", "voice_radio"];
+pub(crate) const PAD_GAME_ACTIONS: [&str; 27] = ["doors_all", "door_4", "door_3", "door_2", "door_1", "gear_up", "gear_down", "view_look_left", "view_look_right", "view_look_up", "view_look_down", "view_reset_direction", "view_reset_all_directions", "view_interiorcam_plus", "view_interiorcam_minus", "view_toggle_viewpoint", "view_toggle_interior", "view_set_driver", "view_set_passenger", "view_set_outside", "sim_pause", "open_menu", "screenshot", "quicksave", "toggel_mouse_ctrl", "toggel_ctrler", "voice_radio"];
 
-fn action_text(names: &crate::describe::ControlNames, a: &str) -> String {
+pub(crate) fn action_text(names: &crate::describe::ControlNames, a: &str) -> String {
     known_action(a).unwrap_or_else(|| names.control(a))
 }
 
-fn control_names(l: &Launcher) -> &'static crate::describe::ControlNames {
+pub(crate) fn control_names(l: &Launcher) -> &'static crate::describe::ControlNames {
     crate::describe::names(std::path::Path::new(&l.state.config.root), l.state.settings.get("language").and_then(|x| x.as_str()).unwrap_or("ENG"))
 }
 
@@ -1603,7 +1603,7 @@ pub fn controls(l: &mut Launcher, area: Rect) {
 }
 
 /// Hide empty slots beyond the physical buttons without changing the saved controller file.
-fn shown_button_count(buttons: &[(String, String)], physical: usize, revealed: Option<usize>) -> usize {
+pub(crate) fn shown_button_count(buttons: &[(String, String)], physical: usize, revealed: Option<usize>) -> usize {
     physical
         .max(buttons.iter().rposition(|(action, _)| !action.trim().is_empty()).map(|i| i + 1).unwrap_or(0))
         .max(revealed.map(|i| i + 1).unwrap_or(0))
@@ -1950,14 +1950,14 @@ fn game_controllers(l: &mut Launcher, body: Rect) {
 
 /// Take the device shown (`selected`) out of the list; the one below it (or the last) is
 /// shown next. Its name.
-fn remove_device(devices: &mut Vec<crate::controllers::DeviceCfg>, selected: &mut usize) -> String {
+pub(crate) fn remove_device(devices: &mut Vec<crate::controllers::DeviceCfg>, selected: &mut usize) -> String {
     let name = devices.remove(*selected).name;
     *selected = (*selected).min(devices.len().saturating_sub(1));
     name
 }
 
 /// The steps of the set-up assistant (see `Wizard`): what the player is asked each time.
-const WIZARD_STEPS: [(&str, &str); 5] = [
+pub(crate) const WIZARD_STEPS: [(&str, &str); 5] = [
     ("Let go of everything", "Take your hands off the wheel and your feet off the pedals (the wheel in the middle), then press Next."),
     ("Steering", "Turn the wheel (or move the stick) all the way to the LEFT and hold it there, then press Next."),
     ("Throttle", "Press the throttle pedal all the way down and hold it, then press Next. No pedals: Skip."),
@@ -2126,7 +2126,7 @@ fn feedback_setup(
 /// The axes the assistant found: `rest` where everything rested, `at` where the axes stood
 /// with the wheel turned left, the throttle, the brake and the clutch pressed (all None: that
 /// step skipped).
-fn wizard_result(rest: &[Option<f32>; 8], at: &[[Option<f32>; 8]]) -> [Option<(crate::controllers::Func, bool)>; 8] {
+pub(crate) fn wizard_result(rest: &[Option<f32>; 8], at: &[[Option<f32>; 8]]) -> [Option<(crate::controllers::Func, bool)>; 8] {
     use crate::controllers::Func;
     let mut axes: [Option<(Func, bool)>; 8] = [None; 8];
     let steer = at.first().and_then(|a| moved_most(rest, a, &[]));
@@ -2163,7 +2163,7 @@ fn wizard_result(rest: &[Option<f32>; 8], at: &[[Option<f32>; 8]]) -> [Option<(c
 
 /// The axis that moved most from `rest` to `now` (at least a sixth of its travel), not one of
 /// `exclude`: (slot, how far, signed).
-fn moved_most(rest: &[Option<f32>; 8], now: &[Option<f32>; 8], exclude: &[usize]) -> Option<(usize, f32)> {
+pub(crate) fn moved_most(rest: &[Option<f32>; 8], now: &[Option<f32>; 8], exclude: &[usize]) -> Option<(usize, f32)> {
     (0..8)
         .filter(|k| !exclude.contains(k))
         .filter_map(|k| Some((k, now[k]? - rest[k].unwrap_or(0.0))))
@@ -2173,7 +2173,7 @@ fn moved_most(rest: &[Option<f32>; 8], now: &[Option<f32>; 8], exclude: &[usize]
 
 /// Write the devices to the content folder's `Inputs/gamectrler.cfg` (OMSI 2's own is only
 /// read; the game takes the content folder's first).
-fn save_gamectrler(devices: &[crate::controllers::DeviceCfg]) -> Result<std::path::PathBuf, String> {
+pub(crate) fn save_gamectrler(devices: &[crate::controllers::DeviceCfg]) -> Result<std::path::PathBuf, String> {
     let candidate = core::content_dir().unwrap_or_else(core::data_dir).join("Inputs");
     let dir = if (candidate.exists() || std::fs::create_dir_all(&candidate).is_ok()) && omsi_cfg::is_writable(&candidate) {
         candidate
@@ -2188,7 +2188,7 @@ fn save_gamectrler(devices: &[crate::controllers::DeviceCfg]) -> Result<std::pat
 }
 
 /// Settings → Driving keys: "Custom controls", the keys of the Controls page.
-fn use_custom_keys(l: &mut Launcher) -> bool {
+pub(crate) fn use_custom_keys(l: &mut Launcher) -> bool {
     if l.state.settings.get("drive_keys").and_then(|v| v.as_str()) == Some("omsi") {
         return false;
     }
@@ -2198,7 +2198,7 @@ fn use_custom_keys(l: &mut Launcher) -> bool {
     true
 }
 
-fn save_keys(l: &mut Launcher, vr_binding: bool) {
+pub(crate) fn save_keys(l: &mut Launcher, vr_binding: bool) {
     match core::save_keybindings(&l.state.keybindings) {
         Ok(()) => {
             l.state.keybindings_error.clear();

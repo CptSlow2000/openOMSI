@@ -289,7 +289,7 @@ impl Launcher {
             self.state.crash = None;
         }
         if self.ui.button("crash-copy", Rect::new(inner.right() - 270.0, by, 150.0, 38.0), "Copy report", Some("content_copy"), ButtonKind::Primary) {
-            self.ui.clipboard_out = Some(format!("openOMSI {} ({})\n{what}\n\n{tail}", updater::current_version(), std::env::consts::OS));
+            self.ui.clipboard_out = Some(crash_report(&what, &tail));
             self.state.set_status("The report is copied: paste it into a GitHub issue or a message.", false);
         }
         let api = self.state.settings.get("graphics_api").and_then(|v| v.as_str()).unwrap_or("auto").to_string();
@@ -305,30 +305,39 @@ impl Launcher {
                 self.go(super::Page::Settings);
             }
         } else if self.ui.button("crash-issue", Rect::new(inner.x, by, 190.0, 38.0), "Report on GitHub", Some("open_in_new"), ButtonKind::Ghost) {
-            let title = format!("Crash: {}", what.chars().take(80).collect::<String>());
-            let enc = |t: &str| t.bytes().map(|b| if b.is_ascii_alphanumeric() || b"-_.~".contains(&b) { (b as char).to_string() } else { format!("%{b:02X}") }).collect::<String>();
-            // the end of the log goes with it, as much as a link holds (a report of the
-            // last line alone said where the game stopped, never what led there); the whole
-            // report is on the clipboard as well
-            // (the computer and the map always, see `crash_of`)
-            let (machine, end) = tail.split_once(&format!("\n{}\n", super::state::CRASH_TAIL_GAP)).unwrap_or(("", &tail));
-            let machine = if machine.is_empty() { String::new() } else { format!("The computer:\n```\n{machine}\n```\n\n") };
-            let body_with = |end: &str| format!("openOMSI {} on {}\n\n```\n{what}\n```\n\n{machine}The end of the log:\n```\n{end}\n```\n", updater::current_version(), std::env::consts::OS);
-            let lines: Vec<&str> = end.lines().collect();
-            let mut shown = 0;
-            let body = loop {
-                let body = body_with(&lines[lines.len() - shown..].join("\n"));
-                if shown >= lines.len() || enc(&body).len() > 6500 {
-                    break if shown == 0 { body } else { body_with(&lines[lines.len() - shown.saturating_sub(1)..].join("\n")) };
-                }
-                shown += 1;
-            };
-            self.ui.clipboard_out = Some(format!("openOMSI {} ({})\n{what}\n\n{tail}", updater::current_version(), std::env::consts::OS));
-            updater::open_url(&format!("{}/issues/new?title={}&body={}", updater::REPO_URL, enc(&title), enc(&body)));
+            self.ui.clipboard_out = Some(crash_report(&what, &tail));
+            updater::open_url(&crash_issue_url(&what, &tail));
         }
     }
 }
 
-fn mb(bytes: u64) -> String {
+/// A crash's report for the clipboard: the version, the system, what went wrong and the end
+/// of the log.
+pub(super) fn crash_report(what: &str, tail: &str) -> String {
+    format!("openOMSI {} ({})\n{what}\n\n{tail}", updater::current_version(), std::env::consts::OS)
+}
+
+/// A new GitHub issue about a crash, filled in: the end of the log goes with it, as much as a
+/// link holds (a report of the last line alone said where the game stopped, never what led
+/// there); the computer and the map always (see `crash_of`).
+pub(super) fn crash_issue_url(what: &str, tail: &str) -> String {
+    let title = format!("Crash: {}", what.chars().take(80).collect::<String>());
+    let enc = |t: &str| t.bytes().map(|b| if b.is_ascii_alphanumeric() || b"-_.~".contains(&b) { (b as char).to_string() } else { format!("%{b:02X}") }).collect::<String>();
+    let (machine, end) = tail.split_once(&format!("\n{}\n", super::state::CRASH_TAIL_GAP)).unwrap_or(("", tail));
+    let machine = if machine.is_empty() { String::new() } else { format!("The computer:\n```\n{machine}\n```\n\n") };
+    let body_with = |end: &str| format!("openOMSI {} on {}\n\n```\n{what}\n```\n\n{machine}The end of the log:\n```\n{end}\n```\n", updater::current_version(), std::env::consts::OS);
+    let lines: Vec<&str> = end.lines().collect();
+    let mut shown = 0;
+    let body = loop {
+        let body = body_with(&lines[lines.len() - shown..].join("\n"));
+        if shown >= lines.len() || enc(&body).len() > 6500 {
+            break if shown == 0 { body } else { body_with(&lines[lines.len() - shown.saturating_sub(1)..].join("\n")) };
+        }
+        shown += 1;
+    };
+    format!("{}/issues/new?title={}&body={}", updater::REPO_URL, enc(&title), enc(&body))
+}
+
+pub(super) fn mb(bytes: u64) -> String {
     format!("{:.1} MB", bytes as f64 / 1_000_000.0)
 }

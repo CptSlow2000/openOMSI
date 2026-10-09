@@ -308,6 +308,7 @@ flags! {
     OMSI_LAUNCHER_PAGE: Text, Test, Use, "-", "Launcher: open this page (e.g. mods, drive:N).";
     OMSI_LAUNCHER_SHOT: Text, Test, Use, "-", "Launcher: secs:file.png - the window's picture into a file.";
     OMSI_LAUNCHER_SIZE: Text, Test, Use, "-", "Launcher: WxH window size.";
+    OMSI_LAUNCHER_UI: Text, Setup, Use, "-", "Launcher: `new` draws the interface with egui_retained (being ported page by page).";
     OMSI_LIST_ALIGNED: Bool, Debug, Use, "off", "Log the splines aligned to the terrain.";
     OMSI_MAX_FPS: Num, Tuning, Use, "settings", "Frame rate limit for this run.";
     OMSI_METER: Text, Tuning, Use, "-", "gain,target,dark,bright,bias,night: the exposure metering.";
