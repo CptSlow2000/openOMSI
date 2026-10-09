@@ -398,7 +398,10 @@ impl ApplicationHandler for Launcher {
             }
         }
         if omsi_cfg::flags::OMSI_BACKGROUND.is_set() {
-            attrs = attrs.with_active(false);
+            // (a test window is never shown either: OMSI_LAUNCHER_SHOT draws into a texture of
+            // its own, so the pictures of a hidden window come out the same, and nothing pops
+            // up on the screen of whoever runs the checks)
+            attrs = attrs.with_active(false).with_visible(false);
         }
         let window = match event_loop.create_window(attrs) {
             Ok(w) => Arc::new(w),
