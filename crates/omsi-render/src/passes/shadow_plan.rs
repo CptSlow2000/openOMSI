@@ -15,6 +15,27 @@ pub(crate) struct ShadowPlan {
     pub light_view_proj_close: Mat4,
 }
 
+/// The light matrix of a cascade: an orthographic box `range` metres either side of the
+/// camera, looking along `sun`, drawn into a map of `texels` a side. The box is a fixed size
+/// whatever the view (no shimmer from a box that grows and shrinks as the camera turns), and
+/// its centre moves in whole texels of its own map, so that a still caster stays on the same
+/// texels while the camera moves. (The close cascade's map is smaller than the shadow setting
+/// above 2048, `SHADOW_CLOSE_MAX`: snapped to the setting's texels, it had moved by half or a
+/// quarter of its own texel, and every shadow edge round the bus trembled as the camera moved.)
+pub(crate) fn cascade_matrix(sun: Vec3, cam_rel: Vec3, range: f32, texels: u32) -> Mat4 {
+    let texel = range * 2.0 / texels.max(1) as f32;
+    let up = if sun.z.abs() > 0.95 { Vec3::Y } else { Vec3::Z };
+    let view0 = Mat4::look_at_rh(sun * 900.0, Vec3::ZERO, up);
+    let ls = view0.transform_point3(cam_rel);
+    let snapped = glam::Vec2::new((ls.x / texel).round() * texel, (ls.y / texel).round() * texel);
+    // (the snapped centre as a translation in light space, the eye 900 m from it towards the
+    // sun: built as a new look-at instead, its dot products with a 900 m eye rounded the
+    // offset off the texel grid)
+    let view = Mat4::from_translation(Vec3::new(-snapped.x, -snapped.y, -900.0 - ls.z)) * view0;
+    let proj = Mat4::orthographic_rh(-range, range, -range, range, 1.0, 2200.0);
+    proj * view
+}
+
 impl Renderer {
     /// The light matrices of the cascades, the near and far ones kept from an earlier
     /// frame while they still fit (and the second XR eye taking the first one's).
@@ -34,29 +55,13 @@ impl Renderer {
             None
         };
         let draw_shadows = shadows && shared_xr_shadows.is_none();
-        let light_matrix = |range: f32| {
-            // Snap the centre to whole texels so the map does not shimmer while driving.
-            let texel = range * 2.0 / self.options.shadow_size as f32;
-            let up = if sun.z.abs() > 0.95 { Vec3::Y } else { Vec3::Z };
-            let raw = cam_rel;
-            let view0 = Mat4::look_at_rh(sun * 900.0, Vec3::ZERO, up);
-            let ls = view0.transform_point3(raw);
-            let snapped = Vec3::new(
-                (ls.x / texel).round() * texel,
-                (ls.y / texel).round() * texel,
-                ls.z,
-            );
-            let center = view0.inverse().transform_point3(snapped);
-            let view = Mat4::look_at_rh(center + sun * 900.0, center, up);
-            let proj = Mat4::orthographic_rh(-range, range, -range, range, 1.0, 2200.0);
-            proj * view
-        };
+        let light_matrix = |range: f32, texels: u32| cascade_matrix(sun, cam_rel, range, texels);
         // The near cascade (140 m, 4096 texels at the top setting: the costliest shadow
         // pass, a third of it the trees' leaf cards) is drawn every other frame and kept
         // for the next, with the light matrix it was drawn with; the close one - the bus
         // and everything within 30 m - every frame. Redrawn at once when the camera has
         // jumped, the sun has moved or the render origin has (its matrix is relative to it).
-        let near_wanted = light_matrix(SHADOW_RANGE);
+        let near_wanted = light_matrix(SHADOW_RANGE, self.options.shadow_size);
         let (near_m, near_age, near_origin, near_sun) = self.shadow_near_cache.get();
         let near_jumped = (near_m.project_point3(cam_rel) - near_wanted.project_point3(cam_rel)).length() > 0.03;
         let redraw_near = draw_shadows
@@ -79,13 +84,13 @@ impl Renderer {
         };
         let light_view_proj_close = shared_xr_shadows
             .map(|(_, _, _, _, close)| close)
-            .unwrap_or_else(|| light_matrix(SHADOW_RANGE_CLOSE));
+            .unwrap_or_else(|| light_matrix(SHADOW_RANGE_CLOSE, self.options.shadow_size.min(SHADOW_CLOSE_MAX)));
         // The far cascade (700 m, metre-sized texels) is drawn every 4th frame, or at once
         // when the camera has left the middle of the one drawn, the sun has moved or the
         // render origin has jumped (its matrix is relative to that). Drawn every frame it
         // was 0.6 ms of GPU time for a picture that hardly changes; a car in it is a few
         // texels, and a tile streamed in waits three frames at most for its shadow.
-        let far_wanted = light_matrix(SHADOW_RANGE_FAR);
+        let far_wanted = light_matrix(SHADOW_RANGE_FAR, self.options.shadow_size);
         let (far_m, far_age, far_origin, far_sun) = self.shadow_far_cache.get();
         let far_moved = (far_m.project_point3(cam_rel) - far_wanted.project_point3(cam_rel)).length() > 0.12;
         let redraw_far = draw_shadows
@@ -341,5 +346,30 @@ impl Renderer {
             );
         }
         shadow_batches
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A still point keeps its place among the map's texels while the camera moves by
+    /// fractions of a texel and turns: the cascade moves by whole texels only.
+    #[test]
+    fn cascades_move_by_whole_texels() {
+        let sun = Vec3::new(0.4, -0.5, 0.75).normalize();
+        let point = Vec3::new(3.3, -7.1, 0.4);
+        for (range, texels) in [(SHADOW_RANGE_CLOSE, 2048u32), (SHADOW_RANGE, 4096), (SHADOW_RANGE_FAR, 2048)] {
+            let frac = |cam: Vec3| {
+                let p = cascade_matrix(sun, cam, range, texels).project_point3(point);
+                let t = (glam::Vec2::new(p.x, p.y) * 0.5 + 0.5) * texels as f32;
+                t - t.round()
+            };
+            let f0 = frac(Vec3::ZERO);
+            for k in 1..40 {
+                let cam = Vec3::new(0.013 * k as f32, -0.021 * k as f32, 0.005 * k as f32);
+                assert!((frac(cam) - f0).abs().max_element() < 0.02, "range {range}: {:?} vs {:?}", frac(cam), f0);
+            }
+        }
     }
 }
