@@ -591,7 +591,8 @@ weather, the time and the road continuously and never loops:
 - **The tyres on the road**: what the surface under each wheel of your bus sounds like at
   the speed it rolls - asphalt, concrete slabs (a knock at every joint), cobblestones (a knock
   a stone), gravel (crunching, a stone now and then against the wheel arch), dirt and mud,
-  grass, snow (squeaking in hard frost), the hiss of a wet road and the swash of the puddles.
+  grass, snow (squeaking in hard frost; a road the weather has covered in snow crunches as snow),
+  the hiss of a wet road and the swash of the puddles.
   The surface is the one OMSI 2 itself knows for the scripts (the `[surface]` of the road's or
   the ground's texture, `Axle_SurfaceID_` - which your bus's scripts now read too); a texture
   without one is told by its name, and an unknown one is asphalt.

@@ -112,7 +112,7 @@ impl Wind {
         if lv < 1.0e-6 && wv < 1.0e-6 && fv < 1.0e-6 {
             return;
         }
-        let (body_gain, hiss_gain, wire_gain, flow_gain) = (db(-16.0) * lv, db(-32.0) * lv, db(-6.0) * wv, db(-8.0) * fv);
+        let (body_gain, hiss_gain, wire_gain, flow_gain) = (db(-10.0) * lv, db(-26.0) * lv, db(-6.0) * wv, db(-8.0) * fv);
         let [el, er] = env;
         let [dl, dr] = dir;
         for i in 0..n {
@@ -195,7 +195,8 @@ impl Leaves {
                 // rate is a continuous rustle anyway)
                 let pr = (self.rate_lr[c] / rate).min(0.9);
                 if self.rng.uniform() < pr {
-                    let a = self.rng.exp1() * self.strike;
+                    // (a single leaf strikes no harder than a few times the mean)
+                    let a = self.rng.exp1().min(3.0) * self.strike;
                     self.env[c] = (self.env[c] + a).min(200.0);
                 }
                 self.env[c] = flush(self.env[c] * self.decay);

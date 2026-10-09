@@ -116,8 +116,13 @@ impl AmbientSound {
             self.look_at_own_sounds(v);
             bus_speed = (v.physics.velocity_kmh() / 3.6).abs();
             open = v.var("Snd_OutsideVol").unwrap_or(0.0);
+            // a road the weather has covered in snow (OMSI's StreetCond over 1): the tyres
+            // roll on the snow, whatever the texture under it is
+            let snowy = m.weather.is_some_and(|w| w.snow_on_road || crate::weather_setup::precip_of(w).0 == 2);
+            // (and snow lying on the land: the verges and fields are deep in it)
+            let lying = m.weather.is_some_and(|w| w.snow);
             if let Some(w) = m.world {
-                wheels = self.wheels(w, v, &m.ear, m.right, m.inside, m.wetness, bus_speed);
+                wheels = self.wheels(w, v, &m.ear, m.right, m.inside, m.wetness, bus_speed, (snowy, lying));
             }
         } else {
             self.surfaces = [None; MAX_WHEELS];
@@ -235,7 +240,7 @@ impl AmbientSound {
     /// The player's bus's tyres as the listener hears them: each side of the front axle and
     /// of the rear ones, on the surface under it (also told to the bus's scripts).
     #[allow(clippy::too_many_arguments)]
-    fn wheels(&mut self, w: &crate::scene::World, v: &mut omsi_sim::VehicleInstance, ear: &DVec3, right: Vec3, inside: bool, wetness: f32, speed: f32) -> [WheelInput; MAX_WHEELS] {
+    fn wheels(&mut self, w: &crate::scene::World, v: &mut omsi_sim::VehicleInstance, ear: &DVec3, right: Vec3, inside: bool, wetness: f32, speed: f32, (snowy, lying): (bool, bool)) -> [WheelInput; MAX_WHEELS] {
         let mut out = [WheelInput::default(); MAX_WHEELS];
         let Some(rb) = v.rigid.as_ref() else {
             self.surfaces = [None; MAX_WHEELS];
@@ -270,7 +275,11 @@ impl AmbientSound {
             let n = mine.len() as f64;
             let contact = mine.iter().map(|f| f.1).sum::<DVec3>() / n;
             let load = mine.iter().map(|f| f.3).sum::<f32>() / mine.len() as f32;
-            let surface = Surface::from_omsi(first.2);
+            let surface = match Surface::from_omsi(first.2) {
+                Surface::Asphalt | Surface::Concrete | Surface::Cobble if snowy => Surface::Snow,
+                Surface::Dirt | Surface::Grass | Surface::Gravel if lying => Surface::DeepSnow,
+                s => s,
+            };
             self.surfaces[g] = Some(surface);
             let wet_road = w.wet_road_at(contact.x, contact.y, wetness);
             let water = crate::puddles::water_at(contact.x, contact.y, wet_road);

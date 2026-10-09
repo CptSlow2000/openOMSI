@@ -123,6 +123,7 @@ fn the_ambience_is_cheap() {
         a.render(&mut out, 2, 1.0);
     }
     let share = t.elapsed().as_secs_f32() / secs;
+    println!("ambience, storm with four wheels: {:.2} % of one core (48 kHz stereo)", share * 100.0);
     let limit = if cfg!(debug_assertions) { 0.6 } else { 0.05 };
     assert!(share < limit, "{:.1} % of real time", share * 100.0);
 }
