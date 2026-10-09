@@ -126,6 +126,7 @@ effect. On Android, `openOMSI/env.txt` holds `NAME=value` lines that are set bef
 
 | Name | Type | Default | Read | Crates | Description |
 |---|---|---|---|---|---|
+| `OMSI_AMBIENT_LEVELS` | bool | off | test | audio | cargo test -p omsi-audio ambient_levels: print the ambience's level table (its calibration). |
 | `OMSI_API_BLESS` | bool | off | use | plugin | cargo test -p omsi-plugin api_manifest: write docs/plugin-api.json and the reference tables of docs/PLUGINS.md again from the plugin API registry. |
 | `OMSI_AUDIT_LINE` | num | - | test | sim | bus_audit example: the line (number and letter code) the IBIS typist enters instead of the bus's own. |
 | `OMSI_AUTOPILOT` | num | - | use | app | Offscreen: the player's bus follows the lanes at this speed in km/h (finds where it falls through or leaves the road). |
@@ -196,6 +197,8 @@ effect. On Android, `openOMSI/env.txt` holds `NAME=value` lines that are set bef
 | `OMSI_POPULATION_SHOTS` | bool | off | use | app | Offscreen: pictures of the framed population spawns. |
 | `OMSI_PROBE` | text | - | use | app | x0,y0,x1,y1[,n]: print terrain and road surface heights along a line. |
 | `OMSI_PROBE_GRID` | text | - | use | app | x,y,half,step: the wheels' ground on a grid around a point. |
+| `OMSI_RECORD` | num | - | use | app | Offscreen --drive: a picture every 1/this second into <out>_frames/ and the run's mixed sound into <out>.wav (films with sound). |
+| `OMSI_RECORD_FROM` | num | 0 | use | app | With OMSI_RECORD: start the film this many seconds into the drive. |
 | `OMSI_RENDER_CLOCK` | num | 0 | use | render | Seconds the animation clock starts on (offscreen pictures). |
 | `OMSI_RENDER_OCCLUDED` | bool | off | use | app | Draw frames into a texture while the window is hidden (macOS gives none). |
 | `OMSI_ROAD_PHOTO` | bool | off | use | app | Map check: photograph the road network from above and report grass where a carriageway should be. |
@@ -233,6 +236,7 @@ effect. On Android, `openOMSI/env.txt` holds `NAME=value` lines that are set bef
 | `OMSI_KEEP_ALLOCATOR` | bool | off | use | app | Skip the restart that swaps in the faster allocator at start. |
 | `OMSI_MIRROR_ENHANCED` | bool | off | frame | app, render | Draw the mirrors with the enhanced shading again. |
 | `OMSI_NOZCHECK_BIAS` | bool | off | use | app | The old reading of [matl_noZcheck] (A/B). |
+| `OMSI_NO_AMBIENT` | bool | off | use | app | Leave openOMSI's ambience out (wind, nature, road surfaces), whatever the settings say. |
 | `OMSI_NO_ANIMPARENT` | bool | off | use | sim | Every mesh animated on its own, without [animparent] (A/B). |
 | `OMSI_NO_AO` | bool | off | frame | render | No ambient occlusion pass. |
 | `OMSI_NO_ATTACH_FALLBACK` | bool | off | use | app | Drop attachments that have no fallback instead of placing them (A/B). |

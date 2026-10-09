@@ -1612,6 +1612,12 @@ impl Player {
                 }
             }
         }
+        self.sound_step(audio, inside, listener_follows_bus);
+    }
+
+    /// The bus's sounds after its step: the triggers it fired, its volume curves, the
+    /// announcements (the window's frame and a recording run's step alike).
+    pub(crate) fn sound_step(&mut self, audio: Option<&omsi_audio::AudioEngine>, inside: bool, listener_follows_bus: bool) {
         let fired: Vec<String> = std::mem::take(&mut self.vehicle.host.fired_triggers);
         let fired_vars: Vec<(String, Vec<f32>)> = std::mem::take(&mut self.vehicle.host.fired_trigger_vars);
         let fired_files: Vec<(String, String)> =
