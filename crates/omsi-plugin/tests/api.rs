@@ -55,7 +55,10 @@ fn api_manifest() {
         std::fs::write(&doc_path, &spliced).unwrap();
         return;
     }
-    let have = std::fs::read_to_string(&path).unwrap_or_default();
+    // (a Windows checkout may have turned the files' line ends into CRLF)
+    let have = std::fs::read_to_string(&path).unwrap_or_default().replace("\r\n", "\n");
+    let doc = doc.replace("\r\n", "\n");
+    let spliced = spliced.replace("\r\n", "\n");
     assert!(have == manifest, "docs/plugin-api.json is not the registry's: run OMSI_API_BLESS=1 cargo test -p omsi-plugin api_manifest");
     assert!(doc == spliced, "docs/PLUGINS.md's function tables are not the registry's: run OMSI_API_BLESS=1 cargo test -p omsi-plugin api_manifest");
     // (the manifest reads back)
