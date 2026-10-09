@@ -71,10 +71,10 @@ fn rain_env_enhanced(d: vec3<f32>, lod: f32) -> vec3<f32> {
     return mix(surround, e, smoothstep(-0.05, 0.35, d.z));
 }
 
-// A fixed, deterministic PCF kernel (shader.wgsl's SHADOW_OFFSETS). The old PCSS blocker
+// A fixed, deterministic PCF kernel (shader.wgsl's `shadow_tent`). The old PCSS blocker
 // search was unstable for alpha-tested foliage: a few leaves entering or leaving its
 // 12-sample search changed the penumbra radius, producing checkerboard patches and
-// camera-driven strips. The offsets are fixed in shadow-map space, so the only thing that
+// camera-driven strips. The filter is fixed in shadow-map space, so the only thing that
 // can change is the actual caster. `thin`: foliage, whose normals OMSI points up for even
 // lighting - no receiver plane can be taken from them, a leaf compares at its own depth.
 fn sun_shadow_soft(world_in: vec3<f32>, n: vec3<f32>, thin: bool) -> f32 {
@@ -86,7 +86,9 @@ fn sun_shadow_soft(world_in: vec3<f32>, n: vec3<f32>, thin: bool) -> f32 {
     let ndl = clamp(dot(n, camera.sun_dir.xyz), 0.0, 1.0);
     // (a veil of high cloud spreads the sun into an aureole a few degrees wide: the light
     // comes from a larger source, and the shadow's edge widens with it)
-    let texel = camera.shadow.y * (1.0 + 3.0 * enh.cloud_sun[1].w);
+    // (the tent stops widening at `SHADOW_TENT_BLOCKS` gathers a side: spread wider than
+    // that by stepping its taps apart, it read the map coarser than its texels again)
+    let widen = 1.0 + 3.0 * enh.cloud_sun[1].w;
     let close = shadow_close(world, n, ndl, thin);
     if (close.y >= 0.999) {
         return close.x;
@@ -116,7 +118,7 @@ fn sun_shadow_soft(world_in: vec3<f32>, n: vec3<f32>, thin: bool) -> f32 {
     // a pixel) halved the enhanced picture's frame rate against shadows off.
     var near_value = 1.0;
     if (near_weight > 0.001) {
-        near_value = shadow_pcf_near(near_uv, near_lp.z, near_slope, texel);
+        near_value = shadow_pcf_near(near_uv, near_lp.z, near_slope, widen);
     }
     near_value = mix(near_value, close.x, close.y);
     if (near_weight >= 0.999) {
@@ -127,7 +129,7 @@ fn sun_shadow_soft(world_in: vec3<f32>, n: vec3<f32>, thin: bool) -> f32 {
     let far_valid = fuv.x >= 0.0 && fuv.x <= 1.0 && fuv.y >= 0.0 && fuv.y <= 1.0 && flp.z >= 0.0 && flp.z <= 1.0;
     var far_safe = 1.0;
     if (far_valid) {
-        let far_value = shadow_pcf_far(fuv, flp.z, far_slope, texel);
+        let far_value = shadow_pcf_far(fuv, flp.z, far_slope, widen);
         let far_edge = max(abs(fuv.x - 0.5), abs(fuv.y - 0.5));
         far_safe = mix(1.0, far_value, clamp((0.5 - far_edge) * 12.0, 0.0, 1.0));
     }
