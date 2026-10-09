@@ -18,6 +18,18 @@ fn d_ggx(nh: f32, a: f32) -> f32 {
     return a2 / (PI * d * d);
 }
 
+// The microfacets of a film of water over a road: the slopes of a water surface are
+// Gaussian (Cox and Munk 1954), the Beckmann distribution. Its tail falls off as
+// exp(-tan^2 / a^2), where GGX's falls as a^2 / tan^4: under GGX a headlamp - a hundred
+// thousand candela towards the road - kept a highlight brighter than the lit road some ten
+// degrees off its mirror direction, and its reflection ran as one white line from the lamp
+// down to the camera.
+fn d_beckmann(nh: f32, a: f32) -> f32 {
+    let c2 = max(nh * nh, 1e-4);
+    let a2 = a * a;
+    return exp(-(1.0 - c2) / (c2 * a2)) / (PI * a2 * c2 * c2);
+}
+
 // Height-correlated Smith visibility (G / (4 n.l n.v)).
 fn v_smith(nv: f32, nl: f32, a: f32) -> f32 {
     let a2 = a * a;
@@ -211,7 +223,10 @@ fn lamp_shadow_at(li: u32, p: vec3<f32>, n: vec3<f32>, thin: bool) -> f32 {
 
 // The point and spot lights of the pixel's grid cell: diffuse and specular.
 // `thin`: foliage, lit from whichever side the lamp is on (see the sun below).
-fn lamp_light(p: vec3<f32>, n: vec3<f32>, v: vec3<f32>, sf: Surface, thin: bool, shadows: bool) -> vec3<f32> {
+// `film`: a wet road's film of water - x how much of the surface it is (0: none), y how
+// rough it is, z the share of it that mirrors - with which the lamps are reflected as the
+// sky is (`refl_rough`, `wet_share` in fs_enhanced), not by the dry surface's own lobe.
+fn lamp_light(p: vec3<f32>, n: vec3<f32>, v: vec3<f32>, sf: Surface, thin: bool, shadows: bool, film: vec3<f32>) -> vec3<f32> {
     var sum = vec3<f32>(0.0);
     // the lamps' light on the ground round the point (a horizontal surface's, unshadowed:
     // the ground the point looks down at is wider than its own shadow)
@@ -229,6 +244,7 @@ fn lamp_light(p: vec3<f32>, n: vec3<f32>, v: vec3<f32>, sf: Surface, thin: bool,
         return sum;
     }
     let a = max(sf.rough * sf.rough, 0.02);
+    let a_film = max(film.y * film.y, 0.02);
     let nv = max(dot(n, v), 1e-4);
     let base = (u32(y) * side + u32(x)) * CELL_CAP;
     for (var j = 0u; j < CELL_CAP; j = j + 1u) {
@@ -291,7 +307,12 @@ fn lamp_light(p: vec3<f32>, n: vec3<f32>, v: vec3<f32>, sf: Surface, thin: bool,
             continue;
         }
         let h = normalize(ld + v);
-        let spec = d_ggx(max(dot(n, h), 0.0), a) * v_smith(nv, nl, a) * f_schlick(sf.f0, dot(v, h));
+        let nh = max(dot(n, h), 0.0);
+        let fr = f_schlick(sf.f0, dot(v, h));
+        var spec = d_ggx(nh, a) * v_smith(nv, nl, a) * fr;
+        if (film.x > 0.0) {
+            spec = mix(spec, d_beckmann(nh, a_film) * v_smith(nv, nl, a_film) * fr * film.z, film.x);
+        }
         sum = sum + irr * nl * (sf.albedo / PI + spec);
     }
     // What the lit ground throws back up: a diffuse reflector of the street's albedo (asphalt
@@ -1100,7 +1121,8 @@ fn shade_enhanced(in: FsIn, puddle_weight: ptr<function, vec2<f32>>, capture: bo
     // the tile light map on top)
     // (no shadows inside the player's own vehicle, whose cab the depth hardly shows, nor in
     // the probe's capture)
-    let lamps = lamp_light(in.world, n, v, sf, thin, !capture) * select(1.0, 0.0, material.params.y > 0.2 && material.params.y < 0.3);
+    let film = select(vec3<f32>(0.0), vec3<f32>(wet_road, refl_rough, wet_share), wet_only && wet_road > 0.0);
+    let lamps = lamp_light(in.world, n, v, sf, thin, !capture, film) * select(1.0, 0.0, material.params.y > 0.2 && material.params.y < 0.3);
     // [interiorlight]: OMSI adds its lamps' light to the lit meshes whatever the daylight,
     // so a switched-on saloon is brighter by day as well and only stands out more at night.
     // Taken as a lamp against the daylight exposure it vanished by day altogether.
