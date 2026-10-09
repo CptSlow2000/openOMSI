@@ -525,6 +525,7 @@ impl App {
         {
             self.perf.cpu_mark =
                 process_cpu_seconds().map(|c| (c, Instant::now(), self.perf.total_frames));
+            self.perf.thread_cpu_mark = crate::startup::thread_cpu_seconds();
             self.perf.profile_mark = Some(crate::perf_report::ProfileMark::take(&self.perf.profile, r));
         }
         if let (Some(limit), false) = (self.args.exit_after, self.exiting) {
@@ -565,7 +566,8 @@ impl App {
                         (self.perf.cpu_mark, process_cpu_seconds())
                     {
                         let frames = self.perf.total_frames.saturating_sub(f0).max(1) as f64;
-                        log::info!("profile: since 15 s {:.1} ms wall and {:.1} ms CPU (all threads) per frame, {:.1} cores busy", t0.elapsed().as_secs_f64() / frames * 1000.0, (c1 - c0) / frames * 1000.0, (c1 - c0) / t0.elapsed().as_secs_f64().max(1e-3));
+                        let main = self.perf.thread_cpu_mark.zip(crate::startup::thread_cpu_seconds()).map(|(m0, m1)| format!(", {:.2} ms CPU of the frame's own thread", (m1 - m0) / frames * 1000.0)).unwrap_or_default();
+                        log::info!("profile: since 15 s {:.1} ms wall and {:.1} ms CPU (all threads) per frame{main}, {:.1} cores busy", t0.elapsed().as_secs_f64() / frames * 1000.0, (c1 - c0) / frames * 1000.0, (c1 - c0) / t0.elapsed().as_secs_f64().max(1e-3));
                     }
                     let (sw, sh) = r.scene_size(s.config.width, s.config.height);
                     log::info!(

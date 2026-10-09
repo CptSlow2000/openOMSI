@@ -20,6 +20,25 @@ pub(crate) fn process_cpu_seconds() -> Option<f64> {
     Some(days * 86400.0 + secs)
 }
 
+/// The CPU time the calling thread has used (s): what the frame's own work costs, whatever
+/// else the machine runs meanwhile - wall-clock stage times grow with every other busy
+/// program, a thread's CPU time hardly.
+pub(crate) fn thread_cpu_seconds() -> Option<f64> {
+    #[cfg(unix)]
+    {
+        let mut ts = libc::timespec { tv_sec: 0, tv_nsec: 0 };
+        // SAFETY: `ts` is a valid timespec for the call to fill.
+        if unsafe { libc::clock_gettime(libc::CLOCK_THREAD_CPUTIME_ID, &mut ts) } == 0 {
+            return Some(ts.tv_sec as f64 + ts.tv_nsec as f64 * 1e-9);
+        }
+        None
+    }
+    #[cfg(not(unix))]
+    {
+        None
+    }
+}
+
 pub(crate) fn shift_held_now(keys: &hashbrown::HashSet<KeyCode>) -> bool {
     keys.contains(&KeyCode::ShiftLeft) || keys.contains(&KeyCode::ShiftRight)
 }

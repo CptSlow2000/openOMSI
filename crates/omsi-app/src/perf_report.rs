@@ -110,6 +110,9 @@ pub(crate) fn report(run: Run, r: &omsi_render::Renderer, window: (u32, u32), sc
         let frames = perf.total_frames.saturating_sub(f0).max(1) as f64;
         summary["cpu_ms_per_frame"] = json!((c1 - c0) / frames * 1000.0);
         summary["cores_busy"] = json!((c1 - c0) / t0.elapsed().as_secs_f64().max(1e-3));
+        if let (Some(m0), Some(m1)) = (perf.thread_cpu_mark, crate::startup::thread_cpu_seconds()) {
+            summary["main_thread_cpu_ms_per_frame"] = json!((m1 - m0) / frames * 1000.0);
+        }
     }
     json!({
         "schema_version": 1,

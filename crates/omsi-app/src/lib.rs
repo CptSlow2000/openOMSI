@@ -674,6 +674,7 @@ fn assemble_app(args: Args, settings: settings::Settings) -> App {
             governor_wait_prev: 0.0,
             play_started: None,
             cpu_mark: None,
+            thread_cpu_mark: None,
             profile_mark: None,
             frame_times: Vec::new(),
         },
