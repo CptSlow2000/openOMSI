@@ -139,9 +139,12 @@ impl World {
             .collect()
     }
 
-    /// The materials every tile shares: the plain ground, the water, the tree quad.
+    /// The materials every tile shares: the plain ground, the water, the tree quad - made
+    /// again when the season's textures changed (a snow weather came while driving: the tiles
+    /// read again took the summer grass of the first ones, and the ground stayed green).
     pub(super) fn ensure_ground(&self, renderer: &Renderer, scene: &mut Scene, gpu: &mut GpuCache) {
-        if gpu.ground.is_some() {
+        let season = omsi_texture::season_folder();
+        if gpu.ground.as_ref().is_some_and(|g| g.season == season) {
             return;
         }
         let none: HashMap<PathBuf, Arc<TextureData>> = HashMap::new();
@@ -256,6 +259,7 @@ impl World {
         };
         let tree_mesh = renderer.add_mesh(scene, &tree_quad_mesh());
         gpu.ground = Some(GroundGpu {
+            season,
             ground_id,
             ground_mat,
             plain_terrain_mat,

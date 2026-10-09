@@ -1083,8 +1083,10 @@ pub(super) struct TreeGpu {
     pub(super) users: usize,
 }
 
-/// Materials every tile shares (never freed).
+/// Materials every tile shares (never freed; made again for another season's textures).
 pub(super) struct GroundGpu {
+    /// The season's texture folder they were made with (`omsi_texture::season_folder`).
+    pub(super) season: Option<String>,
     pub(super) ground_id: Option<TextureId>,
     pub(super) ground_mat: MaterialId,
     pub(super) plain_terrain_mat: MaterialId,
