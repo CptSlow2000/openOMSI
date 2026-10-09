@@ -25,9 +25,14 @@ pub(crate) struct State {
     crop: Option<(u32, u32, u32, u32)>,
     /// The last developed picture (w, h, RGBA).
     pub developed: Option<(u32, u32, Vec<u8>)>,
-    /// The camera moved within the last frames: quick pictures at half the size.
-    moving: f32,
+    /// Since when the camera stands still (None: it moves). While it moves the window shows
+    /// the live picture at the game's own frame rate; once it has stood a moment the photo's
+    /// pictures are taken.
+    still_since: Option<Instant>,
 }
+
+/// How long the camera stands before the photo is taken over the live picture.
+const SETTLE_SECS: f32 = 0.2;
 
 impl State {
     pub(crate) fn reset(&mut self) {
@@ -39,8 +44,9 @@ impl State {
         (self.accum.as_ref().map(|a| a.n).unwrap_or(0), self.target)
     }
 
+    /// The camera moves (or has only just stopped): the window shows the live picture.
     pub(crate) fn moving(&self) -> bool {
-        self.moving > 0.0
+        !self.capture && self.still_since.is_none_or(|t| t.elapsed().as_secs_f32() < SETTLE_SECS)
     }
 }
 
@@ -77,21 +83,30 @@ impl crate::App {
             cam.position.x, cam.position.y, cam.position.z, cam.yaw, cam.pitch, cam.roll, cam.fov_deg, shot, self.clock.time as i64, ww, wh
         );
         let changed = ph.render.key.as_deref() != Some(key.as_str());
-        let camera_moved = changed && ph.render.key.as_ref().is_some_and(|k| k.split('|').next() != key.split('|').next());
-        ph.render.moving = if camera_moved { 0.25 } else { (ph.render.moving - 1.0 / 60.0).max(0.0) };
+        let camera_moved = ph.render.key.as_ref().is_none_or(|k| k.split('|').next() != key.split('|').next());
+        if camera_moved {
+            ph.render.still_since = None;
+        }
+        if ph.render.still_since.is_none() && !camera_moved {
+            ph.render.still_since = Some(Instant::now());
+        }
+        if camera_moved {
+            // (the live picture shows: nothing is taken, the shot starts again once it stands)
+            ph.render.key = Some(key);
+            ph.render.accum = None;
+            ph.render.target = 1;
+            return;
+        }
+        if ph.render.moving() {
+            return;
+        }
         let samples = if shot.dof || shot.motion.is_some() { QUALITY[ph.settings.quality.min(QUALITY.len() - 1)].0 } else { 1 };
-        // (the size: half while it moves, the saved photo's while one is being taken)
-        let scale = if ph.render.capture {
-            SIZES[ph.settings.size.min(SIZES.len() - 1)].0
-        } else if ph.render.moving() {
-            0.5
-        } else {
-            1.0
-        };
+        // (the size: the window's, the saved photo's while one is being taken)
+        let scale = if ph.render.capture { SIZES[ph.settings.size.min(SIZES.len() - 1)].0 } else { 1.0 };
         let max = r.device.limits().max_texture_dimension_2d.min(8192) as f32;
         let k = (scale).min(max / ww.max(1) as f32).min(max / wh.max(1) as f32);
         let (w, h) = (((ww as f32 * k).round() as u32).max(1), ((wh as f32 * k).round() as u32).max(1));
-        let target = if ph.render.moving() { 1 } else { samples };
+        let target = samples;
         if changed || ph.render.accum.as_ref().is_none_or(|a| a.w != w || a.h != h) {
             ph.render.accum = Some(Accum::new(w, h));
             ph.render.key = Some(key);

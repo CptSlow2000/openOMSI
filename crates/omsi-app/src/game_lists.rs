@@ -2969,10 +2969,10 @@ fn switch_driver(app: &mut App, name: &str) {
 fn fleet_numbers(v: &omsi_sim::VehicleInstance) -> Vec<(String, String)> {
     let def = &v.ty.def;
     def.numbers_with_plates()
-        .into_iter()
+        .iter()
         .map(|(n, _)| {
-            let reg = if def.registration_mode == 1 { String::new() } else { def.chosen_plate_of_number(&n) };
-            (n, reg)
+            let reg = if def.registration_mode == 1 { String::new() } else { def.chosen_plate_of_number(n) };
+            (n.clone(), reg)
         })
         .collect()
 }

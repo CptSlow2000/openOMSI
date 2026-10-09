@@ -55,6 +55,12 @@ impl App {
     pub(crate) fn on_right(&mut self, pressed: bool) {
         if let Some(ph) = self.photo.as_mut() {
             ph.looking = pressed;
+            // (the cursor held while the right button looks round, as in the game)
+            if pressed && !self.shell.over_ui {
+                self.hold_for_look();
+            } else {
+                self.release_look_hold();
+            }
             return;
         }
         self.input.buttons_held.1 = pressed;
@@ -89,9 +95,15 @@ impl App {
                 self.warp_cursor(x, y);
             }
         }
+        if !pressed {
+            self.release_look_hold();
+        }
         self.input.mouse_look = pressed;
         // (looking round goes by the cursor: it is let go at once, and held again after)
         self.sync_mouse_grab();
+        if pressed {
+            self.hold_for_look();
+        }
         // (the cursor shows it at once, not with the next look at what is under it)
         self.update_hover();
     }
@@ -218,6 +230,32 @@ impl App {
         ok
     }
 
+    /// The right button looks round: the cursor hidden and held where it is (see
+    /// `InputState::look_hold`). Not a test window in the background, whose cursor is the
+    /// person's at the screen.
+    fn hold_for_look(&mut self) {
+        if self.input.look_hold.is_some() || omsi_cfg::flags::OMSI_BACKGROUND.is_set() || self.input.touch.enabled {
+            return;
+        }
+        let Some(win) = self.window.as_ref() else { return };
+        let held = win.set_cursor_grab(winit::window::CursorGrabMode::Locked).is_ok() || win.set_cursor_grab(winit::window::CursorGrabMode::Confined).is_ok();
+        if held {
+            win.set_cursor_visible(false);
+            self.input.look_hold = Some(self.input.cursor);
+        }
+    }
+
+    /// The look is over: the cursor shown again where the button went down.
+    pub(crate) fn release_look_hold(&mut self) {
+        let Some((x, y)) = self.input.look_hold.take() else { return };
+        if let Some(win) = self.window.as_ref() {
+            let _ = win.set_cursor_grab(winit::window::CursorGrabMode::None);
+            win.set_cursor_visible(true);
+        }
+        self.input.cursor = (x, y);
+        self.warp_cursor(x, y);
+    }
+
     /// A report of the cursor from before the game put it elsewhere: not the hand's movement.
     fn stale_after_warp(&mut self, x: f32, y: f32) -> bool {
         let Some((to, at)) = self.input.warped else { return false };
@@ -244,7 +282,7 @@ impl App {
         // the photo camera turned by a drag (and nothing else of the game's under the mouse)
         if let Some(ph) = self.photo.as_mut() {
             self.input.cursor = (x, y);
-            if ph.looking {
+            if ph.looking && self.input.look_hold.is_none() {
                 let scale = self.window.as_ref().map(|w| w.scale_factor() as f32).unwrap_or(1.0).max(0.1);
                 let k = look_deg_per_px(ph.cam.fov_deg) * self.settings.look_sens;
                 ph.look((x - last.0) / scale * k, (y - last.1) / scale * k);
@@ -362,7 +400,7 @@ impl App {
         // (0x82c5f8: yaw and pitch at the press plus the cursor's way times fov / 78.75):
         // raw device deltas are no window pixels (a tablet, a remote desktop or a VM
         // reports positions there and spun the view) and did not follow the zoom
-        if self.cursor_looks() {
+        if self.cursor_looks() && self.input.look_hold.is_none() {
             let scale = self.window.as_ref().map(|w| w.scale_factor() as f32).unwrap_or(1.0).max(0.1);
             let fov = self.camera.as_ref().map(|c| c.fov_deg).unwrap_or(60.0);
             let k = look_deg_per_px(fov) * self.settings.look_sens;
@@ -665,7 +703,7 @@ const HTML_OBJECT_REACH: f32 = 4.0;
 
 /// Degrees the view turns per (logical) pixel of the cursor's way while looking round:
 /// Omsi.exe's fov / 78.75 (TForm_main.Panel1MouseMove 0x82c5f8).
-fn look_deg_per_px(fov_deg: f32) -> f32 {
+pub(crate) fn look_deg_per_px(fov_deg: f32) -> f32 {
     fov_deg / 78.75
 }
 

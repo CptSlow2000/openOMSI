@@ -87,7 +87,9 @@ pub(crate) fn sample(base: &Camera, i: u32, shot: &Shot, height_px: f32) -> (Cam
     // within the pixel (the first picture straight)
     if i > 0 {
         let k = 2.0 * (base.fov_deg.to_radians() * 0.5).tan() / height_px.max(1.0);
-        let (jx, jy) = (halton(i, 5) - 0.5, halton(i, 7) - 0.5);
+        // (half a pixel across: the edges smoothed, the detail kept - a whole pixel's box
+        // softened the photo next to the live picture)
+        let (jx, jy) = ((halton(i, 5) - 0.5) * 0.5, (halton(i, 7) - 0.5) * 0.5);
         dir = (dir + right * (jx * k) + up * (jy * k)).normalize_or(dir);
     }
     cam.yaw = dir.x.atan2(dir.y).to_degrees();

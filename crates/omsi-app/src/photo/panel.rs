@@ -229,8 +229,8 @@ pub(crate) fn draw(sh: &mut Shell, ph: &mut Photo, info: &Info) {
     let mut acts: Vec<Request> = Vec::new();
     let size = sh.ui.size;
     let full = Rect::new(0.0, 0.0, size.x, size.y);
-    // the photo itself
-    if let Some(tex) = sh.picture_tex {
+    // the photo itself (while the camera moves the window's live picture is under the panel)
+    if let (Some(tex), false) = (sh.picture_tex, ph.render.moving()) {
         sh.ui.image(full, tex, 0.0);
     }
     // the frame the photo is cut to, and its guides
@@ -292,7 +292,7 @@ pub(crate) fn draw(sh: &mut Shell, ph: &mut Photo, info: &Info) {
         omsi_ui::tr("Ready").into_owned()
     };
     ui.text_in(&status, Rect::new(inner.x, py, inner.w, 16.0), 11.5, Weight::Medium, if n >= target && !busy && !ph.render.moving() { OK } else { TEXT_DIM }, Align::Left);
-    ui.progress(Rect::new(inner.x, py + 20.0, inner.w, 3.0), if ph.render.moving() { 0.0 } else { frac }, busy || n < target);
+    ui.progress(Rect::new(inner.x, py + 20.0, inner.w, 3.0), if ph.render.moving() { 0.0 } else { frac }, busy || (n < target && !ph.render.moving()));
     let b = Rect::new(inner.x, inner.bottom() - 44.0 - 46.0, inner.w, 44.0);
     if ui.button("ph-take", b, &omsi_ui::tr(if busy { "Taking…" } else { "Take photo" }), Some("photo_camera"), ButtonKind::Primary) && !busy {
         acts.push(Request::Take);
@@ -332,7 +332,7 @@ impl crate::App {
             keys: !crate::platform::touch_controls(),
         };
         let Some(ph) = self.photo.as_mut() else { return };
-        self.shell.opaque = true;
+        self.shell.opaque = !ph.render.moving();
         self.shell.begin(w, h, scale, dt);
         draw(&mut self.shell, ph, &info);
         self.shell.finish();

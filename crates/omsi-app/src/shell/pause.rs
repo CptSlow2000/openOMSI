@@ -51,8 +51,6 @@ pub(crate) struct PauseView<'a> {
     pub list: Option<ListView<'a>>,
     /// The keyboard chose last: its line is shown lit.
     pub kbd: bool,
-    /// What is being driven: a title and a line under it, for the card over the picture.
-    pub summary: (String, String),
     /// Key hints (a keyboard is there).
     pub keys: bool,
 }
@@ -103,7 +101,7 @@ pub(crate) fn draw(sh: &mut Shell, v: &PauseView) {
             sh.ui.p().rect(page, PAGE);
             list_page(sh, v, list, page);
         }
-        None => summary_card(sh, v, page),
+        None => {}
     }
     rail(sh, v);
 }
@@ -119,8 +117,8 @@ fn rail(sh: &mut Shell, v: &PauseView) {
     let name_w = ui.text("openOMSI", Vec2::new(24.0, 46.0), 20.0, Weight::Bold, TEXT, Align::Left);
     ui.text(crate::startup::VERSION, Vec2::new(24.0, 64.0), 12.0, Weight::Regular, TEXT_DIM, Align::Left);
     ui.badge(Vec2::new(24.0 + name_w + 10.0, 32.0), if v.paused { "PAUSED" } else { "MENU" }, ACCENT);
-    // the lines, Resume apart (it is the card's button and the rail's foot)
-    let lines: Vec<(usize, &str, &str)> = v.rail.iter().enumerate().filter(|(_, l)| l.0 != "resume").map(|(k, l)| (k, l.0, l.1)).collect();
+    // the lines, Resume first
+    let lines: Vec<(usize, &str, &str)> = v.rail.iter().enumerate().map(|(k, l)| (k, l.0, l.1)).collect();
     let top = 96.0;
     let foot = if v.keys { 64.0 } else { 20.0 };
     let area = Rect::new(0.0, top, RAIL_W - 1.0, (size.y - top - foot).max(42.0));
@@ -184,32 +182,6 @@ fn rail(sh: &mut Shell, v: &PauseView) {
         let hint = omsi_ui::tr("Esc resumes  ·  P pauses").into_owned();
         ui.p().rect(Rect::new(24.0, size.y - 52.0, RAIL_W - 48.0, 1.0), EDGE);
         ui.text_in(&hint, Rect::new(24.0, size.y - 46.0, RAIL_W - 48.0, 30.0), 11.5, Weight::Regular, TEXT_FAINT, Align::Left);
-    }
-}
-
-/// The card over the picture while no list is open: what is being driven, and Resume as
-/// the launcher's primary button (as the Drive page's card with its "Next").
-fn summary_card(sh: &mut Shell, v: &PauseView, page: Rect) {
-    let ui = &mut sh.ui;
-    let w = (page.w - 64.0).min(760.0);
-    if w < 300.0 {
-        return;
-    }
-    let r = Rect::new(page.x + 32.0, page.bottom() - 32.0 - 76.0, w, 76.0);
-    ui.panel(r);
-    ui.icon("directions_bus", Vec2::new(r.x + 30.0, r.center().y), 22.0, TEXT_DIM);
-    let tx = r.x + 54.0;
-    let bw = 170.0;
-    let text_w = r.w - (tx - r.x) - bw - 40.0;
-    ui.text_in(&v.summary.0, Rect::new(tx, r.y + 18.0, text_w, 20.0), 14.0, Weight::Bold, TEXT, Align::Left);
-    ui.text_in(&v.summary.1, Rect::new(tx, r.y + 40.0, text_w, 18.0), 12.0, Weight::Regular, TEXT_DIM, Align::Left);
-    let b = Rect::new(r.right() - bw - 16.0, r.y + 16.0, bw, 44.0);
-    let kbd = v.kbd && v.rail_sel == Some(0);
-    if kbd {
-        ui.p().rounded_border(b.inset(-3.0), 9.0, 2.0, ACCENT.alpha(0.6));
-    }
-    if ui.button("pause-resume", b, &omsi_ui::tr("Resume"), Some("play_arrow"), ButtonKind::Primary) {
-        sh.actions.push(Action::Close);
     }
 }
 

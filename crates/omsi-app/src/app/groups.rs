@@ -255,6 +255,10 @@ pub(crate) struct InputState {
     /// taken as such, the view looked round with the right button jumped back for a moment
     /// and forward again.
     pub(crate) warped: Option<((f32, f32), std::time::Instant)>,
+    /// Looking round with the right button: the cursor is hidden and held where the button
+    /// went down (this place), and the mouse's own movement turns the view - the cursor no
+    /// longer wandered off while the view turned, and is where it was when the button is let go.
+    pub(crate) look_hold: Option<(f32, f32)>,
     /// Where the cursor steered when the right button began to look round: it goes back
     /// there when the button is let go, so the wheel does not jump to where looking left it.
     pub(crate) steer_cursor: Option<(f32, f32)>,

@@ -36,33 +36,6 @@ impl App {
         (!self.vr_active() && self.menus.game_menu.is_some()) || self.photo.is_some()
     }
 
-    /// What is being driven, for the card beside the pause menu: the bus and the map, and
-    /// the time, the line and the weather.
-    fn pause_summary(&self) -> (String, String) {
-        let map = self.world.as_ref().map(|w| w.global.name.trim().to_string()).filter(|n| !n.is_empty()).unwrap_or_default();
-        let bus = self.player.as_ref().map(|p| format!("{} {}", p.vehicle.ty.def.manufacturer.trim(), p.vehicle.ty.def.type_name.trim()).trim().to_string()).unwrap_or_default();
-        let title = match (bus.is_empty(), map.is_empty()) {
-            (false, false) => format!("{bus} · {map}"),
-            (false, true) => bus,
-            (true, false) => map,
-            (true, true) => "openOMSI".to_string(),
-        };
-        let t = self.clock.time;
-        let mut sub = vec![format!("{:02}:{:02}", ((t / 3600.0) as i64).rem_euclid(24), ((t % 3600.0) / 60.0) as i64)];
-        if let Some(d) = self.session.duty.as_ref() {
-            if let Some(trip) = d.trips.get(d.trip_index) {
-                let line = if trip.line.trim().is_empty() { d.line.trim() } else { trip.line.trim() };
-                sub.push(format!("{} {line} › {}", omsi_ui::tr("Line"), trip.terminus.trim()));
-            }
-        } else if self.player.is_some() {
-            sub.push(omsi_ui::tr("Free drive").into_owned());
-        }
-        if let Some(p) = self.player.as_ref() {
-            sub.push(format!("{:.0} km/h", p.vehicle.physics.velocity_kmh().abs()));
-        }
-        (title, sub.join(" · "))
-    }
-
     /// The pause menu drawn with the launcher's toolkit, over the picture (nothing when it is
     /// closed or a headset shows its own).
     pub(crate) fn frame_shell(&mut self, dt: f32) {
@@ -109,7 +82,6 @@ impl App {
             rail_open: self.menus.list_kind.as_ref().and_then(|k| rail_of(k, camera_tab)).filter(|_| self.menus.chooser.is_some()),
             list,
             kbd: self.menus.menu_kbd,
-            summary: self.pause_summary(),
             keys: !crate::platform::touch_controls(),
         };
         self.shell.begin(w, h, scale, dt);
@@ -161,7 +133,6 @@ impl App {
                 Action::Pane(i) => self.tour_pane_click(i),
                 Action::Dropdown(i) => self.dropdown_pick(i),
                 Action::CloseDropdown => self.menus.dropdown = None,
-                Action::Close => self.close_game_menu(),
                 Action::Photo(r) => self.photo_request(r),
             }
         }

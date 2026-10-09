@@ -37,8 +37,6 @@ pub(crate) enum Action {
     Dropdown(usize),
     /// The open drop-down closes without a choice.
     CloseDropdown,
-    /// The menu closes (Resume).
-    Close,
     /// A request of the photo mode's panel.
     Photo(crate::photo::Request),
 }

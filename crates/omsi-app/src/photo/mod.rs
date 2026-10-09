@@ -110,7 +110,7 @@ pub(crate) struct Photo {
     prev_paused: bool,
     /// The view the game had, to return to.
     prev_camera: Option<Camera>,
-    render: render::State,
+    pub(crate) render: render::State,
     /// A word of what was done (the photo saved), and how long it shows.
     pub note: Option<(String, f32)>,
     pad: pad::PadState,
@@ -379,6 +379,7 @@ impl crate::App {
     /// Out of the photo mode: the game as it was.
     pub(crate) fn exit_photo(&mut self) {
         let Some(ph) = self.photo.take() else { return };
+        self.release_look_hold();
         LAST.with(|l| *l.borrow_mut() = Some(ph.settings.clone()));
         self.paused = ph.prev_paused;
         if let Some(c) = ph.prev_camera {
