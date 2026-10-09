@@ -21,6 +21,8 @@ const WINDOW: f32 = 60.0;
 const WAITING: f32 = 5.0;
 /// Braking harder than this (m/s²) is an emergency stop: something came too close.
 pub const HARD_BRAKE: f32 = -4.5;
+/// ... from at least this speed (m/s); below it, a stop jerk (see `Counts::stop_jerks`).
+pub const BRAKE_FROM: f32 = 1.5;
 
 /// A car stands for this car (its id): the player's vehicle or a LAN player's.
 pub const WAITS_ON_PLAYER: u64 = u64::MAX;
@@ -55,6 +57,13 @@ pub struct Counts {
     pub gave_up: u64,
     pub overlaps: u64,
     pub close_calls: u64,
+    /// Cars creeping at walking pace that stopped short again (an emergency braking below
+    /// `BRAKE_FROM`): hesitation at a line.
+    pub stop_jerks: u64,
+    /// Ticks, and the seconds their planning took (who is where, the lights, every car's
+    /// plan: `TrafficSim::tick_split` without the bodies and scripts).
+    pub ticks: u64,
+    pub plan_secs: f64,
     /// Why the heads of the chains stand that cars stood more than a minute in (summed over
     /// the samples).
     pub heads: HashMap<&'static str, u64>,
@@ -82,6 +91,9 @@ impl Counts {
         self.gave_up += o.gave_up;
         self.overlaps += o.overlaps;
         self.close_calls += o.close_calls;
+        self.stop_jerks += o.stop_jerks;
+        self.ticks += o.ticks;
+        self.plan_secs += o.plan_secs;
         for (k, v) in &o.heads {
             *self.heads.entry(k).or_default() += v;
         }
@@ -157,7 +169,7 @@ impl TrafficStats {
         all.add(&self.window);
         let mins = (self.t / 60.0).max(1e-3) as f64;
         format!(
-            "traffic stats over {:.1} min: {:.1} cars ({:.1} given up), mean {:.1} km/h ({:.1} km/h moving), stood >30 s {:.2} >60 s {:.2} >120 s {:.2} (most {}), in waits-for cycles {:.2} (most {}), {:.1} junction entries/min, {:.1} km/min, red runs {}, emergency brakes {}, gave up {}, overlaps {}, close calls {}; long waits headed by {}",
+            "traffic stats over {:.1} min: {:.1} cars ({:.1} given up), mean {:.1} km/h ({:.1} km/h moving), stood >30 s {:.2} >60 s {:.2} >120 s {:.2} (most {}), in waits-for cycles {:.2} (most {}), {:.1} junction entries/min, {:.1} km/min, red runs {}, emergency brakes {}, stop jerks {}, gave up {}, overlaps {}, close calls {}, planning {:.3} ms/tick; long waits headed by {}",
             self.t / 60.0,
             all.mean_cars(),
             all.mean(all.gone),
@@ -173,9 +185,11 @@ impl TrafficStats {
             all.metres / 1000.0 / mins,
             all.red_runs,
             all.hard_brakes,
+            all.stop_jerks,
             all.gave_up,
             all.overlaps,
             all.close_calls,
+            all.plan_secs * 1000.0 / all.ticks.max(1) as f64,
             all.head_list(),
         )
     }
@@ -248,14 +262,25 @@ impl TrafficSim {
     pub fn stats_after(&mut self, dt: f32, removed: &[usize]) {
         let Some(mut s) = self.stats.take() else { return };
         s.t += dt;
+        s.window.ticks += 1;
+        s.window.plan_secs += self.tick_split[0] + self.tick_split[1];
         for (i, c) in self.cars.iter().enumerate() {
             if removed.contains(&i) {
                 continue;
             }
             let Some(&(lane, odo, acc)) = s.before.get(&c.id) else { continue };
             s.window.metres += (c.state.odometer - odo).max(0.0) as f64;
+            // (from walking pace on: a car creeping at its line that stops again shows -8
+            // m/s² for a frame, which is a jerk but no near miss; counted apart)
             if c.state.acc < HARD_BRAKE && acc >= HARD_BRAKE {
-                s.window.hard_brakes += 1;
+                if c.state.speed < BRAKE_FROM {
+                    s.window.stop_jerks += 1;
+                } else {
+                    s.window.hard_brakes += 1;
+                }
+                if omsi_cfg::flags::OMSI_DEBUG_STUCK.is_set() {
+                    log::info!("stats t={:.1}: car {} brakes {:.1} m/s² at {:.1} m/s on lane {} for {:?} (lead {:?}, junction {})", s.t, c.id, c.state.acc, c.state.speed, c.state.lane, c.why, c.lead_info, c.junction_why);
+                }
             }
             if c.state.lane != lane && self.net.lanes[c.state.lane].kind == LaneKind::Street {
                 let into = c.state.lane;
