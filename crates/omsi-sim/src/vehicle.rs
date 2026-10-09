@@ -1449,7 +1449,8 @@ impl VehicleInstance {
     /// the original at the spawn; the original reads it back as the index).
     pub fn apply_paint_vars(&mut self, scheme: Option<usize>) {
         let scheme = scheme.filter(|i| *i < self.ty.paint_schemes.len());
-        self.set_var("Colorscheme", scheme.map(|i| i as f32).unwrap_or(-1.0));
+        // (an engine variable: a model may switch meshes by it without declaring it)
+        self.set_engine_var("Colorscheme", scheme.map(|i| i as f32).unwrap_or(-1.0));
         if let Some(i) = scheme {
             for (var, v) in self.ty.paint_schemes[i].set_vars.clone() {
                 self.set_var(&var, v);
@@ -3046,10 +3047,13 @@ pub fn compute_mesh_props(ty: &VehicleType, var: &dyn Fn(&str) -> Option<f32>) -
                     }
                 }
             }
+            // (a variable the bus does not declare is 0: Omsi.exe registers every
+            // `[visible]` and `[alphascale]` variable in the varlist as it reads the model,
+            // 0x5efae8 -> VarList_Register - left visible, the 2nd..nth variant of a
+            // destination display stood over the one shown)
             if let Some((v, value)) = &def.visible {
-                if let Some(x) = var(v) {
-                    props.visible = (x - value).abs() < 0.5;
-                }
+                let x = var(v).unwrap_or(0.0);
+                props.visible = (x - value).abs() < 0.5;
             }
             // [illumination_interior] a b c d: the interior lights (by index) lighting this mesh
             let mut interior = 0.0f32;
@@ -3072,7 +3076,7 @@ pub fn compute_mesh_props(ty: &VehicleType, var: &dyn Fn(&str) -> Option<f32>) -
             props.interior = interior * 0.5;
             for m in &def.materials {
                 if let Some(v) = &m.alphascale {
-                    if let (Some(x), Some(slot)) = (var(v), override_slot(&vm.materials, m)) {
+                    if let (Some(x), Some(slot)) = (Some(var(v).unwrap_or(0.0)), override_slot(&vm.materials, m)) {
                         let boost = if v.trim().to_ascii_lowercase().starts_with("rain_window") {
                             1.8
                         } else {
@@ -3125,15 +3129,16 @@ struct MeshPlan {
     /// `[matl_change]` (default 1) and `[matl_lightmap]` (default 1: a variable the bus does not have is on) per slot.
     night: Vec<(usize, PropSource)>,
     light: Vec<(usize, PropSource)>,
-    /// `[visible]` variable and value.
-    visible: Option<(usize, f32)>,
+    /// `[visible]` variable (None: one the bus does not declare, which reads 0) and value.
+    visible: Option<(Option<usize>, f32)>,
     /// `[illumination_interior]`: (brightness, range).
     interior: Vec<(PropSource, f32)>,
     /// `[alphascale]`, `[texcoordtransX/Y]` variables per slot; the third field of `alpha`
     /// boosts a raindrop-film layer (`Rain_Window_*_Wetness`) so it stays visible instead of
     /// reading as the texture's own faint alpha (its drops are only a few percent opaque,
     /// so a middling wetness value was nearly invisible against the glass behind it).
-    alpha: Vec<(usize, usize, f32)>,
+    /// (An undeclared `[alphascale]` variable reads 0, as `[visible]`'s.)
+    alpha: Vec<(usize, Option<usize>, f32)>,
     uv_x: Vec<(usize, usize)>,
     uv_y: Vec<(usize, usize)>,
 }
@@ -3181,15 +3186,13 @@ impl PropsPlan {
                         plan.light.push((slot, source(v)));
                     }
                     if let Some(name) = m.alphascale.as_deref() {
-                        if let Some(i) = var(name) {
-                            let boost =
-                                if name.trim().to_ascii_lowercase().starts_with("rain_window") {
-                                    1.8
-                                } else {
-                                    1.0
-                                };
-                            plan.alpha.push((slot, i, boost));
-                        }
+                        let boost =
+                            if name.trim().to_ascii_lowercase().starts_with("rain_window") {
+                                1.8
+                            } else {
+                                1.0
+                            };
+                        plan.alpha.push((slot, var(name), boost));
                     }
                     if let Some(i) = m.texcoord_trans_x.as_deref().and_then(var) {
                         plan.uv_x.push((slot, i));
@@ -3201,7 +3204,7 @@ impl PropsPlan {
                 plan.visible = def
                     .visible
                     .as_ref()
-                    .and_then(|(v, value)| var(v).map(|i| (i, *value)));
+                    .map(|(v, value)| (var(v), *value));
                 for idx in &def.illumination_interior {
                     if let Some(il) = usize::try_from(*idx)
                         .ok()
@@ -3248,9 +3251,8 @@ impl PropsPlan {
                 props.slot_light[slot] = props.slot_light[slot].max(if src.value(vars, 1.0) >= 0.5 { 1.0 } else { 0.0 });
             }
             if let Some((i, value)) = plan.visible {
-                if let Some(x) = vars.get(i) {
-                    props.visible = (x - value).abs() < 0.5;
-                }
+                let x = i.and_then(|i| vars.get(i).copied()).unwrap_or(0.0);
+                props.visible = (x - value).abs() < 0.5;
             }
             let mut interior = 0.0f32;
             for &(src, range) in &plan.interior {
@@ -3258,8 +3260,11 @@ impl PropsPlan {
             }
             props.interior = interior * 0.5;
             for &(slot, i, boost) in &plan.alpha {
-                props.slot_alpha[slot] =
-                    (vars.get(i).copied().unwrap_or(1.0) * boost).clamp(0.0, 1.0);
+                let x = match i {
+                    Some(i) => vars.get(i).copied().unwrap_or(1.0),
+                    None => 0.0,
+                };
+                props.slot_alpha[slot] = (x * boost).clamp(0.0, 1.0);
             }
             for &(slot, i) in &plan.uv_x {
                 props.slot_uv[slot][0] = vars.get(i).copied().unwrap_or(0.0);
