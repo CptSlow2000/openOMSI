@@ -29,9 +29,6 @@ struct Camera {
     // Windy trees: xy the weather's wind (m/s, world; 0 with the setting off), zw how far
     // the air has carried the gusts since the start (m, modulo PATTERN_PERIOD)
     tree_wind: vec4<f32>,
-    inside2_a: vec4<f32>,
-    inside2_b: vec4<f32>,
-    inside2_c: vec4<f32>,
 };
 
 // 1 when the point lies inside the player's vehicle (its [boundingbox], shrunk a little so
@@ -61,21 +58,13 @@ fn inside_vehicle(world: vec3<f32>) -> f32 {
     if (camera.inside_c.w < 0.5) {
         return 0.0;
     }
-    // (the front and, of an articulated bus, the rear section: #1967)
-    return max(inside_box(world, camera.inside_a, camera.inside_b, camera.inside_c), inside_box(world, camera.inside2_a, camera.inside2_b, camera.inside2_c));
-}
-
-fn inside_box(world: vec3<f32>, a: vec4<f32>, b: vec4<f32>, c: vec4<f32>) -> f32 {
-    if (c.w < 0.5) {
-        return 0.0;
-    }
-    let d = world - a.xyz;
-    let sh = a.w;
-    let ch = b.x;
-    let x = d.x * ch - d.y * sh - c.x;
-    let y = d.x * sh + d.y * ch - c.y;
-    let z = d.z - c.z;
-    let h = b.yzw;
+    let d = world - camera.inside_a.xyz;
+    let sh = camera.inside_a.w;
+    let ch = camera.inside_b.x;
+    let x = d.x * ch - d.y * sh - camera.inside_c.x;
+    let y = d.x * sh + d.y * ch - camera.inside_c.y;
+    let z = d.z - camera.inside_c.z;
+    let h = camera.inside_b.yzw;
     let in_x = abs(x) < h.x - 0.03;
     let in_y = abs(y) < h.y - 0.03;
     let in_z = z > -h.z - 0.6 && z < h.z - 0.03;
