@@ -250,3 +250,53 @@ fn a_queue_moves_off_without_closing_up_or_braking_hard() {
         assert!(c.state.speed > 8.0, "car {id} at {:.1} m/s after 40 s", c.state.speed);
     }
 }
+
+/// When the car on a lane that runs into another (lane 1 joining lane 0, both going on as
+/// lane 2) gets onto the lane beyond the joint while lane 0's queue rolls past at `v` m/s,
+/// a car every `spacing` m (None: not within `secs`).
+fn zip_merge(v: f32, spacing: f32, secs: f32) -> Option<f32> {
+    let f = Fixture::new();
+    let main = LaneBuilder::polyline(vec![DVec3::ZERO, DVec3::new(0.0, 150.0, 0.0)], LaneKind::Street, 3.0);
+    let side = LaneBuilder::polyline(vec![DVec3::new(17.32, 120.0, 0.0), DVec3::new(0.0, 150.0, 0.0)], LaneKind::Street, 3.0);
+    let on = LaneBuilder::polyline(vec![DVec3::new(0.0, 150.0, 0.0), DVec3::new(0.0, 450.0, 0.0)], LaneKind::Street, 3.0);
+    let mut net = Network { lanes: vec![main, side, on], ..Default::default() };
+    net.link(1.5);
+    let mut t = traffic(&f, net);
+    let side_len = t.net.lanes[1].length();
+    let me = add_car(&mut t, &f, 1, side_len - 12.0, 0x5a, Some(0.0));
+    let mut seed = 0x700;
+    for (lane, len) in [(0usize, 150.0f32), (2, 300.0)] {
+        let mut s = 3.0;
+        while s < len - 3.0 {
+            seed += 0x101;
+            add_car(&mut t, &f, lane, s, seed, Some(v));
+            s += spacing;
+        }
+    }
+    let mut time = 0.0f32;
+    while time < secs {
+        if !t.cars.iter().any(|c| c.state.lane == 0 && c.state.s < spacing) {
+            seed += 0x101;
+            add_car(&mut t, &f, 0, 2.0, seed, Some(v));
+        }
+        for c in t.cars.iter_mut().filter(|c| c.id != me) {
+            c.state.max_speed_kmh = v * 3.6;
+        }
+        t.tick(0.05, None);
+        time += 0.05;
+        if t.cars.iter().find(|c| c.id == me).is_none_or(|c| c.state.lane == 2) {
+            return Some(time);
+        }
+    }
+    None
+}
+
+#[test]
+fn a_car_at_a_merge_gets_its_turn_in_a_rolling_queue() {
+    // the zip: after a few seconds at the joint the car goes next, and the queue on the
+    // other lane lets it in
+    for (v, spacing) in [(1.5, 7.0), (3.0, 7.0), (4.0, 9.0)] {
+        let at = zip_merge(v, spacing, 120.0);
+        assert!(at.is_some_and(|t| t < 30.0), "queue at {v} m/s: merged after {at:?} s");
+    }
+}

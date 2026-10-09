@@ -20,6 +20,35 @@ pub fn pass_time(dist: f32, creep: f32, st: &AiState, v_cap: f32) -> f32 {
     wait + arrival_time(first, st.speed, a0, v_cap) + arrival_time(dist - first, v1, accel, v_cap)
 }
 
+/// Seconds a car stands at a joint where two lanes become one before it takes its turn.
+pub const ZIP_WAIT: f32 = 3.0;
+
+/// Is car `c`, its front `dist` metres short of a joint, standing there waiting for its
+/// turn? `clear`: where it waits for the other lane's cars (`merge_clearance`).
+pub fn zip_waiting(c: &AiCar, dist: f32, clear: f32) -> bool {
+    c.state.speed < 0.5 && dist < clear + c.state.min_gap + 2.5 && c.stopped > ZIP_WAIT
+}
+
+/// How far before the joint where lane `b` runs into the lane `a` runs into a car on `b`
+/// (half width `hb`) keeps its front to be out of the way of a car on `a` (half width
+/// `ha`): where `b` has come within the two half widths and a margin of `a` (m, at least
+/// one). Waiting a metre short of the joint, a car at a merge of 45 degrees still stood
+/// with its nose in the other lane: the car it let go first could not get past it, and
+/// the two lanes took turns at a car every quarter of a minute.
+pub fn merge_clearance(net: &Network, b: usize, a: usize, ha: f32, hb: f32) -> f32 {
+    let (lb, la) = (&net.lanes[b], &net.lanes[a]);
+    let need = (ha + hb + 0.3) as f64;
+    let mut x = 1.0f32;
+    while x < 12.0 && x < lb.length() {
+        let (p, _) = lb.at(lb.length() - x);
+        if la.nearest_point(p).is_none_or(|(_, d)| d > need) {
+            return x;
+        }
+        x += 0.5;
+    }
+    x.min(12.0)
+}
+
 impl TrafficSim {
     /// Nearest vehicle ahead of position `s` on `lane` (following the lanes `plan` has
     /// chosen after it, else the first `next`, for up to `look` m): (distance from `s` to
@@ -178,20 +207,41 @@ impl TrafficSim {
                             dist_them / other.state.speed
                         };
                         let kept = self.cars[i].merge_after == Some(other.id);
-                        let first = t_them < t_me - 0.4
-                            || (kept && t_them < t_me + 1.0)
-                            || ((t_them - t_me).abs() <= 0.4
-                                && !kept
-                                && other.merge_after != Some(self.cars[i].id)
-                                && j < i);
+                        // Taking turns (the zip): a car that has stood at the joint for a
+                        // few seconds goes next, unless the other can no longer stop gently.
+                        // By arrival alone the one standing there never came first while
+                        // the other lane's queue kept rolling, and stood for minutes, the
+                        // lanes behind it and the junctions they come out of filling up.
+                        let my_dist = (before - me.front).max(0.0);
+                        let my_clear = merge_clearance(&self.net, from, f, other.half_width, self.cars[i].half_width);
+                        let their_clear = merge_clearance(&self.net, f, from, self.cars[i].half_width, other.half_width);
+                        let me_zip = zip_waiting(&self.cars[i], my_dist, my_clear);
+                        let them_zip = zip_waiting(other, dist_them, their_clear) && !other.yielding && !other.light_hold;
+                        let can_stop = |st: &AiState, d: f32| d > st.speed * st.speed / (2.0 * st.decel.max(1.0)) + 0.5;
+                        let first = if me_zip && them_zip {
+                            other.stopped > self.cars[i].stopped + 0.1
+                                || ((other.stopped - self.cars[i].stopped).abs() <= 0.1 && other.id < self.cars[i].id)
+                        } else if them_zip && can_stop(me, my_dist) {
+                            true
+                        } else if me_zip && can_stop(&other.state, dist_them) {
+                            false
+                        } else {
+                            t_them < t_me - 0.4
+                                || (kept && t_them < t_me + 1.0)
+                                || ((t_them - t_me).abs() <= 0.4
+                                    && !kept
+                                    && other.merge_after != Some(self.cars[i].id)
+                                    && j < i)
+                        };
                         if first {
-                            // behind it at the joint; while it is not past yet, wait at the
-                            // joint itself rather than behind a car that is still beside
+                            // behind it at the joint; while it is not past yet, wait short of
+                            // the joint, out of its way, rather than behind a car that is
+                            // still beside
                             let d = (before - theirs) - other.state.rear;
                             let (d, v) = if d >= 0.0 {
                                 (d, other.state.speed)
                             } else {
-                                ((before - 1.0).max(0.0), 0.0)
+                                ((before - my_clear).max(0.0), 0.0)
                             };
                             if best.map(|b| d < b.0).unwrap_or(true) {
                                 best = Some((d, v, j));
