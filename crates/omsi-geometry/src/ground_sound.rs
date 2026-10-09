@@ -55,13 +55,15 @@ impl GroundSound {
 }
 
 impl TileSurface {
-    /// What a tyre at tile-local (x, y), with its contact at height `z`, rolls on: the
-    /// highest road, deck or surface object face a little above the contact or below it,
-    /// unless the bare ground (height `terrain`) lies higher - then the ground's own layer.
+    /// What a tyre at tile-local (x, y), with its contact at height `z`, rolls on: of the
+    /// highest road, deck or surface object face a little above the contact or below it and
+    /// the bare ground (height `terrain`), the one the contact is on - the nearer, a face
+    /// winning a near tie. (The ground often runs a few centimetres over a road whose hole
+    /// cuts it out of the picture, and the wheel stands on the road there.)
     pub fn surface_under(&self, x: f32, y: f32, z: f32, terrain: Option<f32>) -> u8 {
         let face = self.drive.surface_at(x, y, z + 0.3);
         match (face, terrain) {
-            (Some((fz, id)), Some(tz)) if fz + 0.05 >= tz => id,
+            (Some((fz, id)), Some(tz)) if (z - fz).abs() <= (z - tz).abs() + 0.15 => id,
             (Some((_, id)), None) => id,
             (_, Some(_)) => self.sound.ground_at(x, y),
             (None, None) => 0,
@@ -105,5 +107,7 @@ mod tests {
         assert_eq!(ts.surface_under(30.0, 30.0, 0.0, Some(0.0)), 4, "on the grass beside it");
         // the bare ground over the plate (a buried face): the ground's
         assert_eq!(ts.surface_under(15.0, 15.0, 1.0, Some(1.0)), 4);
+        // the ground a little over the road it is cut away for: the road's
+        assert_eq!(ts.surface_under(15.0, 15.0, 0.2, Some(0.3)), 2);
     }
 }
