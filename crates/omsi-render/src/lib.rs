@@ -1361,6 +1361,10 @@ pub struct Scene {
     cpu_params: Vec<[f32; 4]>,
     /// The light grid and lights as last uploaded, so that unchanged ones are not sent again.
     last_grid: Vec<u32>,
+    /// The grid before that, the room the next one is made in: half a megabyte, made and
+    /// let go twice a frame (the window's picture and a mirror's), went back to the system
+    /// each time and came back as fresh pages to be faulted in.
+    grid_scratch: Vec<u32>,
     /// The street lamps that had a shadow map last frame (their places in centimetres):
     /// they keep it against a lamp only a little stronger (`prepare_lights`).
     lamp_shadow_last: Vec<[i64; 3]>,
@@ -3287,6 +3291,7 @@ impl Renderer {
             cpu_models: Vec::new(),
             cpu_params: Vec::new(),
             last_grid: Vec::new(),
+            grid_scratch: Vec::new(),
             lamp_shadow_last: Vec::new(),
             last_lights: Vec::new(),
             bind_groups: HashMap::new(),
@@ -6189,7 +6194,9 @@ impl Renderer {
         for l in &scene.interior_lights {
             gpu_lights.push(gpu_light(l, (l.position - ro).as_vec3()));
         }
-        let mut grid = vec![u32::MAX; side * side * LIGHT_CELL_CAP];
+        let mut grid = std::mem::take(&mut scene.grid_scratch);
+        grid.clear();
+        grid.resize(side * side * LIGHT_CELL_CAP, u32::MAX);
         for l in &scene.lights {
             if !drawn_by(l, enhanced) {
                 continue;
@@ -6272,7 +6279,7 @@ impl Renderer {
         }
         scene.last_lights.clear();
         scene.last_lights.extend_from_slice(lbytes);
-        scene.last_grid = grid;
+        scene.grid_scratch = std::mem::replace(&mut scene.last_grid, grid);
         if rebuilt {
             self.rebuild_camera_bind_group(scene);
         }
@@ -6409,13 +6416,18 @@ impl Renderer {
     /// Upload this frame's smoke particles, farthest first (they are blended over each other).
     fn prepare_smoke(&self, scene: &mut Scene, eye: DVec3) {
         let ro = scene.render_origin;
-        let mut order: Vec<(f64, GpuCorona)> = scene
+        // (the order is sorted as keys with the sprite's place in the list, the sprites
+        // gathered after: sorting the 80-byte sprites themselves moved them about many
+        // times over, for the window's picture and again for each mirror; a stable sort of
+        // the same keys gives the same order)
+        let sprites: Vec<(f64, GpuCorona)> = scene
             .smoke
             .iter()
             .filter_map(|p| smoke_sprite(p, ro).map(|g| (-(p.position - eye).length_squared(), g)))
             .collect();
+        let mut order: Vec<(f64, u32)> = sprites.iter().enumerate().map(|(i, (d, _))| (*d, i as u32)).collect();
         order.sort_by(|a, b| a.0.total_cmp(&b.0));
-        let data: Vec<GpuCorona> = order.into_iter().map(|(_, g)| g).collect();
+        let data: Vec<GpuCorona> = order.into_iter().map(|(_, i)| sprites[i as usize].1).collect();
         scene.smoke_count = data.len() as u32;
         if data.is_empty() {
             return;
