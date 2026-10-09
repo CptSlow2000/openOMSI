@@ -211,7 +211,7 @@ pub(crate) fn setup_sky(
     let t = std::time::Instant::now();
     let field = cloud_field(cover.as_ref());
     log::debug!("cloud field made in {:.0} ms", t.elapsed().as_secs_f64() * 1000.0);
-    let clouds = Some(renderer.add_texture(scene, &field, true));
+    let clouds = Some(renderer.add_texture_data(scene, &cloud_field_levels(field)));
     renderer.set_sky_textures_clouds(scene, [ids[0], ids[1], ids[2]], clouds);
 }
 
@@ -332,6 +332,57 @@ pub(crate) fn cloud_field(cover: Option<&omsi_texture::Image>) -> omsi_texture::
         }
     }
     omsi_texture::Image { width: n as u32, height: n as u32, rgba, has_alpha: true }
+}
+
+/// The cloud field with its mip chain, each level the plain mean of four texels of the one
+/// above. The renderer's own chain (`add_texture`) weighs a texel's colour by its alpha, which
+/// keeps the colour of a transparent texel out of a leaf's silhouette - but the field's
+/// alpha is how tall the cloud grows, not a coverage: weighed by it, the cumulus shape (G)
+/// of a smaller level was the shape of its tall clouds alone, so the clouds changed their
+/// outline from one level to the next, and a cloud on a low patch vanished where the sky
+/// went over to the next level - a visible line across it. The colour channels hold linear
+/// values in sRGB bytes (see `cloud_field`), so they are averaged decoded, as the GPU reads them.
+pub(crate) fn cloud_field_levels(field: omsi_texture::Image) -> omsi_texture::TextureData {
+    let decode = |b: u8| -> f32 {
+        let s = b as f32 / 255.0;
+        if s <= 0.040_45 { s / 12.92 } else { ((s + 0.055) / 1.055).powf(2.4) }
+    };
+    let encode = |x: f32| -> u8 {
+        let x = x.clamp(0.0, 1.0);
+        let s = if x <= 0.003_130_8 { x * 12.92 } else { 1.055 * x.powf(1.0 / 2.4) - 0.055 };
+        (s * 255.0 + 0.5) as u8
+    };
+    let (w, h) = (field.width as usize, field.height as usize);
+    let mut levels = vec![field.rgba];
+    let (mut lw, mut lh) = (w, h);
+    while lw > 1 || lh > 1 {
+        let (nw, nh) = ((lw / 2).max(1), (lh / 2).max(1));
+        let prev = levels.last().expect("level");
+        let mut next = vec![0u8; nw * nh * 4];
+        for y in 0..nh {
+            for x in 0..nw {
+                // (the field tiles: a texel past an odd edge wraps round)
+                let px = [(2 * x) % lw, (2 * x + 1) % lw];
+                let py = [(2 * y) % lh, (2 * y + 1) % lh];
+                let texels = [(px[0], py[0]), (px[1], py[0]), (px[0], py[1]), (px[1], py[1])];
+                for c in 0..4 {
+                    let sum: f32 = texels
+                        .iter()
+                        .map(|&(tx, ty)| {
+                            let v = prev[(ty * lw + tx) * 4 + c];
+                            if c < 3 { decode(v) } else { v as f32 / 255.0 }
+                        })
+                        .sum();
+                    let mean = sum / 4.0;
+                    next[(y * nw + x) * 4 + c] = if c < 3 { encode(mean) } else { (mean * 255.0 + 0.5) as u8 };
+                }
+            }
+        }
+        levels.push(next);
+        lw = nw;
+        lh = nh;
+    }
+    omsi_texture::TextureData { width: w as u32, height: h as u32, format: omsi_texture::PixelFormat::Rgba8, levels, has_alpha: true, gpu_mips: false }
 }
 
 /// The texture of a cloud type named in `Weather/clouds.cfg` (`[cloudtype]` name, texture,
