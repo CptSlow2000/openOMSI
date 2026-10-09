@@ -526,6 +526,7 @@ impl App {
             self.perf.cpu_mark =
                 process_cpu_seconds().map(|c| (c, Instant::now(), self.perf.total_frames));
             self.perf.thread_cpu_mark = crate::startup::thread_cpu_seconds();
+            self.perf.instructions_mark = crate::startup::process_instructions();
             self.perf.profile_mark = Some(crate::perf_report::ProfileMark::take(&self.perf.profile, r));
         }
         if let (Some(limit), false) = (self.args.exit_after, self.exiting) {

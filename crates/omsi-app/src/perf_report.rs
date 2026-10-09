@@ -113,6 +113,9 @@ pub(crate) fn report(run: Run, r: &omsi_render::Renderer, window: (u32, u32), sc
         if let (Some(m0), Some(m1)) = (perf.thread_cpu_mark, crate::startup::thread_cpu_seconds()) {
             summary["main_thread_cpu_ms_per_frame"] = json!((m1 - m0) / frames * 1000.0);
         }
+        if let (Some(i0), Some(i1)) = (perf.instructions_mark, crate::startup::process_instructions()) {
+            summary["million_instructions_per_frame"] = json!(i1.saturating_sub(i0) as f64 / frames / 1e6);
+        }
     }
     json!({
         "schema_version": 1,

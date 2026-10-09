@@ -675,6 +675,7 @@ fn assemble_app(args: Args, settings: settings::Settings) -> App {
             play_started: None,
             cpu_mark: None,
             thread_cpu_mark: None,
+            instructions_mark: None,
             profile_mark: None,
             frame_times: Vec::new(),
         },

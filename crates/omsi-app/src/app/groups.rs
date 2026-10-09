@@ -116,6 +116,8 @@ pub(crate) struct PerfState {
     /// OMSI_PROFILE: the CPU time of the thread that runs the frames when `cpu_mark` was
     /// taken (s), for the CPU time the frame's own steps cost.
     pub(crate) thread_cpu_mark: Option<f64>,
+    /// OMSI_PROFILE: the process's retired instructions then (macOS).
+    pub(crate) instructions_mark: Option<u64>,
     /// OMSI_PROFILE: the stages when `cpu_mark` was taken, and every frame's time since
     /// then (s), for the exit summary's percentiles (see `perf_report`).
     pub(crate) profile_mark: Option<crate::perf_report::ProfileMark>,
