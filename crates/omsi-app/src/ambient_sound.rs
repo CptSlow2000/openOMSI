@@ -144,9 +144,13 @@ impl AmbientSound {
         let s = self.surroundings;
         let p = self.params(&m, s, wheels, bus_speed, open);
         self.last = format!(
-            "wind {:.1} m/s, rain {:.1} mm/h, foliage {:.2}, urban {:.2}, sun {:.0}°, inside {} open {:.2}, wheels {}",
+            "wind {:.1} m/s, z0 {:.2}, sky {:.2}, rain {:.1} mm/h, wet {:.2}, day {:.0}, foliage {:.2}, urban {:.2}, sun {:.0}°, inside {} open {:.2}, wheels {}",
             p.wind_10m,
+            p.roughness,
+            p.sky_open,
             p.rain_mm_h,
+            p.wetness,
+            p.day_of_year,
             p.foliage,
             p.urban,
             p.sun_elevation,

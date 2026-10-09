@@ -169,6 +169,7 @@ fn ambient_levels() {
         cases.push((format!("rain {r} outside"), AmbientParams { enabled: true, rain_mm_h: r, urban: 0.0, wetness: 1.0, ..Default::default() }));
         cases.push((format!("rain {r} inside roof"), AmbientParams { enabled: true, rain_mm_h: r, urban: 0.0, inside: true, roof_rain: true, bus_speed: 10.0, ..Default::default() }));
     }
+    cases.push(("game storm".into(), AmbientParams { enabled: true, wind_10m: 18.9, roughness: 0.65, foliage: 0.21, urban: 0.52, rain_mm_h: 2.4, wetness: 1.0, sun_elevation: 57.0, hour: 12.0, temperature: 12.0, ..Default::default() }));
     cases.push(("city noon".into(), AmbientParams { enabled: true, urban: 1.0, hour: 12.0, ..Default::default() }));
     cases.push(("city 3 am".into(), AmbientParams { enabled: true, urban: 1.0, hour: 3.0, ..Default::default() }));
     cases.push(("crickets".into(), AmbientParams { enabled: true, urban: 0.0, foliage: 1.0, sun_elevation: -20.0, day_of_year: 205.0, temperature: 21.0, hour: 23.0, ..Default::default() }));

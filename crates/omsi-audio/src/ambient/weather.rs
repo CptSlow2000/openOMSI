@@ -165,7 +165,7 @@ impl Leaves {
     pub fn click_rate(p: &AmbientParams, u: f32) -> f32 {
         let leaves = (p.foliage * p.leaf_amount).clamp(0.0, 1.5);
         // (a leaf starts to flutter at some half a metre a second)
-        600.0 * leaves * (u - 0.5).max(0.0) * p.sky_open.clamp(0.0, 1.0)
+        9600.0 * leaves * (u - 0.5).max(0.0) * p.sky_open.clamp(0.0, 1.0)
     }
 
     pub fn control(&mut self, p: &AmbientParams, u_canopy: f32, rate: f32) {
@@ -174,13 +174,13 @@ impl Leaves {
         let bal = p.foliage_balance.clamp(-1.0, 1.0);
         self.rate_lr = [total * 0.5 * (1.0 - 0.6 * bal), total * 0.5 * (1.0 + 0.6 * bal)];
         // a click rings for 2.5 ms (green) to 1 ms (dry)
-        let tau = 0.0025 - 0.0015 * dry;
+        let tau = 0.004 - 0.0015 * dry;
         self.decay = (-1.0 / (tau * rate)).exp();
         for c in 0..2 {
-            self.band[c].bandpass(2600.0 + 2600.0 * dry + 150.0 * c as f32, 0.8, rate);
+            self.band[c].bandpass(2200.0 + 1200.0 * dry + 150.0 * c as f32, 0.8, rate);
             self.low[c].set(500.0, rate);
         }
-        self.amp = db(-23.0) * (0.6 + 0.8 * dry);
+        self.amp = db(-49.0) * (0.8 + 0.4 * dry);
         self.strike = (u_canopy.max(0.0) / 10.0).sqrt();
     }
 
@@ -197,7 +197,7 @@ impl Leaves {
                 if self.rng.uniform() < pr {
                     // (a single leaf strikes no harder than a few times the mean)
                     let a = self.rng.exp1().min(3.0) * self.strike;
-                    self.env[c] = (self.env[c] + a).min(200.0);
+                    self.env[c] = (self.env[c] + a).min(60.0);
                 }
                 self.env[c] = flush(self.env[c] * self.decay);
                 let x = self.rng.white() * self.env[c];
@@ -379,8 +379,8 @@ impl Rain {
                     gr += a;
                 }
             }
-            el[i] += self.click[0].run(gl) * db(-8.0);
-            er[i] += self.click[1].run(gr) * db(-8.0);
+            el[i] += self.click[0].run(gl) * db(-22.0);
+            er[i] += self.click[1].run(gr) * db(-22.0);
             let (mut bl, mut br) = (0.0, 0.0);
             for b in self.bubbles.iter_mut() {
                 if b.amp < 1.0e-5 {
@@ -396,8 +396,8 @@ impl Rain {
                 bl += s * (1.0 - b.pan);
                 br += s * b.pan;
             }
-            el[i] += bl * db(-6.0);
-            er[i] += br * db(-6.0);
+            el[i] += bl * db(-16.0);
+            er[i] += br * db(-16.0);
             // drops on the glass by the ear: the pane rings
             let mut g = 0.0;
             if self.rng.uniform() < p_glass {

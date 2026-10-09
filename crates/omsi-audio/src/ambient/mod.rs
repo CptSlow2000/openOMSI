@@ -239,7 +239,7 @@ impl Ambient {
             wall_ramp: Ramp::new(1.0),
             out_gain: Ramp::new(0.0),
             limit: 1.0,
-            limit_release: (-1.0 / (0.4 * rate.max(8000) as f32)).exp(),
+            limit_release: (-1.0 / (0.08 * rate.max(8000) as f32)).exp(),
             on: Lag::default(),
             env: [buf(), buf()],
             dir: [buf(), buf()],
