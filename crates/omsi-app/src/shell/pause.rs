@@ -237,7 +237,7 @@ fn list_page(sh: &mut Shell, v: &PauseView, list: &ListView, page: Rect) {
     }
     let mut body = Rect::new(area.x, area.y + 70.0, area.w, (area.h - 70.0).max(40.0));
     // the pages of a settings window: the launcher's segmented bar
-    if let Some((titles, at)) = list.tabs.as_ref() {
+    if let Some((titles, at)) = list.tabs.as_ref().filter(|(t, _)| t.len() > 1) {
         let labels: Vec<&str> = titles.iter().map(|t| t.as_str()).collect();
         let bar = Rect::new(body.x, body.y, (titles.len() as f32 * 118.0).min(body.w), 36.0);
         let mut tab = *at;
