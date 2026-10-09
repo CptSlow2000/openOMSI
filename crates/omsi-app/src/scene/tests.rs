@@ -1001,6 +1001,7 @@ fn scenery_mouseevent_hit_and_trigger() {
         mesh_shadow: vec![false],
         mesh_casts: vec![false],
         has_mouse_events: true,
+        embedded_lights: Default::default(),
         program: None,
         lower_lods: Vec::new(),
         lod0_min: 0.0,

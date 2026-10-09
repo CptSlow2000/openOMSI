@@ -385,7 +385,7 @@ pub(super) struct OnRoad {
 
 /// What a departure display adds to a bus's time (`omsi.getDepartures`).
 #[derive(Clone, Copy, Debug, Default)]
-struct StopExtra {
+pub(super) struct StopExtra {
     /// Stops still to call at up to this one, this one counted (0: standing here).
     stops_away: Option<u32>,
     load: Option<f32>,

@@ -104,18 +104,24 @@ pub(crate) fn with_fonts<R>(f: impl FnOnce(&FontRef<'static>, &FontRef<'static>)
 }
 
 /// The bytes of the face for the characters Roboto lacks (Hangul, CJK ...): the file in
-/// `OPENOMSI_HTML_FALLBACK_FONT` (and `..._BOLD`), else Malgun Gothic from the Windows fonts.
+/// `OMSI_HTML_FALLBACK_FONT` (and `..._BOLD`), else Malgun Gothic from the Windows fonts or
+/// AppleGothic on macOS.
 /// Read once per process; `None` when there is none.
 fn fallback_bytes() -> Option<&'static (Vec<u8>, Vec<u8>)> {
     static BYTES: std::sync::OnceLock<Option<(Vec<u8>, Vec<u8>)>> = std::sync::OnceLock::new();
     BYTES
         .get_or_init(|| {
             let read = |p: &std::path::Path| std::fs::read(p).ok();
-            if let Some(reg) = std::env::var_os("OPENOMSI_HTML_FALLBACK_FONT").and_then(|p| read(p.as_ref())) {
-                let bold = std::env::var_os("OPENOMSI_HTML_FALLBACK_FONT_BOLD")
+            if let Some(reg) = omsi_cfg::flags::OMSI_HTML_FALLBACK_FONT.os().and_then(|p| read(p.as_ref())) {
+                let bold = omsi_cfg::flags::OMSI_HTML_FALLBACK_FONT_BOLD
+                    .os()
                     .and_then(|p| read(p.as_ref()))
                     .unwrap_or_else(|| reg.clone());
                 return Some((reg, bold));
+            }
+            if cfg!(target_os = "macos") {
+                let reg = read(std::path::Path::new("/System/Library/Fonts/Supplemental/AppleGothic.ttf"))?;
+                return Some((reg.clone(), reg));
             }
             let dir = std::path::PathBuf::from(std::env::var_os("WINDIR").unwrap_or_else(|| "C:\\Windows".into())).join("Fonts");
             let reg = read(&dir.join("malgun.ttf"))?;
