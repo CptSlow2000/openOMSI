@@ -493,8 +493,7 @@ impl World {
             if !o.texts.is_empty() {
                 let _ = o.inst.take_refresh_strings();
                 for (tex, st) in o.texts.iter_mut() {
-                    // (read where it is: a copy of every string of every board in reach was
-                    // made each frame only to be compared with the last)
+                    // (read in place: a copy each frame was only compared with the last)
                     let text = o.inst.str_var(st.def.variable.trim());
                     if st.update(text) {
                         let (w, h) = (st.def.width.max(1) as u32, st.def.height.max(1) as u32);
