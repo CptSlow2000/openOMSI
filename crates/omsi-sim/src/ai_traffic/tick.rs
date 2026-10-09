@@ -83,6 +83,7 @@ impl TrafficSim {
         let mut frames: Vec<Option<AiFrame>> = vec![None; self.cars.len()];
         let feet = self.footprints();
         self.break_lead_pairs();
+        self.break_rings();
         let ts = TickScene { dt, debug, player, player_standing, others, feet, by_lane, coming, walkers };
         for (i, frame) in frames.iter_mut().enumerate() {
             match self.plan_car(i, &ts, &mut reservations) {

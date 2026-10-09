@@ -147,6 +147,11 @@ pub struct AiCar {
     pub waits_on: Option<u64>,
     /// The vehicle (by id) it gave way to at its junction this frame.
     pub yield_to: Option<u64>,
+    /// Chosen to break a ring of cars waiting on each other (`deadlock`): until this time
+    /// it goes through its junction whatever the rules say.
+    pub deadlock_pass: f32,
+    /// When it was last chosen so.
+    pub deadlock_tried: f32,
 }
 
 /// A free parking space beside a lane that a car means to park in: the space of parked car
@@ -625,6 +630,8 @@ impl TrafficSim {
             consist_reversed: false,
             waits_on: None,
             yield_to: None,
+            deadlock_pass: f32::MIN,
+            deadlock_tried: f32::MIN,
             park: None,
             seed,
             scheme,

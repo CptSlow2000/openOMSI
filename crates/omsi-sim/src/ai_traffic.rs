@@ -8,6 +8,7 @@
 
 pub mod bus_service;
 pub mod control;
+pub mod deadlock;
 pub mod density;
 pub mod dormant;
 pub mod junctions;

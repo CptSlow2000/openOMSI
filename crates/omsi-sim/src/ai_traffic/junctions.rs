@@ -519,6 +519,11 @@ impl TrafficSim {
                 }
             }
         }
+        // a ring of cars waiting on each other that this one has been chosen to break
+        // (`deadlock`): it goes, as far as its body check lets it
+        if blocked && self.cars[i].deadlock_pass > self.time {
+            blocked = false;
+        }
         let lanes: Vec<usize> = jn.lanes.iter().map(|x| x.0).collect();
         // (and every ten seconds of a long wait)
         let long_wait =
