@@ -29,6 +29,12 @@ struct Camera {
     // Windy trees: xy the weather's wind (m/s, world; 0 with the setting off), zw how far
     // the air has carried the gusts since the start (m, modulo PATTERN_PERIOD)
     tree_wind: vec4<f32>,
+    // an articulated bus's rear section (as inside_*): read by the snowfall only - a test of
+    // it here, inlined into every use of inside_vehicle, brought Apple's M4 shader compiler
+    // down (see 0.2.21's Metal note)
+    inside2_a: vec4<f32>,
+    inside2_b: vec4<f32>,
+    inside2_c: vec4<f32>,
 };
 
 // 1 when the point lies inside the player's vehicle (its [boundingbox], shrunk a little so
