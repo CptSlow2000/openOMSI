@@ -593,7 +593,7 @@ fn assemble_app(args: Args, settings: settings::Settings) -> App {
             career: Default::default(),
             journey: None,
             wetness: 0.0,
-            cloud_drift: [0.0; 2],
+            cloud_drift: [0.0; 4],
             weather_blend: None,
             weather_cycle: None,
             metar_rx: None,

@@ -687,6 +687,9 @@ pub struct Lighting {
     /// Cloud layer: density 0..1 and the texture offset (wind drift), 0 = no clouds.
     pub cloud_density: f32,
     pub cloud_offset: [f32; 2],
+    /// The weather of the classic sky (Vanilla, Vanilla+): its haze and its cloud layer, as
+    /// Omsi.exe draws them (sky.wgsl `fs_main`).
+    pub vanilla_sky: VanillaSky,
     /// Sun shadow map (off in mirrors and at night).
     pub shadows: bool,
     /// How wet the roads are (0..1): rain darkens them and makes them mirror the sky.
@@ -824,6 +827,7 @@ impl Default for Lighting {
             sky_weights: [1.0, 0.0, 0.0],
             cloud_density: 0.0,
             cloud_offset: [0.0; 2],
+            vanilla_sky: VanillaSky::default(),
             shadows: true,
             snowfall: 0.0,
             wind: Vec3::ZERO,
@@ -2096,6 +2100,8 @@ pub struct Renderer {
     corona_sampler: wgpu::Sampler,
     sky_layout: wgpu::BindGroupLayout,
     sky_sampler: wgpu::Sampler,
+    /// The classic sky's weather (`VanillaSkyUniform`, sky bind group binding 10).
+    vanilla_sky_buf: wgpu::Buffer,
     /// The enhanced clouds' noise (clouds.rs): the shape map, the detail volume and their
     /// repeating, mip-mapped sampler (sky bind group bindings 6-8).
     cloud_shape_view: wgpu::TextureView,
@@ -2522,6 +2528,42 @@ fn color_targets(format: wgpu::TextureFormat, blend: Option<wgpu::BlendState>, w
     }
     v
 }
+/// The weather of the classic sky, the values Omsi.exe draws its haze and clouds from
+/// (its THimmel render 0x5d8e98 and the cloud layer 0x754e44).
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct VanillaSky {
+    /// The weather's `[clouds]` height H (m over the map's zero): the apex of the cloud
+    /// cone, and the measure of the haze over the horizon - also with no clouds (-1).
+    pub cloud_height: f32,
+    /// The weather's `[fog]` range as the file gives it (m): the haze over the horizon.
+    pub fog_range: f32,
+    /// How far one sees (m: the fog range, shortened by rain and snow): the far clouds go
+    /// over into the fog colour.
+    pub visibility: f32,
+    /// The cloud type's size in `Weather/clouds.cfg` (m of ground a tile of its texture
+    /// covers); 0: no clouds.
+    pub cloud_size: f32,
+    /// The cloud type is an `ovc` one (its texture an opaque deck).
+    pub overcast: bool,
+    /// How far the wind has carried the clouds (m, east and north; modulo
+    /// `VANILLA_CLOUD_PERIOD`).
+    pub cloud_offset: [f32; 2],
+}
+
+/// The period the classic clouds' drift is kept in (m): a whole number of tiles of the stock
+/// cloud types (1000 and 2000 m), so that the wrap does not move them.
+pub const VANILLA_CLOUD_PERIOD: f32 = 10000.0;
+
+/// The classic sky's uniform (sky.wgsl `VanillaSkyUniform`).
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, bytemuck::Pod, bytemuck::Zeroable)]
+pub(crate) struct VanillaSkyUniform {
+    /// cloud height, cloud size (0: none), drift east, drift north
+    cloud: [f32; 4],
+    /// fog range, visibility, 1 for an overcast type, the render origin's height
+    haze: [f32; 4],
+}
+
 /// Half size of the area around the camera covered by the near shadow cascade (m).
 pub const SHADOW_RANGE: f32 = 140.0;
 /// Half size of the far cascade (m): coarser, but reaches the whole visible street.
@@ -3107,6 +3149,7 @@ impl Renderer {
             corona_sampler: coronas.sampler,
             sky_layout: sky.layout,
             sky_sampler,
+            vanilla_sky_buf: sky.vanilla_buf,
             cloud_shape_view: sky.cloud_shape_view,
             cloud_detail_view: sky.cloud_detail_view,
             cloud_sampler: sky.cloud_sampler,
@@ -4704,6 +4747,19 @@ impl Renderer {
         textures: [TextureId; 3],
         clouds: Option<TextureId>,
     ) {
+        self.set_sky_textures_vanilla(scene, textures, clouds, None)
+    }
+
+    /// Sky gradients, the cloud field (`clouds`, the enhanced sky's and its weather's
+    /// picture) and the weather's cloud type texture as it is (`vanilla_clouds`: the
+    /// classic sky's cloud layer, see `VanillaSky`).
+    pub fn set_sky_textures_vanilla(
+        &self,
+        scene: &mut Scene,
+        textures: [TextureId; 3],
+        clouds: Option<TextureId>,
+        vanilla_clouds: Option<TextureId>,
+    ) {
         let views: Vec<&wgpu::TextureView> =
             textures.iter().map(|t| &scene.textures[*t].view).collect();
         let bg = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -4748,6 +4804,17 @@ impl Renderer {
                 wgpu::BindGroupEntry {
                     binding: 8,
                     resource: wgpu::BindingResource::Sampler(&self.cloud_sampler),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 9,
+                    resource: wgpu::BindingResource::TextureView(match vanilla_clouds {
+                        Some(c) => &scene.textures[c].view,
+                        None => &self.black_texture.view,
+                    }),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 10,
+                    resource: self.vanilla_sky_buf.as_entire_binding(),
                 },
             ],
         });

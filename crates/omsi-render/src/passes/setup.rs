@@ -227,6 +227,14 @@ impl Renderer {
             let v: [f32; 4] = [(lx - ro.x) as f32, (ly - ro.y) as f32, side as f32, if side > 0.0 { 1.0 } else { 0.0 }];
             self.queue.write_buffer(&self.lm_uniform, 0, bytemuck::cast_slice(&v));
         }
+        {
+            let v = &lighting.vanilla_sky;
+            let u = VanillaSkyUniform {
+                cloud: [v.cloud_height, v.cloud_size, v.cloud_offset[0], v.cloud_offset[1]],
+                haze: [v.fog_range, v.visibility, if v.overcast { 1.0 } else { 0.0 }, ro.z as f32],
+            };
+            self.queue.write_buffer(&self.vanilla_sky_buf, 0, bytemuck::bytes_of(&u));
+        }
         let cu = CameraUniform {
             post: [
                 if enhanced { 1.0 } else { 0.0 },
