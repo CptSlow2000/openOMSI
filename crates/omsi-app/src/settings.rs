@@ -778,7 +778,7 @@ impl Settings {
         text.push_str(&format!("arrows_switch_cams={}\n", self.arrows_switch_cams as u8));
         text.push_str(&format!("voice_chat={}\n", self.voice_chat as u8));
         text.push_str(&format!("windy_trees={}\n", self.windy_trees as u8));
-        text.push_str(&format!("standing_chance={}\n", self.standing_chance * 100.0));
+        text.push_str(&format!("standing_chance={}\n", (self.standing_chance * 100.0).round() as i32));
         text.push_str(&format!("cloud_quality={}\n", self.cloud_quality));
         text.push_str(&format!("rain_quality={}\n", self.rain_quality));
         text.push_str(&format!("gpu_texture_compression={}\n", self.gpu_texture_compression as u8));
