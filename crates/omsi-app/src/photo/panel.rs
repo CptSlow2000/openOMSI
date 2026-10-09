@@ -291,7 +291,7 @@ pub(crate) fn draw(sh: &mut Shell, ph: &mut Photo, info: &Info) {
     } else {
         omsi_ui::tr("Ready").into_owned()
     };
-    ui.text_in(&status, Rect::new(inner.x, py, inner.w, 16.0), 11.5, Weight::Medium, if n >= target && !busy { OK } else { TEXT_DIM }, Align::Left);
+    ui.text_in(&status, Rect::new(inner.x, py, inner.w, 16.0), 11.5, Weight::Medium, if n >= target && !busy && !ph.render.moving() { OK } else { TEXT_DIM }, Align::Left);
     ui.progress(Rect::new(inner.x, py + 20.0, inner.w, 3.0), if ph.render.moving() { 0.0 } else { frac }, busy || n < target);
     let b = Rect::new(inner.x, inner.bottom() - 44.0 - 46.0, inner.w, 44.0);
     if ui.button("ph-take", b, &omsi_ui::tr(if busy { "Taking…" } else { "Take photo" }), Some("photo_camera"), ButtonKind::Primary) && !busy {
