@@ -106,7 +106,6 @@ effect. On Android, `openOMSI/env.txt` holds `NAME=value` lines that are set bef
 | `OMSI_GROUND_GAP` | text | - | use | app | Offscreen CSV (or -): how far every drawn tyre stands over or sinks into the ground. |
 | `OMSI_GROUND_GAP_RADIUS` | num | 150 | use | app | With OMSI_GROUND_GAP: the radius in metres. |
 | `OMSI_GROUND_LANES` | bool | off | use | app | Along every street lane, every metre, how far the ground lies over or under the lane. |
-| `OMSI_GUI_DEBUG` | bool | off | use | app | Launcher: log each frame of the interface, what it holds and why it was drawn again. |
 | `OMSI_LAN_TRACE` | text | - | use | app | LAN CSV file: where the host's people are drawn. |
 | `OMSI_LIST_ALIGNED` | bool | off | use | app | Log the splines aligned to the terrain. |
 | `OMSI_PROFILE` | bool | off | use | app, render, sim | Time per stage of the frame, logged. |

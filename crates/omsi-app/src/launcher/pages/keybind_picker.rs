@@ -10,11 +10,11 @@ use std::collections::HashMap;
 /// An action the picker offers: its name, what it does, where it was found (the language
 /// files, OMSI's events, a bus's script, the keyboard file) and the bus files that use it.
 #[derive(Clone)]
-pub(crate) struct KeyActionOption {
-    pub(crate) action: String,
-    pub(crate) label: String,
-    pub(crate) sources: Vec<String>,
-    pub(crate) bus_paths: Vec<String>,
+pub(super) struct KeyActionOption {
+    action: String,
+    label: String,
+    sources: Vec<String>,
+    bus_paths: Vec<String>,
 }
 
 /// Every action the vehicles' section can be given: the language files' texts, OMSI's events
@@ -65,7 +65,7 @@ fn action_options(names: &crate::describe::ControlNames, script_actions: &HashMa
 /// The actions a controller's button can be given on the launcher's page, and their labels:
 /// the keyboard file's vehicle actions, the H-pattern gates and the game's own (built once
 /// and kept, not every frame).
-pub(crate) fn controller_action_choices(names: &crate::describe::ControlNames, bindings: &Value) -> (Vec<String>, Vec<String>) {
+pub(super) fn controller_action_choices(names: &crate::describe::ControlNames, bindings: &Value) -> (Vec<String>, Vec<String>) {
     let mut actions: Vec<String> = vec!["<none>".into()];
     actions.extend(bindings.get("vehicles").and_then(|a| a.as_array()).map(|a| a.iter().filter_map(|b| b.get("action").and_then(|x| x.as_str()).map(String::from)).collect::<Vec<_>>()).unwrap_or_default());
     // H-pattern shifters use OMSI's "_fest" actions: pressing the gate selects the gear,
@@ -87,7 +87,7 @@ pub(crate) fn controller_action_choices(names: &crate::describe::ControlNames, b
 }
 
 /// The actions whose name or label has `query` and that a bus matching `source_query` uses.
-pub(crate) fn filter_action_options(options: &[KeyActionOption], query: &str, source_query: &str) -> Vec<KeyActionOption> {
+fn filter_action_options(options: &[KeyActionOption], query: &str, source_query: &str) -> Vec<KeyActionOption> {
     let query = query.trim().to_lowercase();
     let source_query = normalize_source_query(source_query);
     options.iter().filter(|option| {
@@ -104,7 +104,7 @@ pub(crate) fn filter_action_options(options: &[KeyActionOption], query: &str, so
 }
 
 /// Lower case, every run of other characters one space: "MAN A26" finds `MAN_A26_3D.bus`.
-pub(crate) fn normalize_source_query(text: &str) -> String {
+fn normalize_source_query(text: &str) -> String {
     let mut normalized = String::new();
     for c in text.chars() {
         if c.is_alphanumeric() {
@@ -117,7 +117,7 @@ pub(crate) fn normalize_source_query(text: &str) -> String {
 }
 
 /// The bus folders and files that match, those that start so first.
-pub(crate) fn source_suggestions(paths: &[String], query: &str) -> Vec<String> {
+fn source_suggestions(paths: &[String], query: &str) -> Vec<String> {
     let query = normalize_source_query(query);
     if query.is_empty() {
         return Vec::new();
@@ -128,6 +128,14 @@ pub(crate) fn source_suggestions(paths: &[String], query: &str) -> Vec<String> {
     }).collect();
     matches.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.cmp(&b.1)));
     matches.into_iter().map(|(_, _, path)| path).collect()
+}
+
+/// The rows of a list scrolled `offset` down that a view `viewport_height` high shows.
+fn visible_row_range(offset: f32, viewport_height: f32, count: usize, row_height: f32) -> std::ops::Range<usize> {
+    let offset = offset.max(0.0);
+    let first = (offset / row_height).floor() as usize;
+    let end = ((offset + viewport_height.max(0.0)) / row_height).ceil() as usize;
+    first.min(count)..end.min(count).max(first.min(count))
 }
 
 /// The bus file of a source (`Bus script: Pack/Bus.bus (Maker Type)`).
@@ -150,7 +158,7 @@ fn bus_source_paths(sources: &[String]) -> Vec<String> {
     paths
 }
 
-pub(crate) fn bus_usage_label(bus_count: usize, total_bus_count: usize) -> String {
+fn bus_usage_label(bus_count: usize, total_bus_count: usize) -> String {
     format!("Used by {bus_count}/{total_bus_count} buses")
 }
 
@@ -190,7 +198,7 @@ fn save_script_action_cache(path: &std::path::Path, cache: &ScriptActionCache) -
 
 /// The picker's actions: the cache read once, the scan started once per session (in the
 /// background) and what it sent taken in, the list rebuilt when it changed.
-pub(crate) fn ensure_key_action_catalog(l: &mut Launcher) {
+fn ensure_key_action_catalog(l: &mut Launcher) {
     let root = std::path::PathBuf::from(&l.state.config.root);
     if l.pages.kb_script_actions_root.as_ref() != Some(&root) {
         l.pages.kb_script_actions = None;
@@ -308,6 +316,200 @@ pub(crate) fn ensure_key_action_catalog(l: &mut Launcher) {
     }
 }
 
+
+/// The searchable catalog of actions for a new keyboard binding.
+pub fn keybind_picker(l: &mut Launcher) {
+    let Some(section) = l.pages.kb_picker else {
+        return;
+    };
+    if let Some((action, paths)) = l.pages.kb_source_action.clone() {
+        keybind_sources_dialog(l, &action, &paths);
+        return;
+    }
+    ensure_key_action_catalog(l);
+    let size = l.ui.size;
+    let full = Rect::new(0.0, 0.0, size.x, size.y);
+    l.ui.solid(full);
+    l.ui.p().rect(full, Color::rgba(0, 0, 0, 0.68));
+    let (w, h) = ((size.x - 32.0).min(720.0), (size.y - 32.0).min(760.0));
+    let panel = Rect::new((size.x - w) * 0.5, (size.y - h) * 0.5, w, h);
+    l.ui.panel(panel);
+    let inner = panel.pad(20.0, 18.0);
+    l.ui.text_in("Add a key binding", Rect::new(inner.x, inner.y, inner.w, 28.0), 19.0, Weight::Bold, TEXT, Align::Left);
+    let section_name = if section == 0 { "Driving & the bus" } else { "The game" };
+    l.ui.text_in(section_name, Rect::new(inner.x, inner.y + 29.0, inner.w, 18.0), 12.0, Weight::Regular, TEXT_DIM, Align::Left);
+
+    // what to look for: the action (its name or what it does), and the bus that uses it
+    let filter_w = (inner.w - 12.0) * 0.5;
+    let mut query = std::mem::take(&mut l.pages.kb_picker_filter);
+    let query_changed = l.ui.text_input("kb-picker-search", Rect::new(inner.x, inner.y + 54.0, filter_w, 36.0), &mut query, "Search actions…", Some("search"));
+    l.pages.kb_picker_filter = query.clone();
+    let mut source_query = std::mem::take(&mut l.pages.kb_picker_source_filter);
+    let source_r = Rect::new(inner.x + filter_w + 12.0, inner.y + 54.0, filter_w, 36.0);
+    let mut source_changed = l.ui.text_input("kb-picker-source-search", source_r, &mut source_query, "Filter by bus folder or bus file (.bus)", Some("folder_open"));
+    let (suggestions_h, picked_source) = source_suggestion_list(l, &source_query, Rect::new(source_r.x, inner.y + 94.0, filter_w, 0.0));
+    if let Some(path) = picked_source {
+        source_query = path;
+        source_changed = true;
+    }
+    l.pages.kb_picker_source_filter = source_query.clone();
+    let filter_changed = l.pages.kb_filtered_options.as_ref().is_none_or(|(a, s, _)| a != &query || s != &source_query);
+    if query_changed || source_changed || filter_changed {
+        let all = l.pages.kb_action_options.as_deref().unwrap_or_default();
+        l.pages.kb_filtered_options = Some((query.clone(), source_query.clone(), filter_action_options(all, &query, &source_query)));
+        if query_changed || source_changed {
+            let id = id_of("kb-action-picker");
+            l.ui.scroll.insert(id, 0.0);
+            l.ui.scroll.insert(id ^ 0xabc, 0.0);
+        }
+    }
+    let count = l.pages.kb_filtered_options.as_ref().map_or(0, |(_, _, o)| o.len());
+    scan_progress(l, count, Rect::new(inner.x, inner.y + 96.0 + suggestions_h, inner.w, 25.0));
+
+    let list = Rect::new(inner.x - 6.0, inner.y + 130.0 + suggestions_h, inner.w + 12.0, (inner.h - 184.0 - suggestions_h).max(80.0));
+    let (picked, show_sources) = action_list(l, list);
+    if let Some(request) = show_sources {
+        l.pages.kb_source_action = Some(request);
+    }
+    if l.ui.button("kb-picker-cancel", Rect::new(inner.right() - 110.0, inner.bottom() - 38.0, 110.0, 36.0), "Cancel", None, ButtonKind::Ghost) {
+        l.pages.kb_picker = None;
+        l.pages.kb_picker_filter.clear();
+        l.pages.kb_picker_source_filter.clear();
+        return;
+    }
+    // the action picked: a new entry, waiting for its key on the keyboard page (which shows
+    // it alone, the filter set to it, as the direct way of #854 does)
+    if let Some(action) = picked {
+        let key = if section == 0 { "vehicles" } else { "game" };
+        if let Some(bindings) = l.state.keybindings.get_mut(key).and_then(Value::as_array_mut) {
+            bindings.push(json!({ "action": action, "scan_code": 0, "modifier": 0 }));
+            l.pages.capturing = Some((section, bindings.len() - 1));
+        }
+        l.pages.kb_filter[section] = action.clone();
+        l.state.set_status("Binding added. Press the key you want to use (Escape cancels).", false);
+        l.pages.kb_action_options = None;
+        l.pages.kb_filtered_options = None;
+        l.pages.controller_action_choices = None;
+        l.pages.kb_picker = None;
+        l.pages.kb_picker_filter.clear();
+        l.pages.kb_picker_source_filter.clear();
+    }
+}
+
+/// The bus folders and files that match what is typed in the bus filter, under it: their
+/// height, and the one clicked.
+fn source_suggestion_list(l: &mut Launcher, source_query: &str, at: Rect) -> (f32, Option<String>) {
+    if l.pages.kb_source_suggestions.as_ref().is_none_or(|(cached, _)| cached != source_query) {
+        l.pages.kb_source_suggestions = Some((source_query.to_string(), source_suggestions(&l.pages.kb_source_paths, source_query)));
+    }
+    let suggestions = l.pages.kb_source_suggestions.as_ref().map(|(_, paths)| paths.as_slice()).unwrap_or(&[]);
+    let typed = normalize_source_query(source_query);
+    let exact = suggestions.iter().any(|path| normalize_source_query(path) == typed);
+    if typed.is_empty() || exact || suggestions.is_empty() {
+        return (0.0, None);
+    }
+    let row_h = 28.0;
+    let r = Rect::new(at.x, at.y, at.w, (suggestions.len() as f32 * row_h).min(140.0));
+    let mut picked = None;
+    l.ui.scroll_area("kb-source-suggestions", r, &mut |ui, view| {
+        for i in visible_row_range(r.y - view.y, r.h, suggestions.len(), row_h) {
+            let row = Rect::new(view.x + 2.0, view.y + i as f32 * row_h, view.w - 8.0, row_h - 2.0);
+            if ui.row(&format!("kb-source-suggestion-{i}"), row, false) {
+                picked = Some(suggestions[i].clone());
+            }
+            ui.text_in(&suggestions[i], row.pad(8.0, 0.0), 11.0, Weight::Regular, TEXT_SOFT, Align::Left);
+        }
+        suggestions.len() as f32 * row_h
+    });
+    (r.h, picked)
+}
+
+/// How many actions the search finds, and how far the scan of the buses' scripts is.
+fn scan_progress(l: &mut Launcher, results: usize, r: Rect) {
+    let (done, total, current) = &l.pages.kb_script_scan;
+    let status = if l.pages.kb_script_scan_complete {
+        format!("{results} results · scanned {total} vehicle files")
+    } else if *total > 0 {
+        format!("{results} results · scanning {done} / {total} · {current}")
+    } else if l.pages.kb_script_actions.is_some() {
+        format!("{results} results · checking installed bus scripts…")
+    } else {
+        format!("{results} results · finding installed bus scripts…")
+    };
+    let progress = if *total == 0 { 0.0 } else { *done as f32 / *total as f32 };
+    l.ui.text_in(&status, Rect::new(r.x, r.y, r.w, 18.0), 11.5, Weight::Regular, TEXT_DIM, Align::Left);
+    let bar = Rect::new(r.x, r.y + 20.0, r.w, 5.0);
+    l.ui.p().rounded(bar, 3.0, Color::WHITE.alpha(0.07));
+    if progress > 0.0 {
+        l.ui.p().rounded(Rect::new(bar.x, bar.y, bar.w * progress, bar.h), 3.0, ACCENT);
+    }
+}
+
+/// The actions found, only the rows in view drawn (a big installation has thousands): the
+/// one clicked, and the one whose buses were asked for.
+fn action_list(l: &mut Launcher, list: Rect) -> (Option<String>, Option<(String, Vec<String>)>) {
+    let options = l.pages.kb_filtered_options.as_ref().map(|(_, _, o)| o.as_slice()).unwrap_or(&[]);
+    let total_buses = l.pages.kb_script_total_buses;
+    let mut picked: Option<String> = None;
+    let mut show_sources: Option<(String, Vec<String>)> = None;
+    l.ui.scroll_area("kb-action-picker", list, &mut |ui, view| {
+        if options.is_empty() {
+            ui.text_in("No matching actions.", Rect::new(view.x + 8.0, view.y + 8.0, view.w - 20.0, 24.0), 13.0, Weight::Regular, TEXT_DIM, Align::Left);
+            return 40.0;
+        }
+        let row_h = 48.0;
+        for i in visible_row_range(list.y - view.y, list.h, options.len(), row_h) {
+            let option = &options[i];
+            let row = Rect::new(view.x + 6.0, view.y + i as f32 * row_h, view.w - 18.0, row_h - 3.0);
+            // (the buses that use it: a button that lists them)
+            let used_by = bus_usage_label(option.bus_paths.len(), total_buses);
+            let used_w = if option.bus_paths.is_empty() { 0.0 } else { ui.width(&used_by, 13.0, Weight::Medium) + 13.0 * 1.3 + 24.0 };
+            let action_row = Rect::new(row.x, row.y, row.w - used_w, row.h);
+            if ui.row(&format!("kb-picker-action-{}", option.action), action_row, false) {
+                picked = Some(option.action.clone());
+            }
+            if used_w > 0.0
+                && ui.button(&format!("kb-picker-sources-{}", option.action), Rect::new(row.right() - used_w, row.y + 3.0, used_w - 4.0, row.h - 6.0), &used_by, Some("list"), ButtonKind::Ghost)
+            {
+                show_sources = Some((option.action.clone(), option.bus_paths.clone()));
+            }
+            ui.text_in(&option.label, Rect::new(row.x + 12.0, row.y + 1.0, action_row.w - 24.0, 20.0), 13.0, Weight::Medium, TEXT, Align::Left);
+            ui.text_in(&option.action, Rect::new(row.x + 12.0, row.y + 21.0, action_row.w - 24.0, 16.0), 10.5, Weight::Regular, TEXT_FAINT, Align::Left);
+        }
+        options.len() as f32 * row_h
+    });
+    (picked, show_sources)
+}
+
+fn keybind_sources_dialog(l: &mut Launcher, action: &str, paths: &[String]) {
+    let size = l.ui.size;
+    let full = Rect::new(0.0, 0.0, size.x, size.y);
+    l.ui.solid(full);
+    l.ui.p().rect(full, Color::rgba(0, 0, 0, 0.72));
+    let w = (size.x - 32.0).min(640.0);
+    let h = (size.y - 32.0).min(620.0);
+    let panel = Rect::new((size.x - w) * 0.5, (size.y - h) * 0.5, w, h);
+    l.ui.panel(panel);
+    let inner = panel.pad(20.0, 18.0);
+    l.ui.text_in("Bus files using this action", Rect::new(inner.x, inner.y, inner.w, 26.0), 17.0, Weight::Bold, TEXT, Align::Left);
+    l.ui.text_in(action, Rect::new(inner.x, inner.y + 28.0, inner.w, 20.0), 12.0, Weight::Regular, TEXT_DIM, Align::Left);
+    let list = Rect::new(inner.x - 6.0, inner.y + 58.0, inner.w + 12.0, (inner.h - 108.0).max(72.0));
+    l.ui.scroll_area("kb-source-list", list, &mut |ui, view| {
+        let row_h = 30.0;
+        for (i, path) in paths.iter().enumerate() {
+            let row = Rect::new(view.x + 6.0, view.y + i as f32 * row_h, view.w - 18.0, row_h - 2.0);
+            if row.bottom() < list.y || row.y > list.bottom() {
+                continue;
+            }
+            ui.p().rounded(row, 4.0, Color::WHITE.alpha(0.035));
+            ui.text_in(path, row.pad(10.0, 0.0), 11.5, Weight::Regular, TEXT_SOFT, Align::Left);
+        }
+        paths.len() as f32 * row_h
+    });
+    if l.ui.button("kb-source-close", Rect::new(inner.right() - 110.0, inner.bottom() - 38.0, 110.0, 36.0), "Back", None, ButtonKind::Normal) {
+        l.pages.kb_source_action = None;
+    }
+}
 
 
 #[cfg(test)]
@@ -458,4 +660,10 @@ mod keybind_picker_tests {
         assert_eq!(actions.len(), 1 + 2 + 11 + PAD_GAME_ACTIONS.len());
     }
 
+    #[test]
+    fn visible_rows_advance_with_scroll_for_large_catalogs() {
+        assert_eq!(visible_row_range(0.0, 540.0, 3434, 48.0), 0..12);
+        assert_eq!(visible_row_range(20.0 * 48.0, 540.0, 3434, 48.0), 20..32);
+        assert_eq!(visible_row_range(20.0 * 48.0, 540.0, 30, 48.0), 20..30);
+    }
 }
