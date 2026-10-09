@@ -4,6 +4,19 @@ Every push to `main` is released as `MAJOR.MINOR.COMMIT` (see
 [docs/VERSIONING.md](docs/VERSIONING.md)); the downloads are on the
 [Releases](https://github.com/openOMSI-Project/openOMSI/releases) page.
 
+## 0.2.25 - 2026-10-09
+
+### Fixes
+- **Snow chosen while driving now covers the ground in Vanilla and Vanilla+.**
+  - Switching to a snowy weather mid-game already brought the falling snow and the winter textures on the roads, objects and trees.
+  - The plain ground kept its summer grass, because the material all tiles share was only made once. It is now made again for the new season's textures.
+  - Enhanced hid this under its own snow cover.
+- **Destination displays no longer show every variant at once.**
+  - Some buses stack several versions of a sign (other fonts or letter styles) as separate meshes and switch them by a variable they never declare.
+  - Omsi.exe creates such a variable at 0 when it reads the model, so only the variant for 0 shows. openOMSI used to leave all of them visible, faded over the correct one.
+  - Undeclared `[visible]` and `[alphascale]` variables now read 0 on vehicles and scenery objects, and `Colorscheme` is always available to a vehicle's model.
+- **AI cars no longer back up at junctions made of very short road pieces** ([#2041](https://github.com/openOMSI-org/openOMSI/pull/2041), by @SpicySpaceman). Two short paths linked both ways could send a car back onto the one it had just left. The cars now never choose that return. Seen on TH_Wald and Hamburg109.
+
 ## 0.2.24 - 2026-10-09
 
 ### New
