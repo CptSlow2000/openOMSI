@@ -784,6 +784,7 @@ impl TrafficSim {
                 walkers,
             ),
             None => {
+                self.cars[i].exit_wait = false;
                 let old = std::mem::take(&mut self.cars[i].reserved);
                 for l in old {
                     if let Some(list) = reservations.get_mut(&l) {

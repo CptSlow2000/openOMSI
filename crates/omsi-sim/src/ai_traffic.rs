@@ -23,6 +23,8 @@ pub mod stats;
 pub mod tick;
 pub mod viewer;
 #[cfg(test)]
+mod scenario_tests;
+#[cfg(test)]
 mod tests;
 
 use crate::ai_motion::{

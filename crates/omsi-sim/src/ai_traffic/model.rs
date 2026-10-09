@@ -84,6 +84,8 @@ pub struct AiCar {
     pub half_width: f32,
     /// Waiting at a junction for someone with the right of way this frame.
     pub yielding: bool,
+    /// It waited at its junction's line last frame for room on the exit.
+    pub exit_wait: bool,
     /// Stopped by a red light this frame.
     pub light_hold: bool,
     /// Junction lanes this car has claimed to drive through (`TPathInfo::reservePaths`).
@@ -598,6 +600,7 @@ impl TrafficSim {
             bus: bus.map(|b| Box::new(BusService::new(b.stops))),
             half_width,
             yielding: false,
+            exit_wait: false,
             light_hold: false,
             reserved: Vec::new(),
             amber: None,

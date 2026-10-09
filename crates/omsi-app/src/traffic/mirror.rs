@@ -87,6 +87,7 @@ impl Traffic {
             bus: scheduled.then(|| Box::new(BusService::new(Vec::new()))),
             half_width,
             yielding: false,
+            exit_wait: false,
             light_hold: false,
             reserved: Vec::new(),
             amber: None,

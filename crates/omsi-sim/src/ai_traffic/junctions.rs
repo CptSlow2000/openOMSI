@@ -87,11 +87,27 @@ pub fn crossing_arrival(st: &AiState, distance: f32, claimed: bool, waits_short:
     }
 }
 
-/// The nearest vehicle in the part of the chosen exit that must be clear for this car.
+/// Metres of room beyond what it needs that a car waiting for a full exit wants before it
+/// goes (see `TrafficSim::junction_stop`).
+pub const EXIT_HYSTERESIS: f32 = 3.0;
+
+/// Comfortable braking of a vehicle on a junction's exit, for where it will have stopped
+/// (m/s², see `queued_exit_vehicle`).
+pub const EXIT_BRAKE: f32 = 2.0;
+
+/// The nearest vehicle in the part of the chosen exit that must be clear for this car:
+/// (the room left before its rear, its speed, its lane).
 ///
 /// `way` distances are measured from the car's present lane origin; `rear` is measured
 /// from the occupied lane's start. Combining both lets a queue be found across short,
 /// consecutive path objects instead of only on the first lane after a junction.
+/// A vehicle that is still moving counts where it would have stopped braking gently now
+/// (its speed² / 2 `EXIT_BRAKE` further on): a queue crawling along the exit leaves no
+/// more room than one standing there. Counted only once it stood (below 1.5 m/s), a queue
+/// creeping on at walking pace let car after car into a junction they could not leave;
+/// the queue stopped and they stood in the crossing traffic's way, which in its turn
+/// queued back into the junctions before - on Spandau's big junctions the rings of cars
+/// waiting on each other never cleared.
 pub fn queued_exit_vehicle(
     way: &[(usize, f32)],
     exit: (usize, f32),
@@ -110,9 +126,11 @@ pub fn queued_exit_vehicle(
                 .find(|&&(candidate, _)| candidate == lane)
                 .map(|&(_, distance)| distance - exit.1)?;
             let space = offset + rear;
-            (space < need).then_some((space, speed, lane))
+            let will = space + speed.max(0.0).powi(2) / (2.0 * EXIT_BRAKE);
+            (will < need).then_some((will, space, speed, lane))
         })
         .min_by(|a, b| a.0.total_cmp(&b.0))
+        .map(|(_, space, speed, lane)| (space, speed, lane))
 }
 
 /// A vehicle the AI does not drive, put onto the lanes for the right of way: the street
@@ -389,6 +407,7 @@ impl TrafficSim {
                 let old = std::mem::take(&mut self.cars[i].reserved);
                 release(reservations, &old);
             }
+            self.cars[i].exit_wait = false;
             return None;
         }
         // queued behind someone who is not through the junction yet: no claim
@@ -405,6 +424,13 @@ impl TrafficSim {
         // and the car standing there used to count as one that could not stop any more)
         let cannot_stop = !jn.inside && v > 1.0 && room < v * v / (2.0 * MAX_BRAKE * 0.7);
         let cannot_stop_gently = !jn.inside && v > 1.0 && room < v * v / (2.0 * st.decel * 1.5);
+        // (what is only courtesy - room for the car on the exit, a driver who has waited
+        // long - is given only braking no harder than the driver likes)
+        let cannot_stop_comfortably = !jn.inside && v > 1.0 && room < v * v / (2.0 * st.decel);
+        // (nor, a queue on the exit that only will stand, to a driver who has decided and is
+        // rolling off his line: stopped again for it, the car crept off and stood by turns,
+        // a jolt every few seconds)
+        let started = committed && v > 0.3 && room < 3.0;
         let explain = omsi_cfg::flags::OMSI_DEBUG_JUNCTION.is_set() || omsi_cfg::flags::OMSI_DEBUG_STUCK.is_set();
         let stop_at = if jn.inside { None } else { Some(entry) };
         // A driver who has waited long accepts a shorter gap (the critical gap shrinks with
@@ -420,7 +446,10 @@ impl TrafficSim {
         let mut exit_car: Option<u64> = None;
         if !jn.inside {
             if let Some(exit) = jn.exit {
-                let need = st.length + st.min_gap;
+                // (a car waiting for room on the exit goes once there is clearly room: with
+                // the same measure both ways it crept off and stopped again at its line
+                // every few seconds as the queue beyond crawled and stood by turns)
+                let need = st.length + st.min_gap + if self.cars[i].exit_wait { EXIT_HYSTERESIS } else { 0.0 };
                 // A map often builds the road immediately beyond a crossing from several
                 // short path objects. Looking only at the first exit lane then calls the
                 // exit empty while a queue stands on the next 2 m piece, and a car enters
@@ -437,9 +466,16 @@ impl TrafficSim {
                     })
                 });
                 if let Some((space, speed, lane)) = queued_exit_vehicle(way, exit, need, occupied) {
-                    // (only near the crossing, as before: a car far off plans no stop for a
-                    // queue that may well have moved on by the time it gets there)
-                    if speed < 1.5 && space < need && exit.1 < 40.0 {
+                    // (a car within its distance to decide, `decide`, looks across the
+                    // junction however long it is: with the exit taken only within 40 m of
+                    // the car, a big junction's exit came into view when the car could no
+                    // longer stop for it, and it stood in the middle behind the queue)
+                    // (a queue that stands near the junction, as before, at any braking a
+                    // driver calls gentle; one that is about to stand, only if the car can
+                    // stop for it comfortably)
+                    let standing = speed < 1.5 && space < need && exit.1 < 40.0;
+                    let will_stand = space + speed.powi(2) / (2.0 * EXIT_BRAKE) < need && exit.1 - entry < 60.0;
+                    if standing || (will_stand && !cannot_stop_comfortably && !started) {
                         ruled = true;
                         exit_full = true;
                         // (the last car of that queue on that lane)
@@ -499,6 +535,7 @@ impl TrafficSim {
             None
         };
         self.cars[i].yield_to = yield_to;
+        self.cars[i].exit_wait = blocked && exit_full;
         // A driver who has waited long at the line makes himself seen: he keeps a claim on
         // his way through while still waiting, so the cars not yet committed to the
         // junction hold back for him and he goes once those already on their way are
