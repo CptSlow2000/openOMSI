@@ -250,6 +250,11 @@ pub(crate) struct InputState {
     /// the mouse steers. OMSI divides the width by the speed, and at 30 km/h the edge of the
     /// screen was a third of the lock, with nowhere further to move (app_impl/mouse_grab.rs).
     pub(crate) mouse_grab: crate::app_impl::MouseGrab,
+    /// The cursor was put somewhere by the game (`App::warp_cursor`) and when: the system
+    /// still reports a few places from before (macOS), which are not the hand's movement -
+    /// taken as such, the view looked round with the right button jumped back for a moment
+    /// and forward again.
+    pub(crate) warped: Option<((f32, f32), std::time::Instant)>,
     /// Where the cursor steered when the right button began to look round: it goes back
     /// there when the button is let go, so the wheel does not jump to where looking left it.
     pub(crate) steer_cursor: Option<(f32, f32)>,

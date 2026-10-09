@@ -240,7 +240,7 @@ impl App {
         // the focus went to another window: the cursor is that one's
         if self.input.window_focused {
             let (x, y) = self.input.cursor;
-            let _ = win.set_cursor_position(winit::dpi::PhysicalPosition::new(x as f64, y as f64));
+            self.warp_cursor(x, y);
         }
         log::info!("mouse steering: cursor let go");
     }

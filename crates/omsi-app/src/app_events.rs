@@ -263,6 +263,7 @@ impl ApplicationHandler for App {
             }
             WindowEvent::CursorMoved { position, .. } => {
                 if self.xr.vr_nav_edit.is_some() { return; }
+                self.trace_look("event", position.x as f32, position.y as f32);
                 // (both physical pixels)
                 if let Some((x, y)) = self.input.cursor_hidden {
                     if (position.x as f32 - x).abs() + (position.y as f32 - y).abs() > 8.0 {

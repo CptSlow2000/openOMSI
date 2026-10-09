@@ -719,6 +719,7 @@ fn assemble_app(args: Args, settings: settings::Settings) -> App {
             mouse_drive: false,
             mouse_steer: (0.0, 0.0),
             mouse_grab: Default::default(),
+            warped: None,
             steer_cursor: None,
             center_cursor: false,
             cursor_hidden: None,

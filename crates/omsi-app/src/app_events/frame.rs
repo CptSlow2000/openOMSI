@@ -69,6 +69,7 @@ impl App {
         self.frame_photo(time.raw_dt);
         let vr_nav_display = self.frame_ui(dt);
         let lighting = self.frame_lighting(dt, daylight);
+        self.trace_look("frame", self.input.cursor.0, self.input.cursor.1);
         self.frame_render(event_loop, &time, &lighting, vr_nav_display);
     }
 }
