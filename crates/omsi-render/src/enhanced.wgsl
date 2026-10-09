@@ -98,8 +98,7 @@ fn sun_shadow_soft(world_in: vec3<f32>, n: vec3<f32>, thin: bool) -> f32 {
     let ndl = clamp(dot(n, camera.sun_dir.xyz), 0.0, 1.0);
     // (a veil of high cloud spreads the sun into an aureole a few degrees wide: the light
     // comes from a larger source, and the shadow's edge widens with it)
-    // (the tent stops widening at `SHADOW_TENT_BLOCKS` gathers a side: spread wider than
-    // that by stepping its taps apart, it read the map coarser than its texels again)
+    // (the tent's four gathers step apart for it: see `shader.wgsl`'s `shadow_tent_near`)
     let widen = 1.0 + 3.0 * enh.cloud_sun[1].w;
     let close = shadow_close(world, n, ndl, thin);
     if (close.y >= 0.999) {
