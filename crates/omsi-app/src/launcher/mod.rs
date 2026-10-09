@@ -444,6 +444,7 @@ impl ApplicationHandler for Launcher {
         match event {
             WindowEvent::CloseRequested => {
                 self.pages.pads.cancel_feedback_test();
+                showroom::clear_placing_mark();
                 event_loop.exit();
             }
             WindowEvent::Focused(f) => self.set_focus(f),
@@ -763,6 +764,7 @@ impl Launcher {
 
     fn check_exit(&mut self, event_loop: &ActiveEventLoop) {
         if self.exit_after.map(|e| self.started.elapsed().as_secs_f32() >= e).unwrap_or(false) {
+            showroom::clear_placing_mark();
             event_loop.exit();
         }
     }
