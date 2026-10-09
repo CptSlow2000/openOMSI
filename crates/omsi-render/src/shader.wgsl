@@ -2135,7 +2135,12 @@ fn shade_vanilla(in: FsIn, puddle_weight: ptr<function, f32>, eye: vec3<f32>) ->
         // of the MAN NL/NG (Fenster.tga, factor 0.5, the sky at the sphere map's bottom) lay
         // milky white over the unlit gauges. (Vanilla+ as well: its linear lerp laid the
         // sphere map as a grey sheen over every dark window band and chassis, #780.)
-        lit = srgb_decode(mix(srgb_encode(lit), srgb_encode(env.rgb), kk));
+        // The sphere map is a photograph taken by day: what it shows is lit by the light there
+        // is now - the ambient light and `g` (the day's light and the lamps), each at most 1 -
+        // so that by night, at dusk and under a closed sky the bus mirrors a dark street and
+        // not a sunny one. (By day both reach 1 and the photograph is as it was.)
+        let env_lit = env.rgb * min(camera.ambient.rgb + vec3<f32>(g), vec3<f32>(1.0));
+        lit = srgb_decode(mix(srgb_encode(lit), srgb_encode(env_lit), kk));
     }
     // wet road: a surface whose texture carries [moisture] darkens under rain and starts
     // to mirror the sky, strongest where you look along it (the Fresnel sheen that makes a
