@@ -57,6 +57,8 @@ pub struct WasmPlugin {
     store: Store<HostState>,
     memory: Memory,
     alloc: TypedFunc<i32, i32>,
+    /// (checked to be there; the host never frees what it handed over)
+    #[allow(dead_code)]
     free: TypedFunc<(i32, i32), ()>,
     callback: Option<TypedFunc<(i64, i32, i32), ()>>,
     start: Option<TypedFunc<(), ()>>,
@@ -123,9 +125,10 @@ impl WasmPlugin {
         let text = args;
         let Some(ptr) = self.write_buffer(dispatch, text.as_bytes()) else { return };
         let len = text.len() as i32;
+        // (the module frees the arguments: whoever is handed a buffer frees it, as the
+        // module does with a call's result - freed here as well, the SDK's allocator aborted
+        // on the second free)
         self.enter(dispatch, "oop_callback", |store| f.call(store, (id, ptr, len)));
-        let free = self.free;
-        self.enter(dispatch, "oop_free", |store| free.call(store, (ptr, len)));
     }
 
     /// Runs the module's `oop_stop`, if it has one (the game ends or the plugin goes).

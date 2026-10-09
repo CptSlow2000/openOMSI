@@ -77,8 +77,10 @@ impl Binding for WasmBinding {
         }
         self.pending.borrow_mut().push_back((cb, args));
         self.run(|_, _| {});
+        // (not `fatal`, which reads "ran longer than 50 ms": the module said why it stopped,
+        // and `WasmHost::check` switches the plugin off)
         match self.disabled() {
-            Some(why) => Err(CallError { msg: why, fatal: true }),
+            Some(why) => Err(CallError::new(why)),
             None => Ok(Value::Nil),
         }
     }
@@ -136,7 +138,7 @@ impl WasmHost {
         let r = p.with_ctx(io, |ctx, b| {
             b.run(|m, d| m.start(d));
             if let Some(why) = b.disabled() {
-                return Err(CallError { msg: why, fatal: true });
+                return Err(CallError::new(why));
             }
             runtime::start(ctx)
         });
