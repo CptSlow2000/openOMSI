@@ -66,7 +66,7 @@ whole start-up by itself (main switch, ignition, starter, gearbox to neutral); `
 is the same thing for an offscreen run.
 
 **Updates.** When the launcher starts it asks
-[github.com/openOMSI-Project/openOMSI](https://github.com/openOMSI-Project/openOMSI) for the latest release
+[github.com/openOMSI-org/openOMSI](https://github.com/openOMSI-org/openOMSI) for the latest release
 and, when there is a newer one, offers it: **Update now** downloads it (checked against the
 SHA-256 GitHub lists), puts the new program in place of the old one and starts the launcher
 again - on Windows `openomsi.exe` and `openomsi-launcher.exe`, on macOS the `openOMSI.app`
@@ -339,7 +339,7 @@ Radeon HD 5000/6000). It is tried last, after the other three failed, and only w
 `libEGL.dll` and `libGLESv2.dll` (Google's ANGLE, BSD licence, with its Direct3D 11 renderer)
 are next to `openomsi.exe`; without them it is skipped (the log says so). The Windows package
 is to ship them, built from ANGLE's own source by
-[angle-openomsi](https://github.com/openOMSI-Project/angle-openomsi); with them the log names the
+[angle-openomsi](https://github.com/openOMSI-org/angle-openomsi); with them the log names the
 adapter `ANGLE (…Direct3D11…)` on the `Gl` backend.
 
 `drive_keys` is a control preset: `simple` (W/S/A/D and the arrow keys drive; the default),
