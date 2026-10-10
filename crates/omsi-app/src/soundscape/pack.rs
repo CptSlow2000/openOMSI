@@ -49,6 +49,10 @@ impl Pack {
     /// Where the pack is looked for: `OMSI_AMBIENCE_DIR`, then `ambience` beside the program
     /// (and in the macOS bundle's resources), then in the user's openOMSI folder.
     pub fn find() -> Option<Pack> {
+        Pack::dirs().iter().find_map(|d| Pack::load(d))
+    }
+
+    fn dirs() -> Vec<PathBuf> {
         let mut dirs: Vec<PathBuf> = Vec::new();
         if let Some(d) = omsi_cfg::flags::OMSI_AMBIENCE_DIR.var() {
             dirs.push(PathBuf::from(d));
@@ -57,10 +61,44 @@ impl Pack {
             dirs.push(exe.join("ambience"));
             dirs.push(exe.join("../Resources/ambience"));
         }
-        if let Some(home) = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")) {
-            dirs.push(PathBuf::from(home).join(".openomsi").join("ambience"));
+        dirs.extend(Pack::user_dir());
+        dirs
+    }
+
+    /// Where a downloaded pack goes: the user's openOMSI folder.
+    pub fn user_dir() -> Option<PathBuf> {
+        std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(|h| PathBuf::from(h).join(".openomsi").join("ambience"))
+    }
+
+    /// Fetch the recordings in the background when there are none yet (a computer, the
+    /// ambience on): the release asset `ambience-1` of the project, checked and unpacked into
+    /// the user's openOMSI folder. They play from the next drive on.
+    pub fn fetch_if_missing() {
+        static STARTED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+        if crate::platform::MOBILE || STARTED.swap(true, std::sync::atomic::Ordering::Relaxed) || Pack::find_dir().is_some() {
+            return;
         }
-        dirs.iter().find_map(|d| Pack::load(d))
+        let Some(dir) = Pack::user_dir() else { return };
+        let part = dir.with_extension("zip.part");
+        // (another openOMSI process - the launcher, the game - is fetching it now)
+        if std::fs::metadata(&part).and_then(|m| m.modified()).ok().and_then(|t| t.elapsed().ok()).is_some_and(|age| age.as_secs() < 120) {
+            return;
+        }
+        std::thread::Builder::new()
+            .name("ambience fetch".into())
+            .spawn(move || match fetch(&dir, &part) {
+                Ok(()) => log::info!("ambience: the recordings were downloaded into {}", dir.display()),
+                Err(e) => {
+                    let _ = std::fs::remove_file(&part);
+                    log::warn!("ambience: the recordings could not be downloaded: {e:#}");
+                }
+            })
+            .ok();
+    }
+
+    /// The folder of the pack that `find` would load.
+    fn find_dir() -> Option<PathBuf> {
+        Pack::dirs().into_iter().find(|d| d.join("pack.json").is_file())
     }
 
     /// Play the takes of this country (`uk` or `de`) and those of none.
@@ -80,6 +118,56 @@ impl Pack {
     pub fn has(&self, slot: &str) -> bool {
         !self.takes(slot).is_empty()
     }
+}
+
+/// The recordings' archive (a pre-release of the project's own, see `tools/ambience`), its
+/// SHA-256 and size.
+const PACK_URL: &str = "https://github.com/openOMSI-org/openOMSI/releases/download/ambience-1/openOMSI-ambience-1.zip";
+const PACK_SHA256: &str = "f0f90ed4108dcd28c492cc2d0ff4fd01c776cb12886556187280eb3d714cacc3";
+const PACK_BYTES: u64 = 297_379_915;
+
+/// Download the archive to `part`, check it, unpack it beside `dir` and put it in its place.
+fn fetch(dir: &Path, part: &Path) -> anyhow::Result<()> {
+    use sha2::Digest;
+    use std::io::{Read, Write};
+    if let Some(d) = part.parent() {
+        std::fs::create_dir_all(d)?;
+    }
+    log::info!("ambience: downloading the recordings ({} MB) from {PACK_URL}", PACK_BYTES >> 20);
+    let resp = crate::updater::agent().get(PACK_URL).call().map_err(|e| anyhow::anyhow!("{e}"))?;
+    let mut reader = resp.into_reader();
+    let mut out = std::fs::File::create(part)?;
+    let mut hasher = sha2::Sha256::new();
+    let mut buf = vec![0u8; 256 * 1024];
+    let mut done = 0u64;
+    let mut last_note = 0u64;
+    loop {
+        let n = reader.read(&mut buf)?;
+        if n == 0 {
+            break;
+        }
+        out.write_all(&buf[..n])?;
+        hasher.update(&buf[..n]);
+        done += n as u64;
+        // (the file's time says another process that it is being fetched, see `fetch_if_missing`)
+        if done - last_note > 32 << 20 {
+            last_note = done;
+            out.flush()?;
+            log::info!("ambience: {} of {} MB", done >> 20, PACK_BYTES >> 20);
+        }
+    }
+    out.flush()?;
+    drop(out);
+    let got: String = hasher.finalize().iter().map(|b| format!("{b:02x}")).collect();
+    anyhow::ensure!(got == PACK_SHA256, "the download is damaged ({done} bytes, SHA-256 {got})");
+    let tmp = dir.with_extension("unpacking");
+    let _ = std::fs::remove_dir_all(&tmp);
+    crate::updater::unpack(part, &tmp)?;
+    anyhow::ensure!(tmp.join("pack.json").is_file(), "the archive holds no pack.json");
+    let _ = std::fs::remove_dir_all(dir);
+    std::fs::rename(&tmp, dir)?;
+    let _ = std::fs::remove_file(part);
+    Ok(())
 }
 
 #[cfg(test)]

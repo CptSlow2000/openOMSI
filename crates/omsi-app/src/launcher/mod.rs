@@ -183,6 +183,10 @@ impl Launcher {
     pub fn new(instance: wgpu::Instance) -> Launcher {
     let started = Instant::now();
     core::cleanup();
+    // (the ambience's recordings fetched while the launcher is open, ready for the first drive)
+    if crate::settings::Settings::load().ambient {
+        crate::soundscape::pack::Pack::fetch_if_missing();
+    }
     let mut app = Launcher {
         instance,
         window: None,
