@@ -780,6 +780,35 @@ impl App {
                     let (x, y) = xy();
                     self.on_cursor(x * scale, y * scale);
                 }
+                // `cruise <km/h>`: the bus driven at that speed along its heading until it
+                // crashes (no engine, air or brakes needed: a collision test)
+                "cruise" => {
+                    let kmh: f32 = arg.parse().unwrap_or(0.0);
+                    self.input.cruise = self.player.as_ref().filter(|_| kmh != 0.0).map(|p| (kmh / 3.6, p.vehicle.crashes));
+                }
+                // `behind [m]`: the bus put that far (25 m) behind the nearest moving AI car
+                // within 400 m, on its heading; negative: ahead of it, facing it (a collision
+                // test, with `cruise`)
+                "behind" => {
+                    let back: f64 = arg.parse().unwrap_or(25.0);
+                    let near = self.player.as_ref().map(|p| p.vehicle.position);
+                    let car = near.zip(self.session.traffic.as_ref()).and_then(|(at, t)| {
+                        t.boxes(at, 400.0).into_iter().filter(|o| o.mass > 0.0 && o.velocity.length() > 3.0)
+                            .min_by(|a, b| (a.center - at.truncate()).length().total_cmp(&(b.center - at.truncate()).length()))
+                    });
+                    match car {
+                        Some(o) => {
+                            // (negative: that far ahead of it, facing it - head on)
+                            let dir = o.velocity.normalize();
+                            let at = o.center - dir * back;
+                            let face = if back < 0.0 { -dir } else { dir };
+                            let heading = face.x.atan2(face.y).to_degrees().rem_euclid(360.0);
+                            log::info!("input script: behind the car at ({:.1}, {:.1}) going {:.1} km/h, heading {heading:.1}", o.center.x, o.center.y, o.velocity.length() * 3.6);
+                            crate::admin::teleport(self, glam::DVec3::new(at.x, at.y, (o.z0 + 0.0).max(0.0)), heading);
+                        }
+                        None => log::info!("input script: behind - no moving AI car within 400 m"),
+                    }
+                }
                 // `photo`: into the photo mode (OMSI_PHOTO sets it up)
                 "photo" => self.enter_photo(),
                 // `weather`: the next weather, as the admin menu's "Next weather"

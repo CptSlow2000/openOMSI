@@ -52,6 +52,14 @@ impl App {
             let k = ((at.x / omsi_map::tile_size()).floor() as i32, (at.y / omsi_map::tile_size()).floor() as i32);
             w.surfaces.read().contains_key(&k)
         });
+        if let Some((v, crashes)) = self.input.cruise {
+            if p.vehicle.crashes != crashes {
+                log::info!("cruise: crashed at {:.1}, {:.1}, {:.1} - let go", p.vehicle.position.x, p.vehicle.position.y, p.vehicle.position.z);
+                self.input.cruise = None;
+            } else {
+                p.vehicle.set_speed(v);
+            }
+        }
         if !self.paused && ground_here {
             p.tick(
                 dt,

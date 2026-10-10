@@ -259,6 +259,9 @@ pub(crate) struct InputState {
     /// time (a game started with the mouse steering on: wherever the cursor was, the wheel
     /// turned and the bus drove off on full throttle).
     pub(crate) center_cursor: bool,
+    /// `OMSI_INPUT`'s `cruise <km/h>`: the player's bus held at this speed (m/s) along its
+    /// heading until its next crash (the count of crashes when it began), for collision tests.
+    pub(crate) cruise: Option<(f32, u32)>,
     /// Looking round with a mouse button: the cursor locked and hidden where it stands and
     /// the view turned by the mouse's own movement (`App::sync_look_hold`); `true`: the look
     /// locked it itself, `false`: it was the mouse steering's locked cursor already.
