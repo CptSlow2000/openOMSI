@@ -263,7 +263,6 @@ impl ApplicationHandler for App {
             }
             WindowEvent::CursorMoved { position, .. } => {
                 if self.xr.vr_nav_edit.is_some() { return; }
-                self.trace_look("event", position.x as f32, position.y as f32);
                 // (both physical pixels)
                 if let Some((x, y)) = self.input.cursor_hidden {
                     if (position.x as f32 - x).abs() + (position.y as f32 - y).abs() > 8.0 {
@@ -352,17 +351,7 @@ impl ApplicationHandler for App {
                 return;
             }
             // (in a view of the bus the cursor's own way turns it: move_cursor)
-            if let (Some(ph), true) = (self.photo.as_mut(), self.input.look_hold.is_some()) {
-                // (the photo camera, turned by the mouse's own movement while it is held)
-                let k = crate::app_impl::look_deg_per_px(ph.cam.fov_deg) * self.settings.look_sens;
-                ph.look(delta.0 as f32 * k, delta.1 as f32 * k);
-            } else if self.input.mouse_look && self.input.look_hold.is_some() {
-                // (the cursor held while looking round: the mouse's own movement turns the
-                // view, at the gain the cursor's way had - points on macOS, as the cursor's)
-                let fov = self.camera.as_ref().map(|c| c.fov_deg).unwrap_or(60.0);
-                let k = crate::app_impl::look_deg_per_px(fov) * self.settings.look_sens;
-                self.look_by(delta.0 as f32 * k, delta.1 as f32 * k);
-            } else if self.input.mouse_look {
+            if self.input.mouse_look {
                 if !self.cursor_looks() {
                     if self.view == "outside" {
                         // F3 chase orbits at its own gain, not the head's.

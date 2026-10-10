@@ -198,7 +198,7 @@ impl Photo {
         }
         let ease = 1.0 - (-dt / 0.10).exp();
         self.settings.fov += (self.fov_target - self.settings.fov) * ease;
-        if (self.settings.fov - self.fov_target).abs() < 0.01 {
+        if (self.settings.fov - self.fov_target).abs() < 0.05 {
             self.settings.fov = self.fov_target;
         }
         let speed = 5.0 * self.settings.speed * fast;
@@ -207,6 +207,9 @@ impl Photo {
             // W and S come closer and back away, A and D go round, E and Q up and down
             let target = Vec3::new(m.x * 60.0, -m.y * speed, m.z * 40.0);
             self.vel += (target - self.vel) * (1.0 - (-dt / 0.12).exp());
+            if self.vel.length() < 0.05 && target == Vec3::ZERO {
+                self.vel = Vec3::ZERO;
+            }
             self.orbit.0 = (self.orbit.0 + self.vel.y * dt).clamp(2.0, range.min(400.0));
             self.orbit.1 += self.vel.x * dt;
             self.orbit.2 = (self.orbit.2 + self.vel.z * dt).clamp(-10.0, 85.0);
@@ -223,7 +226,9 @@ impl Photo {
             let right = Vec3::new(c, -s, 0.0);
             let target = (right * m.x + fwd * m.y + Vec3::Z * m.z) * speed;
             self.vel += (target - self.vel) * (1.0 - (-dt / 0.15).exp());
-            if self.vel.length_squared() < 1e-6 && target == Vec3::ZERO {
+            // (stopped once it no longer shows: a velocity easing out for ever moved the camera
+            // a fraction of a millimetre a frame, and every such move started the photo again)
+            if self.vel.length() < 0.05 && target == Vec3::ZERO {
                 self.vel = Vec3::ZERO;
             }
             self.cam.position += (self.vel * dt).as_dvec3();
@@ -379,7 +384,6 @@ impl crate::App {
     /// Out of the photo mode: the game as it was.
     pub(crate) fn exit_photo(&mut self) {
         let Some(ph) = self.photo.take() else { return };
-        self.release_look_hold();
         LAST.with(|l| *l.borrow_mut() = Some(ph.settings.clone()));
         self.paused = ph.prev_paused;
         if let Some(c) = ph.prev_camera {

@@ -1047,7 +1047,6 @@ impl App {
         self.input.dragging = false;
         self.input.buttons_held = (false, false);
         self.input.both_drag = None;
-        self.release_look_hold();
         self.input.mouse_look = false;
         self.input.steer_cursor = None;
         self.input.mouse_pedals.0 = 0.0;

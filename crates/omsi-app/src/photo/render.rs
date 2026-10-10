@@ -29,6 +29,8 @@ pub(crate) struct State {
     /// the live picture at the game's own frame rate; once it has stood a moment the photo's
     /// pictures are taken.
     still_since: Option<Instant>,
+    /// The developed picture is of the camera as it stands now (else the live picture shows).
+    ready: bool,
 }
 
 /// How long the camera stands before the photo is taken over the live picture.
@@ -42,6 +44,12 @@ impl State {
     /// How far the shot is (pictures taken, wanted).
     pub(crate) fn progress(&self) -> (u32, u32) {
         (self.accum.as_ref().map(|a| a.n).unwrap_or(0), self.target)
+    }
+
+    /// The window shows the developed photo (else the live picture): the camera stands and
+    /// the photo of it is there.
+    pub(crate) fn showing_photo(&self) -> bool {
+        (self.ready && !self.moving()) || (self.capture && self.ready)
     }
 
     /// The camera moves (or has only just stopped): the window shows the live picture.
@@ -95,6 +103,7 @@ impl crate::App {
             ph.render.key = Some(key);
             ph.render.accum = None;
             ph.render.target = 1;
+            ph.render.ready = false;
             return;
         }
         if ph.render.moving() {
@@ -169,6 +178,7 @@ impl crate::App {
             ph.render.crop = crop;
             self.shell.set_picture(w, h, px.clone());
             ph.render.developed = Some((w, h, px));
+            ph.render.ready = true;
         }
         if ph.render.capture && acc.n >= target {
             ph.render.capture = false;

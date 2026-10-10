@@ -230,7 +230,7 @@ pub(crate) fn draw(sh: &mut Shell, ph: &mut Photo, info: &Info) {
     let size = sh.ui.size;
     let full = Rect::new(0.0, 0.0, size.x, size.y);
     // the photo itself (while the camera moves the window's live picture is under the panel)
-    if let (Some(tex), false) = (sh.picture_tex, ph.render.moving()) {
+    if let (Some(tex), true) = (sh.picture_tex, ph.render.showing_photo()) {
         sh.ui.image(full, tex, 0.0);
     }
     // the frame the photo is cut to, and its guides
@@ -332,7 +332,7 @@ impl crate::App {
             keys: !crate::platform::touch_controls(),
         };
         let Some(ph) = self.photo.as_mut() else { return };
-        self.shell.opaque = !ph.render.moving();
+        self.shell.opaque = ph.render.showing_photo() && self.shell.picture_tex.is_some();
         self.shell.begin(w, h, scale, dt);
         draw(&mut self.shell, ph, &info);
         self.shell.finish();
