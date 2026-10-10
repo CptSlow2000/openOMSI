@@ -429,6 +429,10 @@ fn a_forest_named_map_is_no_plant() {
     assert!(vegetation_give_of(&sco("[groups]\n2\nThüringer Wald\nGebäude\n[mesh]\nhaus.o3d\n")).is_none());
     assert!(vegetation_give_of(&sco("[groups]\n2\nThüringer Wald\nBäume\n[mesh]\nbaum.o3d\n")).is_some());
     assert!(vegetation_give_of(&sco("[groups]\n1\nHedges\n[mesh]\nh.o3d\n")).is_some());
+    // ("street" holds "tree": OMSI's street objects are no plants)
+    assert!(vegetation_give_of(&sco("[groups]\n2\nGerman Street Side\nLights\n[mesh]\nlamp.o3d\n")).is_none());
+    assert!(vegetation_give_of(&sco("[groups]\n2\nTrees LQ\nShrubbery\n[mesh]\ns.o3d\n")).is_some());
+    assert!(vegetation_give_of(&sco("[groups]\n1\nStreet Side\n[groups]\n1\nPlants\n[mesh]\nt.o3d\n")).is_some());
 }
 
 /// A bus bay's lines made as a plain object (NCCR's `Parkbox(bus).sco`: a flat mesh 5 mm

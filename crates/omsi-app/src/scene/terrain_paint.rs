@@ -170,10 +170,13 @@ pub(super) fn vegetation_give_of(sco: &omsi_scenery::sco::SceneryObject) -> Opti
         return None;
     }
     let stem = sco.path.file_stem().map(|s| s.to_string_lossy().to_lowercase()).unwrap_or_default();
+    // (a group's words, each from its start: "German Street Side" holds "tree" within
+    // "street", and every pole, sign, lamp, traffic light and fence of OMSI's own street
+    // objects swayed in the wind with the trees)
     let plant = if groups.is_empty() {
         stem.split(|c: char| !c.is_alphabetic()).any(|w| NAME_WORDS.contains(&w))
     } else {
-        groups.iter().any(|g| GROUP_WORDS.iter().any(|w| g.contains(w)))
+        groups.iter().any(|g| g.split(|c: char| !c.is_alphabetic()).any(|word| GROUP_WORDS.iter().any(|w| word.starts_with(w))))
     };
     plant.then(|| vegetation_give(&[&stem, &groups.join(" ")]))
 }
