@@ -23,7 +23,6 @@ pub(crate) struct Info {
     pub time: String,
     /// The bus moves (a rolling shot can blur the street).
     pub bus_moving: bool,
-    pub keys: bool,
 }
 
 /// A slider over a list of `n` values, by their place: its text from `label`.
@@ -265,7 +264,7 @@ pub(crate) fn draw(sh: &mut Shell, ph: &mut Photo, info: &Info) {
     ui.text("Photo mode", Vec2::new(inner.x + 32.0, inner.y + 21.0), 18.0, Weight::Bold, TEXT, Align::Left);
     let mm = lens::focal_mm(ph.settings.fov);
     let fnum = FSTOPS[ph.settings.fstop.min(FSTOPS.len() - 1)];
-    let exif = if ph.settings.dof { format!("{mm:.0} mm  ·  f/{fnum}  ·  {:.1} m", ph.focus_distance()) } else { format!("{mm:.0} mm  ·  {:.0}°", ph.settings.fov) };
+    let exif = if ph.settings.dof { format!("{mm:.0} mm  |  f/{fnum}  |  {:.1} m", ph.focus_distance()) } else { format!("{mm:.0} mm  |  {:.0}°", ph.settings.fov) };
     ui.text_in(&exif, Rect::new(inner.x, inner.y + 32.0, inner.w, 18.0), 12.0, Weight::Regular, TEXT_DIM, Align::Left);
     let mut tab = ph.tab;
     if ui.segmented("ph-tabs", Rect::new(inner.x, inner.y + 58.0, inner.w, 34.0), &mut tab, &TABS) {
@@ -283,7 +282,7 @@ pub(crate) fn draw(sh: &mut Shell, ph: &mut Photo, info: &Info) {
     let py = inner.bottom() - foot + 8.0;
     let frac = n as f32 / target.max(1) as f32;
     let status = if busy {
-        format!("{}  {n} / {target}", omsi_ui::tr("Taking the photo…"))
+        format!("{}  {n} / {target}", omsi_ui::tr("Taking the photo..."))
     } else if ph.render.moving() {
         omsi_ui::tr("Preview").into_owned()
     } else if n < target {
@@ -294,7 +293,7 @@ pub(crate) fn draw(sh: &mut Shell, ph: &mut Photo, info: &Info) {
     ui.text_in(&status, Rect::new(inner.x, py, inner.w, 16.0), 11.5, Weight::Medium, if n >= target && !busy && !ph.render.moving() { OK } else { TEXT_DIM }, Align::Left);
     ui.progress(Rect::new(inner.x, py + 20.0, inner.w, 3.0), if ph.render.moving() { 0.0 } else { frac }, busy || (n < target && !ph.render.moving()));
     let b = Rect::new(inner.x, inner.bottom() - 44.0 - 46.0, inner.w, 44.0);
-    if ui.button("ph-take", b, &omsi_ui::tr(if busy { "Taking…" } else { "Take photo" }), Some("photo_camera"), ButtonKind::Primary) && !busy {
+    if ui.button("ph-take", b, &omsi_ui::tr(if busy { "Taking..." } else { "Take photo" }), Some("photo_camera"), ButtonKind::Primary) && !busy {
         acts.push(Request::Take);
     }
     let half = (inner.w - 8.0) / 2.0;
@@ -303,17 +302,6 @@ pub(crate) fn draw(sh: &mut Shell, ph: &mut Photo, info: &Info) {
     }
     if ui.button("ph-exit", Rect::new(inner.x + half + 8.0, inner.bottom() - 38.0, half, 38.0), &omsi_ui::tr("Exit"), Some("close"), ButtonKind::Normal) {
         acts.push(Request::Exit);
-    }
-    // the controls, quietly along the bottom of the picture
-    if info.keys && size.x > PANEL_W + 500.0 {
-        let hint = omsi_ui::tr("WASD move  ·  Q / E down, up  ·  Right mouse look  ·  Wheel zoom  ·  Z / X roll  ·  Shift faster  ·  H hide  ·  Enter take  ·  Esc exit").into_owned();
-        let w = ui.width(&hint, 12.0, Weight::Regular) + 32.0;
-        let left = r.right() + 20.0;
-        let avail = size.x - left - 20.0;
-        let hw = w.min(avail);
-        let hr = Rect::new(left + (avail - hw) * 0.5, size.y - 52.0, hw, 32.0);
-        ui.p().rounded(hr, 16.0, Color::rgba(18, 18, 18, 0.88));
-        ui.text_in(&hint, hr.pad(16.0, 0.0), 12.0, Weight::Regular, TEXT_SOFT, Align::Center);
     }
     sh.actions.extend(acts.into_iter().map(Action::Photo));
 }
@@ -329,7 +317,6 @@ impl crate::App {
         let info = Info {
             time: format!("{:02}:{:02}", ((t / 3600.0) as i64).rem_euclid(24), ((t % 3600.0) / 60.0) as i64),
             bus_moving: self.photo.as_ref().is_some_and(|p| p.bus_velocity.length() > 0.2),
-            keys: !crate::platform::touch_controls(),
         };
         let Some(ph) = self.photo.as_mut() else { return };
         self.shell.opaque = ph.render.showing_photo() && self.shell.picture_tex.is_some();

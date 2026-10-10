@@ -202,7 +202,7 @@ pub fn profile(l: &mut Launcher, area: Rect) {
     let tx = card.x + 142.0;
     l.ui.text_in(&format!("{}{}", p.name, if p.exists { "" } else { " (no personnel file yet)" }), Rect::new(tx, card.y + 34.0, card.w - 160.0, 30.0), 24.0, Weight::Black, TEXT, Align::Left);
     l.ui.progress(Rect::new(tx, card.y + 76.0, card.w - 170.0, 10.0), shown, false);
-    l.ui.text_in(&format!("{} XP · {} to level {}", p.xp, (p.next_level_xp - p.xp).max(0), p.level + 1), Rect::new(tx, card.y + 94.0, card.w - 160.0, 18.0), 12.5, Weight::Medium, TEXT_DIM, Align::Left);
+    l.ui.text_in(&format!("{} XP | {} to level {}", p.xp, (p.next_level_xp - p.xp).max(0), p.level + 1), Rect::new(tx, card.y + 94.0, card.w - 160.0, 18.0), 12.5, Weight::Medium, TEXT_DIM, Align::Left);
     let hours = |h: f64| format!("{} h {:02} min", h.floor() as i64, ((h - h.floor()) * 60.0).round() as i64);
     let stats = [
         ("schedule", hours(p.hours), "hours driven"),
@@ -247,11 +247,11 @@ pub fn profile(l: &mut Launcher, area: Rect) {
             let r = Rect::new(v.x + 6.0, v.y + k as f32 * rh, v.w - 16.0, rh - 6.0);
             ui.p().rounded(r, 9.0, Color::WHITE.alpha(0.04));
             let title = match &s.line {
-                Some(line) => format!("Line {line}{} · {}", s.tour.as_ref().map(|t| format!(" / {t}")).unwrap_or_default(), short_map(&s.map)),
-                None => format!("Free drive · {}", short_map(&s.map)),
+                Some(line) => format!("Line {line}{} | {}", s.tour.as_ref().map(|t| format!(" / {t}")).unwrap_or_default(), short_map(&s.map)),
+                None => format!("Free drive | {}", short_map(&s.map)),
             };
             ui.text_in(&title, Rect::new(r.x + 12.0, r.y + 6.0, r.w - 130.0, 20.0), 13.0, Weight::Bold, TEXT, Align::Left);
-            ui.text_in(&format!("{} · {:.1} km · {} stops · {} tickets · {} crashes", s.bus.rsplit('/').next().unwrap_or(""), s.metres / 1000.0, s.stops, s.tickets, s.crashes), Rect::new(r.x + 12.0, r.y + 28.0, r.w - 130.0, 18.0), 11.0, Weight::Regular, TEXT_DIM, Align::Left);
+            ui.text_in(&format!("{} | {:.1} km | {} stops | {} tickets | {} crashes", s.bus.rsplit('/').next().unwrap_or(""), s.metres / 1000.0, s.stops, s.tickets, s.crashes), Rect::new(r.x + 12.0, r.y + 28.0, r.w - 130.0, 18.0), 11.0, Weight::Regular, TEXT_DIM, Align::Left);
             let when = chrono_like(s.time);
             ui.text_in(&when, Rect::new(r.right() - 120.0, r.y + 6.0, 110.0, 20.0), 11.5, Weight::Medium, TEXT_SOFT, Align::Right);
             ui.text_in(&hours_short(s.seconds / 3600.0), Rect::new(r.right() - 120.0, r.y + 28.0, 110.0, 18.0), 11.5, Weight::Medium, ACCENT, Align::Right);
@@ -1102,7 +1102,7 @@ fn radio_stations(ui: &mut Ui, r: Rect) -> f32 {
             let row = c.row();
             let nw = (row.w * 0.3).round();
             changed |= ui.text_input(&format!("radio-name-{k}"), Rect::new(row.x, row.y, nw, row.h), name, "Name", None);
-            changed |= ui.text_input(&format!("radio-url-{k}"), Rect::new(row.x + nw + 8.0, row.y, row.w - nw - 8.0 - 36.0, row.h), address, "https://…", None);
+            changed |= ui.text_input(&format!("radio-url-{k}"), Rect::new(row.x + nw + 8.0, row.y, row.w - nw - 8.0 - 36.0, row.h), address, "https://...", None);
             if ui.icon_button(&format!("radio-del-{k}"), Vec2::new(row.right() - 16.0, row.center().y), 14.0, "delete", "Remove this station") {
                 remove = Some(k);
             }
@@ -1267,7 +1267,7 @@ fn general_tab(ui: &mut Ui, s: &mut Value, dirty: &mut f32, out: &mut Outside, c
         use crate::updater::Status;
         let r = c.row();
         let busy = matches!(out.update, Status::Checking | Status::Downloading { .. } | Status::Installing(_) | Status::WaitingForInstaller(_) | Status::Restarting(_));
-        if ui.button("s-upd-check", Rect::new(r.x, r.y, 150.0, r.h), if busy { "Checking…" } else { "Check now" }, Some("refresh"), ButtonKind::Normal) && !busy {
+        if ui.button("s-upd-check", Rect::new(r.x, r.y, 150.0, r.h), if busy { "Checking..." } else { "Check now" }, Some("refresh"), ButtonKind::Normal) && !busy {
             out.check_updates = true;
         }
         let text = match &out.update {
@@ -1460,7 +1460,7 @@ pub fn controls(l: &mut Launcher, area: Rect) {
         // a name typed in the filter is added, below)
         let add_w = if sec != 0 { 0.0 } else if inner.w < 500.0 { 104.0 } else { 124.0 };
         let filter_w = if sec != 0 { inner.w } else { (inner.w - add_w - GAP).max(120.0) };
-        l.ui.text_input(&format!("kb-filter-{sec}"), Rect::new(inner.x, inner.y + 18.0, filter_w, 34.0), &mut filter, "Filter…", Some("search"));
+        l.ui.text_input(&format!("kb-filter-{sec}"), Rect::new(inner.x, inner.y + 18.0, filter_w, 34.0), &mut filter, "Filter...", Some("search"));
         if sec == 0 && l.ui.button(&format!("kb-add-{sec}"), Rect::new(inner.right() - add_w, inner.y + 18.0, add_w, 34.0), "Add binding", Some("add"), ButtonKind::Normal) {
             l.pages.kb_picker = Some(sec);
             l.pages.kb_picker_filter.clear();
@@ -1538,7 +1538,7 @@ pub fn controls(l: &mut Launcher, area: Rect) {
                 let base = if waiting { ACCENT.alpha(0.25 + 0.15 * (time * 6.0).sin().abs()) } else if *clash { DANGER.alpha(0.22) } else { Color::WHITE.alpha(if h { 0.12 } else { 0.07 }) };
                 ui.p().rounded(kr, 6.0, base);
                 ui.p().rounded_border(kr, 6.0, 1.0, if waiting { ACCENT } else if *clash { DANGER } else { Color::WHITE.alpha(0.1) });
-                ui.text_in(if waiting { "press a key…" } else { keyn }, kr, 12.0, Weight::Bold, if *clash { DANGER.lighten(0.3) } else { TEXT }, Align::Center);
+                ui.text_in(if waiting { "press a key..." } else { keyn }, kr, 12.0, Weight::Bold, if *clash { DANGER.lighten(0.3) } else { TEXT }, Align::Center);
                 let dr = Rect::new(rr.right() - 64.0, rr.y + 5.0, 26.0, rr.h - 10.0);
                 let (hd, _, cd) = ui.interact(id_of(&format!("kb-{sec}-{i}-clear")), dr);
                 ui.icon("delete", dr.center(), 16.0, if hd { TEXT } else { TEXT_FAINT });
@@ -1926,7 +1926,7 @@ fn game_controllers(l: &mut Launcher, body: Rect) {
         }
     }
     let add_r = Rect::new(inner.x, inner.bottom() - 40.0, 260.0, 36.0);
-    if l.ui.button("pad-add-button", add_r, if pv.capturing { "Press a button on the device…" } else { "Add a button" }, Some("add"), ButtonKind::Normal) {
+    if l.ui.button("pad-add-button", add_r, if pv.capturing { "Press a button on the device..." } else { "Add a button" }, Some("add"), ButtonKind::Normal) {
         pv.capturing = !pv.capturing;
     }
     // a device no longer used (a wheel sold, one that came along in OMSI's own file) leaves
@@ -2078,7 +2078,7 @@ fn feedback_setup(
                 Some(Ok(false)) => ("Direction detected: normal", OK),
                 Some(Ok(true)) => ("Direction detected: inverted", OK),
                 Some(Err(message)) => (message, DANGER),
-                None => ("Testing: keep your hands off the wheel…", TEXT_SOFT),
+                None => ("Testing: keep your hands off the wheel...", TEXT_SOFT),
             };
             y += ui.paragraph(message, Vec2::new(r.x, y), r.w, 13.0, Weight::Medium, color) + 12.0;
         }
@@ -2287,21 +2287,21 @@ pub fn sessions(l: &mut Launcher, area: Rect) {
             l.ui.p().circle(c, 6.0 + 3.0 * pulse, OK.alpha(0.25));
         }
         l.ui.p().circle(c, 6.0, if running { OK } else { TEXT_FAINT });
-        let duty = i.line.as_ref().map(|ln| format!(" · line {ln}{}", i.tour.as_ref().map(|t| format!(" / {t}")).unwrap_or_default())).unwrap_or_default();
-        l.ui.text_in(&format!("{} · {}{duty}", short_map(&i.map), short_bus(&i.bus)), Rect::new(r.x + 42.0, r.y + 16.0, r.w - 260.0, 24.0), 16.0, Weight::Black, TEXT, Align::Left);
+        let duty = i.line.as_ref().map(|ln| format!(" | line {ln}{}", i.tour.as_ref().map(|t| format!(" / {t}")).unwrap_or_default())).unwrap_or_default();
+        l.ui.text_in(&format!("{} | {}{duty}", short_map(&i.map), short_bus(&i.bus)), Rect::new(r.x + 42.0, r.y + 16.0, r.w - 260.0, 24.0), 16.0, Weight::Black, TEXT, Align::Left);
         let status = if running {
-            if l.state.stopping.contains(&i.pid) || i.stopping.is_some() { "stopping - saving the run…".to_string() } else { format!("running for {}", ago(i.started)) }
+            if l.state.stopping.contains(&i.pid) || i.stopping.is_some() { "stopping - saving the run...".to_string() } else { format!("running for {}", ago(i.started)) }
         } else {
             let how = if i.exit_code == Some(0) { String::new() } else if i.killed { " (killed - it did not end by itself, the run is not saved)".into() } else { i.exit_code.map(|c| format!(" (exit code {c})")).unwrap_or_default() };
             format!("ended{how}")
         };
-        l.ui.text_in(&format!("{status} · driver {}", i.profile), Rect::new(r.x + 42.0, r.y + 42.0, r.w - 60.0, 18.0), 12.0, Weight::Regular, TEXT_DIM, Align::Left);
+        l.ui.text_in(&format!("{status} | driver {}", i.profile), Rect::new(r.x + 42.0, r.y + 42.0, r.w - 60.0, 18.0), 12.0, Weight::Regular, TEXT_DIM, Align::Left);
         l.ui.text_in(&i.last_line, Rect::new(r.x + 42.0, r.y + 62.0, r.w - 60.0, 18.0), 11.5, Weight::Regular, TEXT_FAINT, Align::Left);
         // buttons
         let bw = 110.0;
         if running {
             let stopping = l.state.stopping.contains(&i.pid);
-            if l.ui.button(&format!("stop-{}", i.pid), Rect::new(r.right() - 18.0 - bw, r.y + 14.0, bw, 34.0), if stopping { "Stopping…" } else { "Stop" }, Some("close"), ButtonKind::Danger) && !stopping {
+            if l.ui.button(&format!("stop-{}", i.pid), Rect::new(r.right() - 18.0 - bw, r.y + 14.0, bw, 34.0), if stopping { "Stopping..." } else { "Stop" }, Some("close"), ButtonKind::Danger) && !stopping {
                 actions.push((i.pid, "stop"));
             }
         }
@@ -2328,7 +2328,7 @@ pub fn sessions(l: &mut Launcher, area: Rect) {
             } else if connected {
                 format!("connected to {}", lan.get("host_name").and_then(|x| x.as_str()).unwrap_or(""))
             } else {
-                "connecting…".to_string()
+                "connecting...".to_string()
             };
             l.ui.text_in(&format!("Multiplayer: {text}"), Rect::new(r.x + 42.0, yy, r.w - 60.0, 20.0), 12.5, Weight::Medium, if connected { OK } else { WARN }, Align::Left);
             yy += 24.0;
@@ -2339,8 +2339,8 @@ pub fn sessions(l: &mut Launcher, area: Rect) {
             for p in &players {
                 let s = |k: &str| p.get(k).and_then(|x| x.as_str()).unwrap_or("").to_string();
                 let pax = p.get("passengers").and_then(|x| x.as_i64()).unwrap_or(0);
-                let dest = if s("destination").is_empty() { String::new() } else { format!(" · {} → {}", s("line"), s("destination")) };
-                l.ui.text_in(&format!("{} · {}{dest}{} · {}", s("name"), short_bus(&s("bus")), if pax > 0 { format!(" · {pax} passengers") } else { String::new() }, s("where")), Rect::new(r.x + 42.0, yy, r.w - 60.0, 18.0), 12.5, Weight::Medium, TEXT_SOFT, Align::Left);
+                let dest = if s("destination").is_empty() { String::new() } else { format!(" | {} → {}", s("line"), s("destination")) };
+                l.ui.text_in(&format!("{} | {}{dest}{} | {}", s("name"), short_bus(&s("bus")), if pax > 0 { format!(" | {pax} passengers") } else { String::new() }, s("where")), Rect::new(r.x + 42.0, yy, r.w - 60.0, 18.0), 12.5, Weight::Medium, TEXT_SOFT, Align::Left);
                 yy += 20.0;
             }
         }
@@ -2462,7 +2462,7 @@ pub fn mods(l: &mut Launcher, area: Rect) {
         l.ui.p().circle(p, 1.3, ACCENT.alpha(0.35 + 0.5 * t));
     }
     l.ui.icon("upload", Vec2::new(drop.center().x, drop.y + 38.0), 30.0, ACCENT.alpha(0.6 + 0.4 * t));
-    l.ui.text_in("…or drop a mod folder or .zip, .7z or .rar onto this window", Rect::new(drop.x, drop.y + 62.0, drop.w, 30.0), 12.5, Weight::Medium, TEXT_SOFT, Align::Center);
+    l.ui.text_in("...or drop a mod folder or .zip, .7z or .rar onto this window", Rect::new(drop.x, drop.y + 62.0, drop.w, 30.0), 12.5, Weight::Medium, TEXT_SOFT, Align::Center);
     y += 122.0;
     if !l.state.mod_path.is_empty() {
         let p = l.state.mod_path.clone();
@@ -2522,7 +2522,7 @@ pub fn mods(l: &mut Launcher, area: Rect) {
             if running {
                 let frac = if j.bytes_total > 0 { j.bytes_done as f32 / j.bytes_total as f32 } else if j.files_total > 0 { j.files_done as f32 / j.files_total as f32 } else { 0.0 };
                 ui.progress(Rect::new(r.x + 12.0, yy, r.w - 24.0, 8.0), frac, true);
-                ui.text_in(&format!("{} / {} files · {} / {}", j.files_done, j.files_total, fmt_bytes(j.bytes_done), fmt_bytes(j.bytes_total)), Rect::new(r.x + 12.0, yy + 10.0, r.w - 24.0, 16.0), 11.0, Weight::Regular, TEXT_DIM, Align::Left);
+                ui.text_in(&format!("{} / {} files | {} / {}", j.files_done, j.files_total, fmt_bytes(j.bytes_done), fmt_bytes(j.bytes_total)), Rect::new(r.x + 12.0, yy + 10.0, r.w - 24.0, 16.0), 11.0, Weight::Regular, TEXT_DIM, Align::Left);
                 yy += 30.0;
             }
             yy += ui.paragraph(&j.message, Vec2::new(r.x + 12.0, yy), r.w - 24.0, 12.0, Weight::Regular, if j.state == "failed" { DANGER } else { TEXT_SOFT });
@@ -2576,13 +2576,13 @@ fn mod_list(l: &mut Launcher, c: Rect) {
     l.ui.panel(c);
     let inner = l.ui.heading(Rect::new(c.x + 18.0, c.y + 14.0, c.w - 36.0, c.h - 28.0), "Installed mods", Some("extension"));
     let Some(status) = l.state.mods.clone() else {
-        l.ui.text_in("Reading the content folder…", Rect::new(inner.x, inner.y, inner.w, 20.0), 12.5, Weight::Regular, TEXT_DIM, Align::Left);
+        l.ui.text_in("Reading the content folder...", Rect::new(inner.x, inner.y, inner.w, 20.0), 12.5, Weight::Regular, TEXT_DIM, Align::Left);
         return;
     };
     let mods = status.installed.clone();
     let on = mods.iter().filter(|m| m.enabled).count();
     // the content folder: where, how much room
-    l.ui.text_in(&format!("{} mods, {on} on · {} free", mods.len(), fmt_bytes(status.free_bytes)), Rect::new(c.x + 220.0, c.y + 14.0, c.w - 238.0, 28.0), 12.0, Weight::Regular, TEXT_DIM, Align::Right);
+    l.ui.text_in(&format!("{} mods, {on} on | {} free", mods.len(), fmt_bytes(status.free_bytes)), Rect::new(c.x + 220.0, c.y + 14.0, c.w - 238.0, 28.0), 12.0, Weight::Regular, TEXT_DIM, Align::Right);
     let mut y = inner.y;
     l.ui.text_in(&status.content_dir, Rect::new(inner.x, y, inner.w - 90.0, 18.0), 11.5, Weight::Regular, TEXT_FAINT, Align::Left);
     if l.ui.button("mods-open-folder", Rect::new(inner.right() - 80.0, y - 4.0, 80.0, 26.0), "Open", Some("open_in_new"), ButtonKind::Ghost) {
@@ -2591,7 +2591,7 @@ fn mod_list(l: &mut Launcher, c: Rect) {
     y += 26.0;
     // the search, and the filters with how many each holds
     let mut q = std::mem::take(&mut l.pages.mod_search);
-    l.ui.text_input("mods-search", Rect::new(inner.x, y, inner.w, 34.0), &mut q, "Search mods…", Some("search"));
+    l.ui.text_input("mods-search", Rect::new(inner.x, y, inner.w, 34.0), &mut q, "Search mods...", Some("search"));
     l.pages.mod_search = q.clone();
     y += 42.0;
     let labels: Vec<String> = MOD_FILTERS.iter().enumerate().map(|(k, f)| format!("{f} {}", mods.iter().filter(|m| mod_passes(m, k)).count())).collect();
@@ -2645,9 +2645,9 @@ fn mod_list(l: &mut Launcher, c: Rect) {
             } else if !m.noted {
                 sub.push("found in the content folder".into());
             }
-            ui.text_in(&sub.join(" · "), Rect::new(r.x + 44.0, r.y + 26.0, tw, 16.0), 11.0, Weight::Regular, TEXT_FAINT, Align::Left);
+            ui.text_in(&sub.join(" | "), Rect::new(r.x + 44.0, r.y + 26.0, tw, 16.0), 11.0, Weight::Regular, TEXT_FAINT, Align::Left);
             if busy.as_deref() == Some(m.id.as_str()) {
-                ui.text_in("…", Rect::new(r.right() - 60.0, r.y, 40.0, r.h), 16.0, Weight::Bold, TEXT_DIM, Align::Center);
+                ui.text_in("...", Rect::new(r.right() - 60.0, r.y, 40.0, r.h), 16.0, Weight::Bold, TEXT_DIM, Align::Center);
                 continue;
             }
             if asking {
@@ -2746,7 +2746,7 @@ pub fn setup(l: &mut Launcher, area: Rect) {
                     l.pages.setup_game = None;
                     let same = chosen.is_empty() || std::path::Path::new(&chosen) == std::path::Path::new(&l.state.config.root);
                     if same {
-                        l.state.set_status("Saved. Reading the content again…", false);
+                        l.state.set_status("Saved. Reading the content again...", false);
                     } else {
                         l.state.set_status(format!("Saved, but the OMSI 2 folder used is {}", l.state.config.root), true);
                     }

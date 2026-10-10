@@ -95,7 +95,7 @@ impl App {
         // the mirror editor's keys and the panel under the cursor, while it is on
         lines.extend(mirror_help);
         if self.menus.editor.is_some() {
-            lines.push("Object editor: click picks · drag moves · wheel turns (Shift lifts) · Del · C copy · V variant · Backspace undo · Ctrl+S save · Esc".into());
+            lines.push("Object editor: click picks | drag moves | wheel turns (Shift lifts) | Del | C copy | V variant | Backspace undo | Ctrl+S save | Esc".into());
         }
         if let Some(d) = self.session.duty.as_ref().filter(|d| d.trip_done()) {
             lines.push(match d.trips.get(d.trip_index + 1) {

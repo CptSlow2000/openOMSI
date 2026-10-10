@@ -177,12 +177,6 @@ fn rail(sh: &mut Shell, v: &PauseView) {
     if let Some(k) = picked {
         sh.actions.push(if v.list.is_some() { Action::Rail(k) } else { Action::Choose(k) });
     }
-    if v.keys {
-        let ui = &mut sh.ui;
-        let hint = omsi_ui::tr("Esc resumes  ·  P pauses").into_owned();
-        ui.p().rect(Rect::new(24.0, size.y - 52.0, RAIL_W - 48.0, 1.0), EDGE);
-        ui.text_in(&hint, Rect::new(24.0, size.y - 46.0, RAIL_W - 48.0, 30.0), 11.5, Weight::Regular, TEXT_FAINT, Align::Left);
-    }
 }
 
 /// An open list or settings window as a launcher page right of the rail.
@@ -738,7 +732,7 @@ mod tests {
     fn a_label_that_opens_more_loses_its_dots() {
         assert_eq!(plain("Options..."), ("Options", true));
         assert_eq!(plain("Resume"), ("Resume", false));
-        assert_eq!(plain("Fleet number…"), ("Fleet number", true));
+        assert_eq!(plain("Fleet number..."), ("Fleet number", true));
     }
 
     #[test]

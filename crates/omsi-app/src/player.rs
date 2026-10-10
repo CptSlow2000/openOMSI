@@ -2789,7 +2789,7 @@ pub(crate) fn pick_in(vehicle: &omsi_sim::VehicleInstance, origin: DVec3, dir: V
     for dirs in &rings {
         // Collect every hit in this ring, then among surfaces within a depth band of the
         // nearest prefer the mesh whose centre the ray aims at. Aachen ibox D10/D11/D12 are
-        // tilted, overlap by ~6 mm, and sit ~16 mm apart along Z — a 2 mm depth-only pick
+        // tilted, overlap by ~6 mm, and sit ~16 mm apart along Z - a 2 mm depth-only pick
         // let backspace (D10) steal digit 0 (D11) whenever both boxes were hit.
         let mut hits: Vec<(f32, f32, usize)> = Vec::new();
         for (i, xf, tris) in &candidates {

@@ -398,13 +398,13 @@ impl App {
 fn keyboard_pages(app: &App) -> Vec<Page> {
     let cfg = keyboard_cfg(app);
     let names = crate::describe::names(&app.args.root, &app.settings.language);
-    let mut vehicle = vec![opens("Add a vehicle event…", "Choose a control supplied by the bus or its mods", "key_events")];
+    let mut vehicle = vec![opens("Add a vehicle event...", "Choose a control supplied by the bus or its mods", "key_events")];
     let mut game = Vec::new();
     for (is_game, bindings, rows) in [(false, &cfg.vehicles, &mut vehicle), (true, &cfg.game, &mut game)] {
         let mut bindings: Vec<_> = bindings.iter().enumerate().collect();
         bindings.sort_by_key(|(_, b)| names.control(&b.action).to_lowercase());
         for (i, b) in bindings {
-            let key = if app.menus.key_capture == Some((is_game, i)) { "press a key…".into() }
+            let key = if app.menus.key_capture == Some((is_game, i)) { "press a key...".into() }
                 else { crate::keys::key_name(b.scan_code as i64, b.modifier as i64) };
             rows.push((row(&names.control(&b.action), 'a', &key, "Enter to change; Delete clears; Esc cancels", None),
                 format!("keybind {} {i}", if is_game { "g" } else { "v" })));
@@ -447,7 +447,7 @@ pub(crate) fn items(app: &App, kind: &ListKind) -> Vec<(String, String)> {
             }
             events.sort_by(|a, b| a.1.to_ascii_lowercase().cmp(&b.1.to_ascii_lowercase()).then_with(|| a.0.to_ascii_lowercase().cmp(&b.0.to_ascii_lowercase())));
             for (action, label) in events {
-                out.push((format!("{label}  ·  KY_{action}"), format!("key_event {action}")));
+                out.push((format!("{label}  |  KY_{action}"), format!("key_event {action}")));
             }
             if out.is_empty() {
                 out.push(("No vehicle events were found".into(), "back".into()));
@@ -558,11 +558,11 @@ pub(crate) fn items(app: &App, kind: &ListKind) -> Vec<(String, String)> {
                 if searching {
                     // (searched for: every type, under its manufacturer's name)
                     for v in vs {
-                        out.push((format!("{name}  ·  {}", v.2), format!("bus {}", v.3)));
+                        out.push((format!("{name}  |  {}", v.2), format!("bus {}", v.3)));
                     }
                 } else if vs.len() == 1 {
                     // (a manufacturer with one type: that type at once)
-                    out.push((format!("{name}  ·  {}", vs[0].2), format!("bus {}", vs[0].3)));
+                    out.push((format!("{name}  |  {}", vs[0].2), format!("bus {}", vs[0].3)));
                 } else {
                     out.push((format!("{name}  ({} {})", vs.len(), tr("models")), format!("maker {key}")));
                 }
@@ -581,7 +581,7 @@ pub(crate) fn items(app: &App, kind: &ListKind) -> Vec<(String, String)> {
                     let parts: Vec<&str> = t.1.split('/').collect();
                     let folder = parts.get(1).copied().unwrap_or_default();
                     let file = parts.last().copied().unwrap_or_default().rsplit_once('.').map(|x| x.0).unwrap_or_default();
-                    label = format!("{label}  ·  {}  ·  {}", bus_label(folder), bus_label(file));
+                    label = format!("{label}  |  {}  |  {}", bus_label(folder), bus_label(file));
                 }
                 out.push((label, format!("bus {}", t.1)));
             }
@@ -628,11 +628,11 @@ pub(crate) fn items(app: &App, kind: &ListKind) -> Vec<(String, String)> {
         let query = search_query(app);
         out.retain(|(label, action)| search_matches(label, action, query));
         let label = if app.menus.menu_edit_search {
-            format!("{}: {query}_  ({})", tr("Search…"), tr("Enter sets it, Esc cancels"))
+            format!("{}: {query}_  ({})", tr("Search..."), tr("Enter sets it, Esc cancels"))
         } else if query.is_empty() {
-            tr("Search…")
+            tr("Search...")
         } else {
-            format!("{}: {query}", tr("Search…"))
+            format!("{}: {query}", tr("Search..."))
         };
         out.insert(0, (label, "search".into()));
     }
@@ -674,7 +674,7 @@ pub(crate) fn menu_extras(
         ListKind::Keyboard(_) => (MenuKind::Options, head("Keyboard"), None),
         ListKind::ControllerDevices(_) => (MenuKind::Options, head("Game controllers"), None),
         ListKind::Controller(name, _) => (MenuKind::Options, Some((name.clone(), String::new())), None),
-        ListKind::ControllerAxis(name, a) => (MenuKind::Options, Some((format!("{} · Axis {}", name, a + 1), String::new())), None),
+        ListKind::ControllerAxis(name, a) => (MenuKind::Options, Some((format!("{} | Axis {}", name, a + 1), String::new())), None),
         ListKind::ControllerButtons(name) => (MenuKind::List, Some(("Choose a button".into(), name.clone())), None),
         ListKind::ControllerButtonSettings(name, b) => (MenuKind::Options, Some((crate::game_controller_menu::button_label(*b), name.clone())), None),
         ListKind::ControllerButton(_, b) => (MenuKind::List, Some((format!("{}: choose an action", crate::game_controller_menu::button_label(*b)), String::new())), None),
@@ -729,7 +729,7 @@ pub(crate) fn menu_extras(
                 let trip_line = tour_line(ln, num).unwrap_or_else(|| line_sign(schedule, line));
                 Some(Preview {
                     title: format!("{} {}", tr("Tour"), num.trim()),
-                    meta: format!("{} {}  ·  {} {}/{}  ·  {}", tr("Line"), trip_line, tr("Trip"), trip + 1, n_trips.max(1), tr("Choose the stop to start from")),
+                    meta: format!("{} {}  |  {} {}/{}  |  {}", tr("Line"), trip_line, tr("Trip"), trip + 1, n_trips.max(1), tr("Choose the stop to start from")),
                     rows,
                     chosen: Some(chosen),
                     button: Some(tr("Start trip")),
@@ -2733,7 +2733,7 @@ fn world_pages(app: &App) -> Vec<Page> {
         weather.extend(switch_row(app,"snow_road","Snow on road","Treat the road surface as snow-covered."));
         climate.extend(slider_row(app, "temp", "Temperature", "The air temperature.", &|v| format!("{} °C", v as i64)));
         let dew_temp=app.session.weather.as_ref().map(|w|w.temp.0).unwrap_or(15.0);
-        climate.extend(slider_row(app,"humidity","Humidity","Relative humidity of the air.",&|v|format!("{:.0} % · dew {:.0} °C",v,crate::weather_setup::dew_point_c(dew_temp,v))));
+        climate.extend(slider_row(app,"humidity","Humidity","Relative humidity of the air.",&|v|format!("{:.0} % | dew {:.0} °C",v,crate::weather_setup::dew_point_c(dew_temp,v))));
         climate.extend(slider_row(app, "wind_speed", "Wind speed", "How fast the wind blows; it drives the clouds.", &|v| format!("{} m/s", v as i64)));
         climate.extend(slider_row(app, "wind_dir", "Wind direction", "The direction of the wind in degrees (0 is north).", &|v| format!("{}°", v as i64)));
         // the METAR sync on: only its own rows stay (the weather is the report's)

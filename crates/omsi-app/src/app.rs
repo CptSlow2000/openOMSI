@@ -936,7 +936,7 @@ impl CamCarry {
 
 impl CamBlend {
     /// How far along the way from the old camera to the new one: ease-out
-    /// `s = 1-(1-t)^3` — fast off the mark, settling softly, so adjacent
+    /// `s = 1-(1-t)^3` - fast off the mark, settling softly, so adjacent
     /// seats snap round without lagging behind the key.
     pub fn progress(&self) -> f32 {
         let t = self.t.clamp(0.0, 1.0);

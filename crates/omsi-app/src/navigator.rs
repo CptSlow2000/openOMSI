@@ -1243,9 +1243,9 @@ impl Navigator {
 
         // Temperatures stay in the navigator header on every bus. The simulator always keeps
         // Cabinair_Temp, while scripts that model heating/air conditioning can overwrite it.
-        let temp = format!("EXT {:.0}°C · INT {:.0}°C", f.outside_temp, f.inside_temp);
+        let temp = format!("EXT {:.0}°C | INT {:.0}°C", f.outside_temp, f.inside_temp);
         let center = match f.line.as_deref().map(str::trim).filter(|l| !l.is_empty()) {
-            Some(line) => format!("{temp} · {line}"),
+            Some(line) => format!("{temp} | {line}"),
             None => temp,
         };
         let left_edge = (if limit.is_some() { x + 24.0 * s } else { x }) + 6.0 * s;
@@ -1282,7 +1282,7 @@ impl Navigator {
         });
         match f.stops.first() {
             Some(st) => {
-                let name = if n_stops == 1 { format!("{} · {}", st.name.trim(), wd.last_stop) } else { st.name.trim().to_string() };
+                let name = if n_stops == 1 { format!("{} | {}", st.name.trim(), wd.last_stop) } else { st.name.trim().to_string() };
                 ui.text_in(&mut self.atlas, &self.fonts, &name, 13.5 * s, Weight::Bold, stop_row, Align::Left, TEXT);
                 let mut parts = Vec::new();
                 if let Some(d) = self.next_dist {
@@ -1291,7 +1291,7 @@ impl Navigator {
                     parts.push(if secs < 60.0 { "<1 min".to_string() } else { format!("{:.0} min", (secs / 60.0).round()) });
                 }
                 parts.push(format!("{:02}:{:02}", (st.arrival / 3600.0) as i32 % 24, ((st.arrival % 3600.0) / 60.0) as i32));
-                let line2 = parts.join("  ·  ");
+                let line2 = parts.join("  |  ");
                 let y2 = Rect::new(pad, bottom.y + 24.0 * s, pw - 2.0 * pad, 18.0 * s);
                 match note {
                     Some((t, c)) => {
@@ -1299,7 +1299,7 @@ impl Navigator {
                     }
                     None => match &jam_note {
                         Some((t, c)) => {
-                            ui.text_in(&mut self.atlas, &self.fonts, &format!("{line2}  ·  {t}"), 12.5 * s, Weight::Medium, y2, Align::Left, *c);
+                            ui.text_in(&mut self.atlas, &self.fonts, &format!("{line2}  |  {t}"), 12.5 * s, Weight::Medium, y2, Align::Left, *c);
                         }
                         None => {
                             ui.text_in(&mut self.atlas, &self.fonts, &line2, 12.5 * s, Weight::Medium, y2, Align::Left, TEXT_DIM);
@@ -2610,7 +2610,7 @@ impl Navigator {
         let title_w = ui.text_in(&mut self.atlas, &self.fonts, &title, 15.0 * s, Weight::Bold, Rect::new(pad, head.y, w * 0.4, head.h), Align::Left, TEXT);
         if let Some(st) = f.stops.first() {
             let d = self.next_dist.map(|d| if d >= 1000.0 { format!("{:.1} km", d / 1000.0) } else { format!("{:.0} m", d) }).unwrap_or_default();
-            let t = format!("{}  ·  {}  ·  {:02}:{:02}", st.name.trim(), d, (st.arrival / 3600.0) as i32 % 24, ((st.arrival % 3600.0) / 60.0) as i32);
+            let t = format!("{}  |  {}  |  {:02}:{:02}", st.name.trim(), d, (st.arrival / 3600.0) as i32 % 24, ((st.arrival % 3600.0) / 60.0) as i32);
             ui.text_in(&mut self.atlas, &self.fonts, &t, 13.5 * s, Weight::Medium, Rect::new(pad + title_w + 24.0 * s, head.y, w * 0.45, head.h), Align::Left, TEXT_DIM);
         }
         self.city.buttons.clear();

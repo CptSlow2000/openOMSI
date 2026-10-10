@@ -621,7 +621,7 @@ fn short_path(p: &Path) -> String {
     if n <= 48 {
         s
     } else {
-        format!("…{}", s.chars().skip(n - 46).collect::<String>())
+        format!("...{}", s.chars().skip(n - 46).collect::<String>())
     }
 }
 

@@ -1207,7 +1207,7 @@ impl Launcher {
         match (self.preview_tex, self.showroom.has_picture()) {
             (Some(tex), true) => self.ui.image(r, tex, RADIUS),
             _ => {
-                let t = if self.showroom.error.is_some() { "No preview" } else { "Loading…" };
+                let t = if self.showroom.error.is_some() { "No preview" } else { "Loading..." };
                 self.ui.text_in(t, r, 13.0, Weight::Regular, TEXT_FAINT, Align::Center);
             }
         }
@@ -1235,7 +1235,7 @@ impl Launcher {
             _ => {
                 self.ui.solid(r);
                 self.ui.p().rounded(r, RADIUS, omsi_ui::Color::rgba(13, 13, 13, 1.0));
-                let t = if status.is_empty() { "Loading…" } else { status };
+                let t = if status.is_empty() { "Loading..." } else { status };
                 self.ui.text_in(t, Rect::new(r.x, r.y + r.h * 0.5 - 12.0, r.w, 24.0), 13.5, Weight::Regular, TEXT_FAINT, Align::Center);
             }
         }
@@ -1278,7 +1278,7 @@ impl Launcher {
             _ => {
                 self.ui.solid(r);
                 self.ui.p().rounded(r, RADIUS, FIELD);
-                let t = if self.showroom.error.is_some() { "No preview" } else { "Loading…" };
+                let t = if self.showroom.error.is_some() { "No preview" } else { "Loading..." };
                 self.ui.text_in(t, Rect::new(r.x, r.y + r.h * 0.5 - 12.0, r.w, 24.0), 13.0, Weight::Regular, TEXT_FAINT, Align::Center);
             }
         }

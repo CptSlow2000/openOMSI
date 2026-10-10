@@ -408,7 +408,7 @@ impl State {
         // the first reading shows what it has read as it goes: a big installation's buses
         // (thousands of folders) took minutes, with nothing on the page all that time
         self.content_first = self.maps.is_empty() && self.vehicles.is_empty();
-        self.set_status("Reading the OMSI folder…", false);
+        self.set_status("Reading the OMSI folder...", false);
         let tx = self.tx.clone();
         self.spawn(move || {
             let r = (|| -> anyhow::Result<_> {
@@ -642,7 +642,7 @@ impl State {
             return;
         }
         let d = self.duty();
-        self.set_status("Starting the game…", false);
+        self.set_status("Starting the game...", false);
         self.queued_launch = Some(d);
     }
 
@@ -726,7 +726,7 @@ impl State {
         let mut d = self.duty();
         d.situation = Some(file.to_string_lossy().to_string());
         d.lan = Some("off".into());
-        self.set_status("Continuing where you left off…", false);
+        self.set_status("Continuing where you left off...", false);
         self.queued_launch = Some(d);
     }
 
@@ -738,7 +738,7 @@ impl State {
         let mut d = self.duty();
         d.tutorial = Some(n);
         d.lan = Some("off".into());
-        self.set_status("Starting the tutorial…", false);
+        self.set_status("Starting the tutorial...", false);
         self.queued_launch = Some(d);
     }
 
@@ -888,7 +888,7 @@ impl State {
                 self.weathers = weathers;
                 self.pick_map();
                 self.load_lines();
-                self.set_status(format!("{} maps - reading the buses…", self.maps.len()), false);
+                self.set_status(format!("{} maps - reading the buses...", self.maps.len()), false);
             }
             Msg::VehiclesRead { batch, done, total } => {
                 if !self.content_first {
@@ -1409,7 +1409,7 @@ pub fn crash_of(log: &std::path::Path) -> Option<(String, String)> {
 const MACHINE_LINES: [&str; 4] = ["] system: ", "] graphics adapter: ", "] opening graphics device: ", "] command line: "];
 
 /// The line between the machine and the end of the log in a crash's tail.
-pub const CRASH_TAIL_GAP: &str = "…";
+pub const CRASH_TAIL_GAP: &str = "...";
 
 #[cfg(test)]
 mod disconnect_tests {

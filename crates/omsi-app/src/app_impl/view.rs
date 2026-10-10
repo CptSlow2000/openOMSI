@@ -92,7 +92,7 @@ pub(crate) fn chase_orbit_step(yaw: f32, pitch: f32, dx_px: f32, dy_px: f32) -> 
 
 /// Precision zoom step from a vertical drag: the zoom state `z` (0 wide ..
 /// 1 full zoom) travels at `intent` per 364 px, and the FOV multiplier is
-/// `1/(1+5.5*z)` — full zoom ~6.5x in. Drag down (`dy > 0`) zooms in.
+/// `1/(1+5.5*z)` - full zoom ~6.5x in. Drag down (`dy > 0`) zooms in.
 /// Never past 1.0 (never wider than the bus's own field of view); the floor
 /// is the caller's clamp. Pure (tested below).
 pub(crate) fn precision_zoom_step(mult: f32, dy_px: f32, intent: f32) -> f32 {
