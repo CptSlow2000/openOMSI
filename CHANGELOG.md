@@ -4,6 +4,24 @@ Every push to `main` is released as `MAJOR.MINOR.COMMIT` (see
 [docs/VERSIONING.md](docs/VERSIONING.md)); the downloads are on the
 [Releases](https://github.com/openOMSI-Project/openOMSI/releases) page.
 
+## 0.2.27 - 2026-10-10
+
+### New
+- **Ambience from real recordings** (Settings → Sound → *Ambience*, on by default, with its own volume).
+  - The place you drive through: town, courtyard, suburb and village, the motorway and the railway in the distance, tunnels.
+  - Nature by season and hour: the dawn chorus, woods, fields, crickets, water and frogs, and 22 species of birds.
+  - The weather: rain by how hard it falls and what it falls on, drips after it, snow and blizzards, wind in leaves, conifers, bare branches and wires, thunder over a warm shower (none in a snowfall).
+  - The life of the town: sirens, aircraft, doors, the bin lorry, lawnmowers, and fireworks from five to twelve on New Year's Eve.
+  - Churches, schools, shops, stations, farms and other places the map's authors marked as such, each at its own hours. OMSI 2's own sound objects keep their sounds.
+  - The recordings (about 300 MB, all CC0, CC BY or CC BY-SA, credited in their `CREDITS.md`) are downloaded once by themselves the first time the launcher or the game starts with the ambience on, into `~/.openomsi/ambience`. They play from the next drive on. Not on Android yet.
+- **The Mods page shows what each mod holds.** The arrow on a mod's row opens its contents folder by folder (Vehicles, Fonts, Texture, ...), and the row lists how many items each folder has.
+
+### Fixes
+- **Poles, signs, street lamps, traffic lights and fences no longer sway in the wind.** OMSI's street objects are grouped as "German Street Side", and the word "street" was read as holding "tree". They also no longer take the plants' autumn and winter looks.
+- **AI traffic no longer jams at junctions without traffic lights.** A car standing third in a queue took the right of way as if it waited at the line, the car across the junction waited for it while the queue waited for that car, and nothing moved until a car was taken away after 200 s (Spandau).
+- **A mod's fonts and textures belong to it.** What a mod puts into a folder all mods share (a pack's fonts in Fonts, its textures in Texture) is now noted as its own, so it shows in the Mods page and goes when the mod is switched off or deleted. Fonts and textures put there by hand are listed together, one entry per folder.
+- **The "playing now" count is the same on the website and in the README.** The count is taken once every ten minutes, on the clock, and both show that one. The website picks up the next count as soon as it is there, and the README badge within five minutes more because of GitHub's cache.
+
 ## 0.2.26 - 2026-10-10
 
 ### New
