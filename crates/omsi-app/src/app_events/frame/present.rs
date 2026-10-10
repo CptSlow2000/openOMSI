@@ -241,8 +241,11 @@ impl App {
     ) {
         #[cfg(not(windows))]
         let _ = vr_nav_display;
-        // (the photo mode draws the live picture while its camera moves, the photo once it stands)
-        let photo = self.photo.as_ref().is_some_and(|p| p.render.showing_photo()) && self.shell.picture_tex.is_some();
+        // (the photo mode draws the live picture while its camera moves, the photo once it
+        // stands - as its panel decided when it was drawn this frame: asked again here, after
+        // the photo's pictures were taken, the photo had become ready meanwhile, the scene was
+        // left out and the panel had no photo in it - the window flashed black)
+        let photo = self.photo.is_some() && self.shell.opaque;
         if !photo {
             self.frame_mirrors(raw_dt, lighting);
         }
