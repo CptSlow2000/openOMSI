@@ -694,16 +694,20 @@ impl TrafficSim {
                     }
                     // A stalled car neither claims an imminent arrival nor accelerates
                     // freely in the arrival prediction, even without a reservation.
-                    let stalled = (o.stopped > 4.0 && o.state.speed < 0.1)
-                        || o.crawl >= 8.0
-                        || (o.state.speed < 1.5
-                            && o.lead_info.is_some_and(|(lid, gap)| gap < 8.0 && self.cars.iter().find(|x| x.id == lid).is_some_and(|x| x.state.speed < 1.0)));
+                    // (queued: right behind a car that stands - not at its own line)
+                    let queued = o.lead_info.is_some_and(|(lid, gap)| gap < 8.0 && self.cars.iter().find(|x| x.id == lid).is_some_and(|x| x.state.speed < 1.0));
+                    let stalled = (o.stopped > 4.0 && o.state.speed < 0.1) || o.crawl >= 8.0 || (o.state.speed < 1.5 && queued);
                     // (one that has waited long at its line keeps a claim on its way while
                     // it stands, `junction_stop`: that claim counts, standing or not.
                     // Taken for a stalled car's, it held nobody back - a side road's car
                     // stood for minutes at a main road whose queue crawled through the
                     // junction without a gap, every newcomer claiming the way first)
-                    let long_claim = o.yielding && o.state.yield_time > LONG_WAIT_CLAIM && o.wait_at.is_some();
+                    // (only the first at the line: a car standing third in that queue, its
+                    // wait as long as the first one's, held its claim as well - the car
+                    // waiting at the line across the junction stood for it, while the queue
+                    // stood for that car, a circle of waits at a junction without lights that
+                    // cleared only when the 200 s rule took a car away, Spandau)
+                    let long_claim = o.yielding && o.state.yield_time > LONG_WAIT_CLAIM && o.wait_at.is_some() && !queued;
                     let claimed = reservations
                         .get(&m)
                         .map(|r| r.contains(&j))
