@@ -1128,6 +1128,7 @@ fn gameplay_tab(ui: &mut Ui, s: &mut Value, dirty: &mut f32, cols: [Rect; 2]) ->
     let mut c = Col::new(ui, cols[0], "Passengers");
     sel_setting(ui, s, dirty, "s-board", c.row(), "Boarding", "boarding", &[("auto", "Pay and take the ticket"), ("pay", "The driver sells the ticket"), ("walk", "Just walk in")]);
     sel_setting(ui, s, dirty, "s-stand", c.row(), "Standing passengers", "standing_chance", &[("0", "Never"), ("5", "5%"), ("10", "10%"), ("25", "25%"), ("50", "50%"), ("100", "Always")]);
+    sel_setting(ui, s, dirty, "s-pax-animation", c.row(), "Passenger animations", "passenger_animation", &[("original", "Original OMSI"), ("enhanced", "Procedural (experimental)")]);
     toggle_setting(ui, s, dirty, c.row(), "Passengers pay the exact fare", "exact_fare");
     let mut pd = get(s, "pax_density").as_f64().unwrap_or(1.0) as f32;
     if ui.slider("s-pax", c.row(), &mut pd, 0.0, 2.0, 0.1, "How many passengers", &|v| format!("{:.0}%", v * 100.0)) {

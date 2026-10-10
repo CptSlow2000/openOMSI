@@ -53,6 +53,14 @@ Everything can also be given on the command line, which then skips both:
 | `--enhanced-plus` | Enhanced+: the physically based renderer with ray-traced shadows, ambient occlusion and reflections |
 | `--launcher` / `--menu` / `--no-menu` | open the launcher (the default without arguments), the in-game menu, or neither |
 
+**Experimental passenger animation A/B test.** In the launcher open **Settings → Gameplay →
+Passengers → Passenger animations** and choose **Procedural (experimental)** to test the
+earlier foot-planted/IK poses. **Original OMSI** is the default and remains compatible.
+For temporary A/B tests without changing the saved setting, set `OMSI_PAX_ANIMATION=enhanced`
+before starting openOMSI (or `OMSI_PAX_ANIMATION=original` to force the classic mode).
+This is a visual experiment: check boarding, seats, door steps, CPU time and mirrors before
+making it the default. The setting does not change passenger routing or tickets.
+
 Keys in the window: **W** throttle, **S** brake, **A**/**D** steering - the arrow keys do the
 same - and every vehicle key of `Inputs/keyboard.cfg` works as it does in OMSI: throttle
 Shift+Num 8, brake Shift+Num 2, steering Shift+Num 4/6, **E** battery and ignition, **M**
