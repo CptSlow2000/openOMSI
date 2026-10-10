@@ -364,6 +364,7 @@ impl App {
                             }
                         }
                         self.sound.ambience = Some(ambience::Ambience::load(&audio, &self.args.root));
+                        self.sound.soundscape = Some(crate::soundscape::Soundscape::new(self.settings.ambient, self.settings.vol_ambient));
                         self.sound.audio = Some(audio);
                         if let Some(p) = &p {
                             if self.args.cam.is_none() && self.args.view != "free" {

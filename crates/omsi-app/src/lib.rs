@@ -32,6 +32,7 @@ mod updater;
 mod update_watch;
 mod presence;
 mod ambience;
+mod soundscape;
 mod wheel_surface;
 mod camera_arm;
 mod career;
@@ -691,6 +692,7 @@ fn assemble_app(args: Args, settings: settings::Settings) -> App {
             radio,
             audio: None,
             ambience: None,
+            soundscape: None,
             voice: None,
         },
         clock: omsi_sim::SimClock::default(),

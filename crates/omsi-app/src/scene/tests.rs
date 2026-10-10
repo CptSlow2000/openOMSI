@@ -849,6 +849,7 @@ fn a_crossing_far_over_the_ground_is_draped_by_its_height_field() {
         drive: Vec::new(),
         lanes: Mutex::new(Vec::new()),
         street_points: Vec::new(),
+        sound_lines: Vec::new(),
         objects: vec![StagedObject {
             ot: ot.clone(),
             id: 1,

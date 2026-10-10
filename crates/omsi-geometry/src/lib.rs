@@ -8,7 +8,7 @@ use omsi_scenery::Spline;
 
 mod hole_rims;
 mod ground_sound;
-pub use ground_sound::GroundSound;
+pub use ground_sound::{GroundSound, LineKind, SoundLine, SoundSpot};
 mod terrain_walls;
 pub use terrain_walls::terrain_hole_walls;
 

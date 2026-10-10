@@ -788,6 +788,9 @@ pub struct StagedTile {
     /// The street lanes' points of the tile's splines, kept for good (what an object's box
     /// is checked against: a road through it makes it no wall).
     pub(super) street_points: Vec<DVec3>,
+    /// What sounds along the tile's splines: its road lanes and railway tracks (with their
+    /// speed limit), its overhead wires and tunnels - world points every few metres.
+    pub(super) sound_lines: Vec<(omsi_geometry::LineKind, f32, Vec<DVec3>)>,
     pub(super) objects: Vec<StagedObject>,
     /// The spline attachment rows `[attachObj]` records can hang on: (row id, where its first
     /// object stands, the row's own type - a car park row's, not its car's).
