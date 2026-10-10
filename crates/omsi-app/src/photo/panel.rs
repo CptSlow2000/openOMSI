@@ -237,15 +237,38 @@ pub(crate) fn draw(sh: &mut Shell, ph: &mut Photo, info: &Info) {
     let frame = Rect::new(fx as f32 / 100.0, fy as f32 / 100.0, fw as f32 / 100.0, fh as f32 / 100.0);
     guides(&mut sh.ui, frame, ph.settings.grid);
     let ui = &mut sh.ui;
-    // what was done, top right
-    if let Some((text, left)) = ph.note.as_ref() {
+    // what was done, top right: where the photo went - a click shows it in the file browser
+    if let Some((text, left)) = ph.note.clone() {
+        let path = ph.saved.clone().filter(|_| !crate::platform::MOBILE);
+        let place = path.as_ref().map(|p| shown_path(p));
+        let mut w = ui.width(&text, 13.0, Weight::Medium) + 48.0;
+        if let Some(place) = place.as_ref() {
+            w = w.max(ui.width(place, 11.5, Weight::Regular) + 76.0);
+        }
+        let w = w.min(size.x - 40.0);
+        let r = Rect::new(size.x - w - 20.0, 20.0, w, if place.is_some() { 58.0 } else { 40.0 });
+        let (hover, _, clicked) = if path.is_some() { ui.interact(crate::launcher::ui::id_of("ph-saved"), r) } else { (false, false, false) };
+        ui.solid(r);
+        // (it stays while the mouse is on it)
+        let left = if hover { left.max(1.0) } else { left };
+        if let Some(n) = ph.note.as_mut() {
+            n.1 = left;
+        }
         let a = left.clamp(0.0, 1.0);
-        let w = (ui.width(text, 13.0, Weight::Medium) + 48.0).min(size.x - 40.0);
-        let r = Rect::new(size.x - w - 20.0, 20.0, w, 40.0);
-        ui.p().rounded(r, 8.0, Color::rgba(28, 28, 28, a));
-        ui.p().rounded_border(r, 8.0, 1.0, Color::WHITE.alpha(0.1 * a));
-        ui.icon("check_circle", Vec2::new(r.x + 20.0, r.center().y), 18.0, OK.alpha(a));
-        ui.text_in(text, Rect::new(r.x + 36.0, r.y, r.w - 44.0, r.h), 13.0, Weight::Medium, TEXT.alpha(a), Align::Left);
+        let bg = if hover { Color::rgba(40, 40, 40, a) } else { Color::rgba(28, 28, 28, a) };
+        ui.p().rounded(r, 8.0, bg);
+        ui.p().rounded_border(r, 8.0, 1.0, Color::WHITE.alpha(if hover { 0.25 } else { 0.1 } * a));
+        let failed = text.starts_with(omsi_ui::tr("Not saved:").as_ref());
+        let (icon, tint) = if ph.saved.is_some() { ("check_circle", OK) } else if failed { ("error", DANGER) } else { ("info", TEXT_DIM) };
+        ui.icon(icon, Vec2::new(r.x + 20.0, r.y + 20.0), 18.0, tint.alpha(a));
+        ui.text_in(&text, Rect::new(r.x + 36.0, r.y, r.w - 44.0, 40.0), 13.0, Weight::Medium, TEXT.alpha(a), Align::Left);
+        if let (Some(place), Some(path)) = (place, path) {
+            ui.text_in(&place, Rect::new(r.x + 36.0, r.y + 30.0, r.w - 72.0, 18.0), 11.5, Weight::Regular, TEXT_DIM.alpha(a), Align::Left);
+            ui.icon("folder_open", Vec2::new(r.right() - 22.0, r.y + 39.0), 16.0, if hover { ACCENT.alpha(a) } else { TEXT_DIM.alpha(a) });
+            if clicked {
+                acts.push(Request::Reveal(path));
+            }
+        }
     }
     let (n, target) = ph.render.progress();
     let busy = ph.render.capture;
@@ -271,29 +294,15 @@ pub(crate) fn draw(sh: &mut Shell, ph: &mut Photo, info: &Info) {
         ph.tab = tab;
     }
     // the pages scroll above the buttons
-    let foot = 44.0 + 10.0 + 38.0 + 30.0;
+    let foot = 44.0 + 10.0 + 38.0 + 8.0;
     let body = Rect::new(inner.x, inner.y + 100.0, inner.w, (inner.bottom() - foot - inner.y - 100.0).max(40.0));
     let key = format!("ph-page-{}", ph.tab);
     ui.scroll_area(&key, body, &mut |ui, v| {
         let end = page(ui, ph, info, v.x, v.y, v.w - 8.0, &mut acts);
         end - v.y + 6.0
     });
-    // the shot's progress
-    let py = inner.bottom() - foot + 8.0;
-    let frac = n as f32 / target.max(1) as f32;
-    let status = if busy {
-        format!("{}  {n} / {target}", omsi_ui::tr("Taking the photo..."))
-    } else if ph.render.moving() {
-        omsi_ui::tr("Preview").into_owned()
-    } else if n < target {
-        format!("{}  {n} / {target}", omsi_ui::tr("Refining"))
-    } else {
-        omsi_ui::tr("Ready").into_owned()
-    };
-    ui.text_in(&status, Rect::new(inner.x, py, inner.w, 16.0), 11.5, Weight::Medium, if n >= target && !busy && !ph.render.moving() { OK } else { TEXT_DIM }, Align::Left);
-    ui.progress(Rect::new(inner.x, py + 20.0, inner.w, 3.0), if ph.render.moving() { 0.0 } else { frac }, busy || (n < target && !ph.render.moving()));
     let b = Rect::new(inner.x, inner.bottom() - 44.0 - 46.0, inner.w, 44.0);
-    if ui.button("ph-take", b, &omsi_ui::tr(if busy { "Taking..." } else { "Take photo" }), Some("photo_camera"), ButtonKind::Primary) && !busy {
+    if ui.button("ph-take", b, &if busy { format!("{}  {n} / {target}", omsi_ui::tr("Taking...")) } else { omsi_ui::tr("Take photo").into_owned() }, Some("photo_camera"), ButtonKind::Primary) && !busy {
         acts.push(Request::Take);
     }
     let half = (inner.w - 8.0) / 2.0;
@@ -323,5 +332,20 @@ impl crate::App {
         self.shell.begin(w, h, scale, dt);
         draw(&mut self.shell, ph, &info);
         self.shell.finish();
+    }
+}
+
+/// A saved file's place as the panel shows it: the home folder as `~`.
+fn shown_path(p: &std::path::Path) -> String {
+    let full = p.display().to_string();
+    match std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")) {
+        Some(home) if !home.is_empty() => {
+            let home = std::path::PathBuf::from(home).display().to_string();
+            match full.strip_prefix(&home) {
+                Some(rest) => format!("~{rest}"),
+                None => full,
+            }
+        }
+        _ => full,
     }
 }

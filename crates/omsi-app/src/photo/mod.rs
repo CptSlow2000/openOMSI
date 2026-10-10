@@ -34,6 +34,8 @@ pub(crate) enum Request {
     Level,
     /// The clock moved by these seconds (the light of another hour).
     Clock(f64),
+    /// The photo just saved shown in the file browser.
+    Reveal(std::path::PathBuf),
 }
 
 /// How far the camera may go from the bus: (metres, label).
@@ -113,6 +115,8 @@ pub(crate) struct Photo {
     pub(crate) render: render::State,
     /// A word of what was done (the photo saved), and how long it shows.
     pub note: Option<(String, f32)>,
+    /// The file the note tells of (a click on it shows it in the file browser).
+    pub saved: Option<std::path::PathBuf>,
     pad: pad::PadState,
 }
 
@@ -141,6 +145,7 @@ impl Photo {
             prev_camera: Some(cam),
             render: render::State::default(),
             note: None,
+            saved: None,
             pad: pad::PadState::default(),
         }
     }
@@ -419,6 +424,7 @@ impl crate::App {
                     ph.hide_ui = !ph.hide_ui;
                 }
             }
+            Request::Reveal(path) => crate::platform::reveal(&path),
             Request::Clock(secs) => {
                 if self.net.lan.as_ref().is_some_and(|l| l.role == omsi_net::Role::Client) {
                     if let Some(ph) = self.photo.as_mut() {
@@ -470,6 +476,7 @@ impl crate::App {
         }
         if ph.note.as_ref().is_some_and(|n| n.1 <= 0.0) {
             ph.note = None;
+            ph.saved = None;
         }
         self.camera = Some(ph.cam);
         self.frame_photo_panel(dt);

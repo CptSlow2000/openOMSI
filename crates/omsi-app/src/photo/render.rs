@@ -187,11 +187,14 @@ impl crate::App {
                 Some((w, h, px)) => save(&self.args.root, *w, *h, px, crop),
                 None => Err("nothing to save".into()),
             };
+            ph.saved = None;
             ph.note = Some(match note {
                 Ok(path) => {
                     log::info!("photo mode: saved {}", path.display());
                     crate::plugins::queue_event(&mut self.integrations.plugin_events, "screenshot", vec![omsi_plugin::InfoValue::Text(path.to_string_lossy().into_owned())]);
-                    (format!("{} {}", omsi_ui::tr("Saved:"), path.file_name().map(|f| f.to_string_lossy().into_owned()).unwrap_or_default()), 4.0)
+                    crate::platform::to_gallery(&path);
+                    ph.saved = Some(path);
+                    (omsi_ui::tr(if crate::platform::MOBILE { "Photo saved to the gallery" } else { "Photo saved" }).into_owned(), 8.0)
                 }
                 Err(e) => {
                     log::warn!("photo mode: the photo could not be saved: {e}");

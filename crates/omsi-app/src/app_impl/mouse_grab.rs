@@ -152,7 +152,7 @@ impl App {
     /// mode): the cursor is locked where it stands and shows OMSI's four arrows, and the view
     /// turns by the mouse's own movement (`look_raw`) - nothing moves the cursor, so it
     /// neither stops at the screen's edge nor jumps anywhere when the button comes up, and
-    /// the steering's locked cursor simply stays locked (shown meanwhile). Where the system
+    /// the steering's locked cursor simply stays locked and hidden. Where the system
     /// cannot lock it (Windows, X11) the cursor's way turns the view as before.
     pub(crate) fn sync_look_hold(&mut self) {
         let photo_look = self.photo.as_ref().is_some_and(|p| p.looking);
@@ -175,8 +175,13 @@ impl App {
             } else {
                 return;
             }
-            win.set_cursor_visible(true);
-            self.set_cursor_kind(3);
+            // (the cursor shows the four arrows where it stands; the steering's locked cursor
+            // stays hidden - it stands in the middle of the window, and the steering cross is
+            // the mouse's place meanwhile)
+            if self.input.look_lock == Some(true) {
+                win.set_cursor_visible(true);
+                self.set_cursor_kind(3);
+            }
             return;
         }
         match self.input.look_lock.take() {
@@ -185,13 +190,7 @@ impl App {
                     let _ = win.set_cursor_grab(winit::window::CursorGrabMode::None);
                 }
             }
-            // (the steering's locked cursor hidden again)
-            Some(false) => {
-                if let Some(win) = self.window.as_ref() {
-                    win.set_cursor_visible(false);
-                }
-            }
-            None => {}
+            Some(false) | None => {}
         }
         self.set_cursor_kind(0);
         // (the steering's hold as it is to be now, and the cursor's shape)
