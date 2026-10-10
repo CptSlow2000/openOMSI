@@ -81,13 +81,22 @@ impl App {
         if pressed && self.right_zooms() && self.start_both_drag() {
             return;
         }
+        // The wheel and the pedals keep their own point, `mouse_grab.at`, while the view turns.
+        // Where the cursor is held while the mouse steers (the steering cross shows the point)
+        // it is not put back where the look began - that was the cursor's jump as the button
+        // came up - its movement only counts afresh from where it is. Where the free cursor
+        // itself shows the point (`mouse_hold` off) it goes back there, so the two agree.
         if self.input.mouse_drive && self.menus.game_menu.is_none() {
             if pressed {
                 self.input.steer_cursor = Some(self.input.cursor);
             } else if let Some((x, y)) = self.input.steer_cursor.take() {
-                self.input.cursor = (x, y);
-                if let Some(win) = self.window.as_ref() {
-                    let _ = win.set_cursor_position(winit::dpi::PhysicalPosition::new(x as f64, y as f64));
+                if self.settings.mouse_hold {
+                    self.input.mouse_grab.pause();
+                } else {
+                    self.input.cursor = (x, y);
+                    if let Some(win) = self.window.as_ref() {
+                        let _ = win.set_cursor_position(winit::dpi::PhysicalPosition::new(x as f64, y as f64));
+                    }
                 }
             }
         }
