@@ -257,6 +257,10 @@ pub(crate) struct InputState {
     /// time (a game started with the mouse steering on: wherever the cursor was, the wheel
     /// turned and the bus drove off on full throttle).
     pub(crate) center_cursor: bool,
+    /// Looking round with a mouse button: the cursor locked and hidden where it stands and
+    /// the view turned by the mouse's own movement (`App::sync_look_hold`); `true`: the look
+    /// locked it itself, `false`: it was the mouse steering's locked cursor already.
+    pub(crate) look_lock: Option<bool>,
     /// The cursor hidden while a controller drives: where it stood.
     pub(crate) cursor_hidden: Option<(f32, f32)>,
     /// The wheel's place when it last counted as moved.

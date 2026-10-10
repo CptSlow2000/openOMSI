@@ -252,6 +252,8 @@ impl ApplicationHandler for App {
                 }
                 self.input.mouse_look = state == ElementState::Pressed;
                 self.input.mmb_held = state == ElementState::Pressed;
+                self.sync_look_hold();
+                self.sync_mouse_grab();
                 self.update_hover();
             }
             WindowEvent::MouseWheel { delta, .. } => {
@@ -319,6 +321,7 @@ impl ApplicationHandler for App {
                     if !pressed && self.input.both_drag.is_some() && !(self.input.buttons_held.1 && self.right_zooms()) {
                         self.input.both_drag = None;
                         self.input.mouse_look = self.input.buttons_held.1;
+                        self.sync_look_hold();
                         self.update_hover();
                     }
                     self.left_button(event_loop, pressed);
@@ -348,6 +351,11 @@ impl ApplicationHandler for App {
             }
             if self.xr.vr_nav_edit.is_some() {
                 if self.input.window_focused { self.vr_nav_drag(delta.0 as f32, delta.1 as f32); }
+                return;
+            }
+            // (the cursor locked for looking round: the mouse's own movement turns the view
+            // of the bus and the photo camera, in points on macOS - logical pixels)
+            if self.input.window_focused && self.look_raw(delta.0 as f32, delta.1 as f32) {
                 return;
             }
             // (in a view of the bus the cursor's own way turns it: move_cursor)
@@ -551,6 +559,7 @@ impl App {
             if let Some(ph) = self.photo.as_mut() {
                 ph.looking = pressed && !over;
             }
+            self.sync_look_hold();
             return;
         }
         // a mirror panel is dragged with the left button (a release always ends a drag)

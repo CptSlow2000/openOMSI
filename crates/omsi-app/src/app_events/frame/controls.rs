@@ -50,6 +50,8 @@ impl App {
             || self.menus.list_kind.is_some()
             || self.menus.navigator.as_ref().is_some_and(|n| n.map_open())
             || crate::plugin_ui::focused(&self.integrations.plugins)
+            || self.photo.is_some()
+            || self.input.look_lock.is_some()
             || !matches!(self.view.as_str(), "driver" | "outside" | "pax");
         let hide = (moved || actions.iter().any(|a| a.1)) && !needs_mouse && !vr_on;
         if self.xr.vr_nav_edit.is_none() && hide != self.input.cursor_hidden.is_some() && (hide || needs_mouse) {
@@ -137,7 +139,9 @@ impl App {
         // (the plugins' panels having the mouse hold the wheel and the pedals as
         // looking round does: the cursor goes to their buttons)
         let panels_mouse = self.plugin_focus();
-        // (the cursor held while the mouse steers, let go when it is wanted: mouse_grab.rs)
+        // (the cursor locked while a mouse button looks round, held while the mouse steers,
+        // let go when it is wanted: mouse_grab.rs)
+        self.sync_look_hold();
         self.sync_mouse_grab();
         if let (true, Some(s)) = (self.mouse_steering_now(), self.gfx.surface.as_ref()) {
             let (w, h) = (s.config.width as f32, s.config.height as f32);

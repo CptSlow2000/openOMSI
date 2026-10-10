@@ -1050,7 +1050,11 @@ impl App {
         self.input.mouse_look = false;
         self.input.steer_cursor = None;
         self.input.mouse_pedals.0 = 0.0;
-        // (the cursor held for the mouse steering goes back to the system)
+        if let Some(ph) = self.photo.as_mut() {
+            ph.looking = false;
+        }
+        // (the cursor held for looking round and for the mouse steering goes back to the system)
+        self.sync_look_hold();
         self.sync_mouse_grab();
     }
 

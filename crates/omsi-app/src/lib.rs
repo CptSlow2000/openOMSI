@@ -721,6 +721,7 @@ fn assemble_app(args: Args, settings: settings::Settings) -> App {
             mouse_grab: Default::default(),
             steer_cursor: None,
             center_cursor: false,
+            look_lock: None,
             cursor_hidden: None,
             last_ctl_steer: None,
             mouse_pedals: (0.0, 0.0),
