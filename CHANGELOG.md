@@ -4,6 +4,38 @@ Every push to `main` is released as `MAJOR.MINOR.COMMIT` (see
 [docs/VERSIONING.md](docs/VERSIONING.md)); the downloads are on the
 [Releases](https://github.com/openOMSI-Project/openOMSI/releases) page.
 
+## 0.2.26 - 2026-10-10
+
+### New
+- **Photo mode** (pause menu → *Photo mode*, Ctrl+F12 or the `photo_mode` key). It replaces the menu's Screenshot.
+  - The game stops and a camera of its own flies freely or orbits the bus (WASD, Q/E, mouse or right stick to look, wheel to zoom, Z/X to roll).
+  - A real lens: focal length from 10 to 400 mm, depth of field from the aperture and the focus (on the bus or set by hand), round or bladed bokeh.
+  - A rolling shot: the shutter blurs the street and turns the wheels while the bus stays sharp.
+  - A darkroom (exposure, contrast, highlights, shadows, saturation, temperature, tint), film looks, grain, vignette, frames of any aspect ratio with composition guides, and the clock moved for another light.
+  - Photos are saved as PNG into `Screenshots`, at the window's size or double. The note that says where it went opens the folder with the photo selected when clicked (Finder, Explorer, the file manager). On Android the photo goes straight into the gallery.
+- **The pause menu is drawn like the launcher**: its rail with Resume first, and the settings and lists as launcher pages with the same fields, switches and sliders. The keyboard works it as before.
+- **Procedural passenger animation as an option** ([#2101](https://github.com/openOMSI-org/openOMSI/pull/2101), by @isaacsa2). Settings → Gameplay → Passengers → *Passenger animations*: *Procedural (experimental)* plants the feet on the floor and the steps, seats people on their seats and lets standing riders hold the rails. *Original OMSI* stays the default.
+- **Clouds cover the sky by a continuous amount** ([#1360](https://github.com/openOMSI-org/openOMSI/pull/1360), by @NACHN). A cloud cover slider in the launcher, the phone layout and the game's weather page, carried smoothly across weather changes.
+
+### Changes
+- **Looking round with the mouse is smooth.** While the right (or middle) button is held, the cursor stays where it is and shows OMSI's four arrows, and the view turns by the mouse's own movement. It no longer stops at the edge of the screen, jumps when the button comes up, or loses the steering cross with mouse steering on. The photo mode's camera turns the same way.
+- **Plain text in the interface**: separators are `|`, dashes `-` and ellipses `...`. The photo mode's line of keys and the pause menu's key hint are gone.
+- **Passengers take a free seat first** and stand only by chance (Settings → Gameplay → *Standing passengers*, 5 % by default) or once the seats are full ([#2063](https://github.com/openOMSI-org/openOMSI/pull/2063), by @SuSeu1414).
+- **Logitech G923 force feedback** pushes the right way, and a gentle centring spring holds the wheel while parked ([#2065](https://github.com/openOMSI-org/openOMSI/pull/2065), by @atzock).
+- **The destination menu shows the HOF's names**, as OMSI's own list does ([#2081](https://github.com/openOMSI-org/openOMSI/pull/2081), by @SpicySpaceman).
+- **Less GPU work on slow machines**: the launcher no longer redraws an unchanged picture while idle ([#2097](https://github.com/openOMSI-org/openOMSI/pull/2097)), and the navigator is drawn every other frame at most where frames are slow ([#2096](https://github.com/openOMSI-org/openOMSI/pull/2096), both by @isaacsa2).
+
+### Fixes
+- **DirectX 11 (ANGLE) draws again** ([#2095](https://github.com/openOMSI-org/openOMSI/pull/2095), by @isaacsa2). Shadows without `textureGather` on OpenGL ES 3.0 class devices, the pipelines compiled on a thread of their own, colours no longer too dark, and the card's memory read from DXGI.
+- **Snowfall on DirectX 12.** The snowfall, the lamps in the fog and the street lamps' shadows are now each made on their own: a driver that fails on one of them leaves out only that one (one of them took the snowfall off DirectX 12). A reduced set remembered for a graphics card is tried again with every new version, so snow that went missing comes back.
+- **Bus reflections follow the light.** The `[matl_envmap]` reflection photo is lit by the light that is there now, so at night, at dusk and under a closed sky the bus no longer mirrors a sunny day (Vanilla, Vanilla+).
+- **Photo mode no longer flashes black**, and the photo is shown only once it is of the camera as it stands.
+- **Passengers who got off where there is no pavement walk on** from the nearest pavement instead of standing still for good ([#2102](https://github.com/openOMSI-org/openOMSI/pull/2102), by @isaacsa2).
+- **Timetable buses no longer jump route gaps** or block the stops in between ([#1995](https://github.com/openOMSI-org/openOMSI/pull/1995), by @pcy200409).
+- **Street lamps with a built-in light no longer shadow themselves** ([#2050](https://github.com/openOMSI-org/openOMSI/pull/2050), by @SpicySpaceman).
+- **LED destination displays are bright again** ([#2045](https://github.com/openOMSI-org/openOMSI/pull/2045), by @SpicySpaceman).
+- **A destination chosen while the display is still changing** waits for it, and the newest choice wins ([#2071](https://github.com/openOMSI-org/openOMSI/pull/2071), by @SpicySpaceman).
+
 ## 0.2.25 - 2026-10-09
 
 ### Fixes
