@@ -198,7 +198,10 @@ impl PeopleSim {
                 // A person may get off before the stop has a pavement lane, or
                 // the lane may arrive later with a streamed tile. Do not leave
                 // them rooted forever: recover onto the closest usable path.
-                if let Some((net, leg)) = net.and_then(|net| {
+                // (looked for once a second: nobody waits for it, and somebody with no
+                // lane in reach looked every frame)
+                let look = self.people[i].t_state % 1.0 < dt.max(1e-3);
+                if let Some((net, leg)) = net.filter(|_| look).and_then(|net| {
                     self.ped.as_ref()
                         .and_then(|ped| ped.nearest(net, self.people[i].position, 16.0))
                         .filter(|&(lane, at, _)| {
