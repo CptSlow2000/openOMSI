@@ -211,9 +211,11 @@ impl Soundscape {
         let rain = if kind == 1 { rate } else { 0.0 };
         // the trees take up rain and drip it off over some twenty minutes after
         self.wet_trees = if rain > 0.05 { (self.wet_trees + m.dt * rain / 120.0).min(1.0) } else { (self.wet_trees - m.dt / 1200.0).max(0.0) };
+        // a thunderstorm: towering clouds over a warm shower (thunder in a snowfall is a rarity
+        // not worth making up)
         let storm = m.weather.is_some_and(|w| {
             let c = w.clouds.0.to_ascii_lowercase();
-            (c.contains("cumulus 3") || c.contains("cumulonimbus") || c.contains("gewitter") || c.contains("thunder")) && rate > 0.45
+            (c.contains("cumulus 3") || c.contains("cumulonimbus") || c.contains("gewitter") || c.contains("thunder")) && kind == 1 && rate > 0.45 && w.temp.0 > 8.0
         });
         let (d, mo) = m.clock.day_month();
         let h = m.clock.hour();
@@ -244,7 +246,7 @@ impl Soundscape {
     fn events(&mut self, pack: &Pack, c: &Ctx, master: f32, lowpass: f32, dt: f32) {
         let mut due: Vec<(&'static str, Placing)> = Vec::new();
         for (slot, per_minute, w) in rules::events(c) {
-            if !pack.has(slot) || self.rand() >= per_minute * dt / 60.0 {
+            if !pack.has(slot) || self.rand() >= per_minute * density(slot) * dt / 60.0 {
                 continue;
             }
             let at = match w {
@@ -258,7 +260,7 @@ impl Soundscape {
             due.push((slot, Placing { at: Some(at), range: reference(slot), lowpass: lowpass.max(air(at, c.ear)) }));
         }
         for (slot, per_minute, at, range) in rules::spot_events(c) {
-            if pack.has(slot) && self.rand() < per_minute * dt / 60.0 {
+            if pack.has(slot) && self.rand() < per_minute * density(slot) * dt / 60.0 {
                 due.push((slot, Placing { at: Some(at), range, lowpass: lowpass.max(air(at, c.ear)) }));
             }
         }
@@ -377,6 +379,20 @@ impl Soundscape {
             self.pending.iter().map(|p| p.0).collect::<Vec<_>>().join(", ")
         )
     }
+}
+
+/// `OMSI_AMBIENCE_DENSITY`: how many times as often a one-shot of `slot` comes (1 unset).
+fn density(slot: &str) -> f32 {
+    let Some(v) = omsi_cfg::flags::OMSI_AMBIENCE_DENSITY.var() else { return 1.0 };
+    if let Ok(all) = v.trim().parse::<f32>() {
+        return all.max(0.0);
+    }
+    v.split(',')
+        .filter_map(|kv| kv.split_once('='))
+        .find(|(k, _)| k.trim() == slot)
+        .and_then(|(_, f)| f.trim().parse::<f32>().ok())
+        .unwrap_or(1.0)
+        .max(0.0)
 }
 
 /// How loud a slot is heard (LUFS) at full weight - for a layer around the listener - or at

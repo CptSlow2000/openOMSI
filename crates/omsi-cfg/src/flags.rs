@@ -141,6 +141,7 @@ macro_rules! flags {
 flags! {
     OMSI_AI_MODEL_LOCK: Bool, Switch, Use, "off", "AI cars steer no further than their model's own steering lock (no 60 degree allowance for tight turns).";
     OMSI_AI_WAY_ONLY: Bool, Switch, Use, "off", "AI vehicles stand on their way with the plain ground sampler, as before (A/B).";
+    OMSI_AMBIENCE_DENSITY: Text, Debug, Once, "1", "The ambience's one-shots (birds, the far life, thunder, the objects' calls) this many times as often (a number), or only some of them (slot=factor,…: bird.geese=40) - what fits the place, season and hour stays the same (for demos and checks).";
     OMSI_AMBIENCE_DIR: Text, Setup, Use, "-", "The folder of the ambience's recordings (its pack.json), instead of `ambience` beside the program or in ~/.openomsi.";
     OMSI_API_BLESS: Bool, Test, Use, "off", "cargo test -p omsi-plugin api_manifest: write docs/plugin-api.json and the reference tables of docs/PLUGINS.md again from the plugin API registry.";
     OMSI_AUDIT_LINE: Num, Test, Test, "-", "bus_audit example: the line (number and letter code) the IBIS typist enters instead of the bus's own.";
