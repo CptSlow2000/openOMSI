@@ -117,10 +117,12 @@ pub(crate) fn build(device: &wgpu::Device, scene: &SceneBase, shadow_size: u32) 
     if !basic_pipelines() {
         // (the street lamps' tiles, 6 + 2 k + kind)
         log::info!("renderer: compiling the street lamps' shadow shaders");
-        for cascade in 3..=6 {
-            shadow_pipelines.push(make_shadow(PIPE_OPAQUE, cascade));
-            shadow_pipelines.push(make_shadow(PIPE_ALPHA_TEST, cascade));
-        }
+        // (left out alone where the driver fails on them: the lamps then cast no shadows,
+        // `shadow_pipelines.len() > 6`)
+        let lamps = optional_pipeline(device, "the street lamps' shadows", || {
+            (3..=6).flat_map(|cascade| [make_shadow(PIPE_OPAQUE, cascade), make_shadow(PIPE_ALPHA_TEST, cascade)]).collect::<Vec<_>>()
+        });
+        shadow_pipelines.extend(lamps.into_iter().flatten());
     }
     Shadows {
         view: shadow_view,

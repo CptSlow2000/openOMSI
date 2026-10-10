@@ -42,7 +42,7 @@ impl PassKit<'_> {
             rain_pipelines: self.scene.pipelines(device, f, fs.scene, 1),
             corona_pipeline: self.coronas.pipeline(device, f, fs.corona, fs.corona_blend, self.msaa),
             smoke_pipeline: self.coronas.pipeline(device, f, fs.smoke, ALPHA_BLEND, self.msaa),
-            snow_pipeline: (!basic_pipelines()).then(|| self.snow.pipeline(device, f, fs.snow, self.msaa)),
+            snow_pipeline: (!basic_pipelines()).then(|| optional_pipeline(device, "the snowfall", || self.snow.pipeline(device, f, fs.snow, self.msaa))).flatten(),
             sky_pipeline: self.sky.pipeline(device, f, fs.sky, self.msaa),
         }
     }
