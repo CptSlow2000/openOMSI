@@ -318,7 +318,11 @@ pub fn events(c: &Ctx) -> Vec<(&'static str, f32, Where)> {
     add("far.snow_shovel", 0.3 * if c.snow_lying { hours(c.hour, 6.0, 10.0, 0.5) } else { 0.0 } * (c.suburb() + town * 0.6 + c.village()).min(1.0), Where::Around { near: 20.0, far: 120.0, up: 1.0 });
     add("far.leaf_blower", 0.08 * c.autumn() * weekdays * (1.0 - c.rain) * (c.suburb() + town * 0.5).min(1.0), Where::Around { near: 50.0, far: 250.0, up: 1.0 });
     if c.new_year {
-        add("far.fireworks", 3.0 * (town + c.suburb() + c.village()).min(1.0).max(0.4), Where::Around { near: 150.0, far: 1500.0, up: 60.0 });
+        // a few rockets in the evening, more and more towards midnight, the town ablaze from
+        // five to twelve until half past, dying away by two
+        let h = if c.hour < 12.0 { c.hour + 24.0 } else { c.hour };
+        let rate = 1.0 + 4.0 * step(h, 22.0, 23.9) + 15.0 * step(h, 23.85, 23.95) * (1.0 - step(h, 24.5, 26.0));
+        add("far.fireworks", rate * (town + c.suburb() + c.village()).min(1.0).max(0.4), Where::Around { near: 80.0, far: 1500.0, up: 60.0 });
     }
     if let Some((d, at)) = p.rail {
         add("far.train", 0.25 * (1.0 - step(d, 150.0, 700.0)) * hours(c.hour, 4.5, 24.0, 0.5), Where::At(at));
@@ -329,9 +333,9 @@ pub fn events(c: &Ctx) -> Vec<(&'static str, f32, Where)> {
     }
     // ---- thunder
     if c.storm {
-        add("thunder.close", 0.25, Where::Around { near: 400.0, far: 1500.0, up: 800.0 });
-        add("thunder.mid", 0.45, Where::Around { near: 1500.0, far: 4000.0, up: 1500.0 });
-        add("thunder.far", 0.6, Where::Around { near: 4000.0, far: 12000.0, up: 2000.0 });
+        add("thunder.close", 0.4, Where::Around { near: 400.0, far: 1500.0, up: 800.0 });
+        add("thunder.mid", 0.8, Where::Around { near: 1500.0, far: 4000.0, up: 1500.0 });
+        add("thunder.far", 1.0, Where::Around { near: 4000.0, far: 12000.0, up: 2000.0 });
         if c.rain > 0.5 {
             add("thunder.rain", 0.2, Where::Around { near: 800.0, far: 3000.0, up: 1000.0 });
         }
@@ -582,5 +586,19 @@ mod tests {
         c.day = DayKind { workday: true, holiday: false, school_holiday: true };
         let l: Vec<_> = spot_loops(&c).iter().map(|s| s.0).collect();
         assert!(l.contains(&"supermarket.outside") && !l.contains(&"school.yard"), "{l:?}");
+    }
+
+    #[test]
+    fn fireworks_at_new_year_only() {
+        let town = Place { urban: 0.6, height: 14.0, ..Default::default() };
+        let mut c = ctx(&town);
+        c.doy = 365.0;
+        c.hour = 23.97;
+        c.sun = -60.0;
+        c.new_year = true;
+        let e: Vec<_> = events(&c).iter().map(|e| (e.0, e.1)).collect();
+        assert!(e.iter().any(|(s, r)| *s == "far.fireworks" && *r > 1.0), "{e:?}");
+        c.new_year = false;
+        assert!(!events(&c).iter().any(|e| e.0 == "far.fireworks"));
     }
 }

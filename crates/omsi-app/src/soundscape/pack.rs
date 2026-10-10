@@ -105,4 +105,25 @@ mod tests {
         assert_eq!(names, ["b.mp3", "c.mp3"]);
         let _ = std::fs::remove_dir_all(&dir);
     }
+
+    /// Every take of the pack at `OMSI_AMBIENCE_DIR` decodes with the game's own reader (run
+    /// with `--ignored` where a pack is).
+    #[test]
+    #[ignore]
+    fn every_take_of_the_pack_decodes() {
+        let Some(dir) = omsi_cfg::flags::OMSI_AMBIENCE_DIR.var() else { return };
+        let p = super::Pack::load(std::path::Path::new(dir)).expect("pack.json");
+        let mut bad = Vec::new();
+        let mut n = 0;
+        for takes in p.all.values() {
+            for t in takes {
+                n += 1;
+                match omsi_audio::mixer::read_clip(&t.path) {
+                    Some(c) if c.frames() > 0 => {}
+                    _ => bad.push(t.path.display().to_string()),
+                }
+            }
+        }
+        assert!(bad.is_empty(), "{} of {n} takes do not decode: {:?}", bad.len(), &bad[..bad.len().min(20)]);
+    }
 }

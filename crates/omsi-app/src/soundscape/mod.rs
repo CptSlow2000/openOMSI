@@ -345,7 +345,17 @@ impl Soundscape {
         known.dedup();
         let p = c.place;
         format!(
-            "ear ({:.0}, {:.0}, {:.0}), urban {:.2} h {:.0} m, trees {:.2}/{:.2}, open {:.2}, water {}, roads {:.2}/{:.2}, tracks {}, wire {}, tunnel {}, {} objects ({}); layers {}; objects {}",
+            "day {:.0} {:02.0}:{:02.0} wd {}{}, sun {:.0}, rain {:.2} snow {:.2} wind {:.1} temp {:.0}; ear ({:.0}, {:.0}, {:.0}), urban {:.2} h {:.0} m, trees {:.2}/{:.2}, open {:.2}, water {}, roads {:.2}/{:.2}, tracks {}, wire {}, tunnel {}, {} objects ({}); layers {}; objects {}; waiting {}",
+            c.doy,
+            c.hour.floor(),
+            (c.hour.fract() * 60.0).floor(),
+            c.weekday,
+            if c.new_year { " new year" } else { "" },
+            c.sun,
+            c.rain,
+            c.snow,
+            c.wind,
+            c.temp,
             c.ear.x,
             c.ear.y,
             c.ear.z,
@@ -363,7 +373,8 @@ impl Soundscape {
             p.spots.len(),
             known.join(", "),
             beds.iter().map(|(s, g)| format!("{s} {:.0} dB", 20.0 * g.max(1.0e-6).log10())).collect::<Vec<_>>().join(", "),
-            spots.join(", ")
+            spots.join(", "),
+            self.pending.iter().map(|p| p.0).collect::<Vec<_>>().join(", ")
         )
     }
 }
@@ -416,7 +427,7 @@ pub fn level(slot: &str) -> f32 {
         s if s.starts_with("far.siren") => -20.0,
         "far.fireworks" => -16.0,
         s if s.starts_with("far.") => -26.0,
-        s if s.starts_with("church.") => -18.0,
+        s if s.starts_with("church.") => -21.0,
         s if s.starts_with("school.") => -24.0,
         s if s.starts_with("station.") => -28.0,
         "hum.substation" | "hum.lamp" => -38.0,
