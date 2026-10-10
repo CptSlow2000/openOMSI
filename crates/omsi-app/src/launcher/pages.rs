@@ -38,6 +38,8 @@ pub struct PagesView {
     pub mod_search: String,
     pub mod_filter: usize,
     pub mod_confirm: Option<String>,
+    /// The mods opened to show what they hold, folder by folder.
+    pub mod_open: std::collections::HashSet<String>,
     pub setup_root: Option<String>,
     pub setup_game: Option<String>,
     /// The Controls page's tab: 0 the keyboard, 1 the game controllers.
@@ -2619,6 +2621,8 @@ fn mod_list(l: &mut Launcher, c: Rect) {
     let mut toggle: Option<(String, bool)> = None;
     let mut ask: Option<Option<String>> = None;
     let mut delete: Option<String> = None;
+    let mut open_toggle: Option<String> = None;
+    let opened = l.pages.mod_open.clone();
     let list = Rect::new(inner.x - 6.0, y, inner.w + 12.0, inner.bottom() - y);
     l.ui.scroll_area("mods-list", list, &mut |ui, v| {
         if shown.is_empty() {
@@ -2627,13 +2631,35 @@ fn mod_list(l: &mut Launcher, c: Rect) {
             return 40.0;
         }
         let rh = 54.0;
-        for (k, m) in shown.iter().enumerate() {
-            let r = Rect::new(v.x + 6.0, v.y + k as f32 * rh, v.w - 16.0, rh - 6.0);
-            if r.bottom() < list.y - rh || r.y > list.bottom() + rh {
+        // (an opened mod shows what it holds under its row, a line per folder of the game it
+        // put things into: Vehicles, Fonts, Texture, ...)
+        let line_h = 18.0;
+        let mut top = v.y;
+        for m in shown.iter() {
+            let groups = if opened.contains(&m.id) { mod_tree(&m.paths) } else { Vec::new() };
+            let lines: usize = groups.iter().map(|(_, items)| items.len().div_ceil(3).max(1)).sum();
+            let extra = if groups.is_empty() { 0.0 } else { lines as f32 * line_h + 8.0 };
+            let full = Rect::new(v.x + 6.0, top, v.w - 16.0, rh - 6.0 + extra);
+            top += rh + extra;
+            if full.bottom() < list.y - rh || full.y > list.bottom() + rh {
                 continue;
             }
+            let r = full;
             let asking = confirm.as_deref() == Some(m.id.as_str());
-            ui.p().rounded(r, 8.0, if asking { DANGER.alpha(0.12) } else { Color::WHITE.alpha(if m.enabled { 0.04 } else { 0.015 }) });
+            ui.p().rounded(full, 8.0, if asking { DANGER.alpha(0.12) } else { Color::WHITE.alpha(if m.enabled { 0.04 } else { 0.015 }) });
+            if !groups.is_empty() {
+                let mut ly = r.y + rh - 8.0;
+                for (folder, items) in &groups {
+                    for (row, chunk) in items.chunks(3).enumerate() {
+                        if row == 0 {
+                            ui.text_in(folder, Rect::new(r.x + 44.0, ly, 110.0, line_h), 11.5, Weight::Medium, TEXT_DIM, Align::Left);
+                        }
+                        ui.text_in(&chunk.join("   "), Rect::new(r.x + 156.0, ly, r.w - 170.0, line_h), 11.5, Weight::Regular, TEXT_FAINT, Align::Left);
+                        ly += line_h;
+                    }
+                }
+            }
+            let r = Rect::new(r.x, r.y, r.w, rh - 6.0);
             let icon = match m.kind {
                 Kind::Bus => "directions_bus",
                 Kind::Map => "map",
@@ -2643,7 +2669,13 @@ fn mod_list(l: &mut Launcher, c: Rect) {
             ui.icon(icon, Vec2::new(r.x + 22.0, r.center().y), 20.0, if m.enabled { ACCENT } else { TEXT_FAINT });
             let tw = r.w - 230.0;
             ui.text_in(&m.name, Rect::new(r.x + 44.0, r.y + 6.0, tw, 20.0), 13.5, Weight::Medium, if m.enabled { TEXT } else { TEXT_DIM }, Align::Left);
-            let mut sub = vec![m.paths.join(", "), fmt_bytes(m.bytes)];
+            let open = opened.contains(&m.id);
+            if ui.icon_button(&format!("mod-open-{}", m.id), Vec2::new(r.right() - 130.0, r.y + 24.0), 17.0, if open { "expand_less" } else { "expand_more" }, "What this mod holds, folder by folder") {
+                open_toggle = Some(m.id.clone());
+            }
+            // (the folders it holds: under the row once opened by its arrow)
+            let folders = mod_tree(&m.paths).iter().map(|(f, items)| format!("{f} {}", items.len())).collect::<Vec<_>>().join(", ");
+            let mut sub = vec![folders, fmt_bytes(m.bytes)];
             if !m.enabled {
                 sub.insert(0, "OFF".into());
             }
@@ -2676,8 +2708,13 @@ fn mod_list(l: &mut Launcher, c: Rect) {
                 ask = Some(Some(m.id.clone()));
             }
         }
-        shown.len() as f32 * rh
+        top - v.y
     });
+    if let Some(id) = open_toggle {
+        if !l.pages.mod_open.remove(&id) {
+            l.pages.mod_open.insert(id);
+        }
+    }
     if let Some((id, on)) = toggle {
         l.state.mod_toggle(id, on);
     }
@@ -2991,5 +3028,29 @@ mod pad_remove_tests {
         assert_eq!(super::remove_device(&mut devices, &mut sel), "SideWinder Joystick");
         assert_eq!(sel, 0);
         assert!(names(&cfg_text(&devices)).is_empty());
+    }
+}
+
+/// A mod's paths grouped by the game's folder they lie in (`Vehicles`, `Fonts`, `Texture`,
+/// ...), each with what of it is the mod's: `[("Fonts", ["a.oft", "b.oft"]), ...]`.
+fn mod_tree(paths: &[String]) -> Vec<(String, Vec<String>)> {
+    let mut out: Vec<(String, Vec<String>)> = Vec::new();
+    for p in paths {
+        let (folder, rest) = p.split_once('/').unwrap_or(("", p.as_str()));
+        let folder = if folder.is_empty() { "(top)" } else { folder };
+        match out.iter_mut().find(|(f, _)| f.eq_ignore_ascii_case(folder)) {
+            Some((_, items)) => items.push(rest.to_string()),
+            None => out.push((folder.to_string(), vec![rest.to_string()])),
+        }
+    }
+    out
+}
+
+#[cfg(test)]
+mod mod_tree_tests {
+    #[test]
+    fn a_mods_paths_are_grouped_by_folder() {
+        let t = super::mod_tree(&["Vehicles/MAN_SD202".into(), "Fonts/a.oft".into(), "Fonts/b.oft".into(), "Texture/Signs".into()]);
+        assert_eq!(t, vec![("Vehicles".to_string(), vec!["MAN_SD202".to_string()]), ("Fonts".to_string(), vec!["a.oft".to_string(), "b.oft".to_string()]), ("Texture".to_string(), vec!["Signs".to_string()])]);
     }
 }
